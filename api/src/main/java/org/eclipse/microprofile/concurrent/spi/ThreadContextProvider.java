@@ -98,7 +98,7 @@ public interface ThreadContextProvider {
      * must ensure that all prerequisite types are established on the thread
      * before invoking the <code>ThreadContextSnapshot.begin</code> method for this type
      * of thread context and must also ensure that the prerequisite types are not removed
-     * until after the corresponding <code>ActiveThreadContext.end</code> method.</p>
+     * until after the corresponding <code>ThreadContextController.endContext</code> method.</p>
      *
      * <p>This has the effect of guaranteeing that prerequisite context types are available
      * for the duration of the contextualized action/task as well as during the initial

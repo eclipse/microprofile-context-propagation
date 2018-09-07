@@ -75,7 +75,7 @@ public @interface ThreadContextConfig {
      * <pre><code> &commat;Inject &commat;ThreadContextConfig(unchanged = ThreadContext.TRANSACTION)
      * ThreadContext threadContext;
      * ...
-     * task = threadContext.withCurrentContext(new MyTransactionlTask());
+     * task = threadContext.withCurrentContext(new MyTransactionalTask());
      * ...
      * // on another thread,
      * tx.begin();

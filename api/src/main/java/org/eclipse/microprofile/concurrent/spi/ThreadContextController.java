@@ -25,49 +25,58 @@ package org.eclipse.microprofile.concurrent.spi;
  *
  * <p>When the context is no longer needed on the thread, the
  * <code>ManagedExecutor</code> or <code>ThreadContext</code> must invoke the
- * <code>end</code> method.</p>
+ * <code>endContext</code> method.</p>
  */
-public interface ActiveThreadContext {
+public interface ThreadContextController {
     /**
      * <p>Invoked by the <code>ManagedExecutor</code> or
-     * <code>ThreadContext</code> to remove the thread context represented by
-     * this <code>ActiveThreadContext</code> instance and restore the previous
-     * context that was on the thread before the <code>ActiveThreadContext</code>
-     * was started on the thread. The <code>ManagedExecutor</code> or
-     * <code>ThreadContext</code> must invoke the <code>end</code> method exactly
-     * once for each <code>ActiveThreadContext</code> instance that it creates.</p>
+     * <code>ThreadContext</code> to remove the thread context managed by
+     * this <code>ThreadContextController</code> instance and restore the previous
+     * context that was on the thread before the <code>ThreadContextController</code>
+     * applied the context to the thread. The <code>ManagedExecutor</code> or
+     * <code>ThreadContext</code> must invoke the <code>endContext</code> method exactly
+     * once for each <code>ThreadContextController</code> instance that it creates.</p>
      *
      * <p>Typically, patterns such as the following will be observed:</p>
      * <pre><code>
-     * activeContextA1 = contextSnapshotA.begin();
-     * activeContextB1 = contextSnapshotB.begin();
-     * activeContextC1 = contextSnapshotC.begin();
+     * controllerA1 = contextSnapshotA.begin();
+     * controllerB1 = contextSnapshotB.begin();
+     * controllerC1 = contextSnapshotC.begin();
      * ...
-     * activeContextC1.end();
-     * activeContextB1.end();
-     * activeContextA1.end();
+     * controllerC1.endContext();
+     * controllerB1.endContext();
+     * controllerA1.endContext();
      * </code></pre>
      *
      * <p>However, more advanced sequences such as the following are also valid:</p>
      * <pre><code>
-     * activeContextA1 = contextSnapshotA.begin();
-     * activeContextB1 = contextSnapshotB.begin();
+     * controllerA1 = contextSnapshotA.begin();
+     * controllerB1 = contextSnapshotB.begin();
      * ...
-     * activeContextC1 = contextSnapshotC.begin();
+     * controllerC1 = contextSnapshotC.begin();
      * ...
-     * activeContextC1.end();
+     * controllerC1.endContext();
      * ...
-     * activeContextB2 = contextSnapshotB.begin();
-     * activeContextC2 = contextSnapshotC.begin();
+     * controllerB2 = contextSnapshotB.begin();
+     * controllerC2 = contextSnapshotC.begin();
      * ...
-     * activeContextC2.end();
-     * activeContextB2.end();
+     * controllerC2.endContext();
+     * controllerB2.endContext();
      * ...
-     * activeContextB1.end();
-     * activeContextA1.end();
+     * controllerB1.endContext();
+     * controllerA1.endContext();
      * </code></pre>
      *
      * @throws IllegalStateException if invoked more than once on the same instance.
      */
-    void end() throws IllegalStateException;
+    void endContext() throws IllegalStateException;
+
+    /**
+     * Indicates whether or not the context managed by this controller has been
+     * ended on this thread by invoking <code>endContext</code>.
+     *
+     * @return true if <code>endContext</code> was invoked on this controller,
+     *         otherwise false.
+     */
+    boolean isEnded();
 }

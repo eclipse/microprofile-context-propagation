@@ -26,29 +26,28 @@ package org.eclipse.microprofile.concurrent.spi;
  *
  * <p>Any state that is associated with context applied to a thread should
  * be kept, not within the snapshot, but within the distinct
- * <code>ActiveThreadContext</code> instance it creates each time it is applied
+ * <code>ThreadContextController</code> instance it creates each time it is applied
  * to a thread.</p>
  */
 public interface ThreadContextSnapshot {
     /**
      * <p>Applies the captured thread context snapshot to the current thread and
-     * returns a distinct <code>ActiveThreadContext</code> instance. The
-     * <code>ActiveThreadContext</code> instance tracks the context's life cycle,
+     * returns a distinct <code>ThreadContextController</code> instance. The
+     * <code>ThreadContextController</code> instance tracks the context's life cycle,
      * including any state that is associated with it or that is necessary for
      * restoring the previous context.</p>
      *
      * <p>For each invocation of this method, the invoker (typically a
      * <code>ManagedExecutor</code> or <code>ThreadContext</code> instance)
-     * must invoke the <code>end</code> method on the corresponding
-     * <code>ActiveThreadContext</code> instance exactly once, such that the
+     * must invoke the <code>endContext</code> method on the corresponding
+     * <code>ThreadContextController</code> instance exactly once, such that the
      * previous context is restored on the thread. If the invoker sequentially
-     * begins multiple <code>ActiveThreadContext</code> instances on a thread,
-     * it must invoke the corresponding <code>end</code> methods in reverse
+     * begins multiple <code>ThreadContextController</code> instances on a thread,
+     * it must invoke the corresponding <code>endContext</code> methods in reverse
      * order.</p>
      *
-     * @return immutable snapshot of the provided type of context, typically
-     *         either captured from a thread or otherwise representing an
-     *         empty/default context.
+     * @return controller instance representing a single application of this
+     *         thread context snapshot to a thread.
      */
-    ActiveThreadContext begin();
+    ThreadContextController begin();
 }
