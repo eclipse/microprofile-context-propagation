@@ -39,8 +39,9 @@ import java.util.Set;
  *
  * <code>META-INF/services/org.eclipse.microprofile.concurrent.spi.ThreadContextProvider</code>
  *
- * <p>The content of the aforementioned file must be a single line that specifies the
- * fully qualified name of the <code>ThreadContextProvider</code> implementation.</p>
+ * <p>The content of the aforementioned file must be one or more lines, each specifying
+ * the fully qualified name of a <code>ThreadContextProvider</code> implementation
+ * that is provided within the JAR file.</p>
  *
  * <p><code>ManagedExecutor</code> and <code>ThreadContext</code> must use the
  * <code>ServiceLoader</code> to identify all available implementations of
