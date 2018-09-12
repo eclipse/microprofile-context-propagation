@@ -29,6 +29,7 @@ package org.eclipse.microprofile.concurrent.spi;
  * <code>ThreadContextController</code> instance it creates each time it is applied
  * to a thread.</p>
  */
+@FunctionalInterface
 public interface ThreadContextSnapshot {
     /**
      * <p>Applies the captured thread context snapshot to the current thread and

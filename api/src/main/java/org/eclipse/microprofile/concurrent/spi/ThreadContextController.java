@@ -27,6 +27,7 @@ package org.eclipse.microprofile.concurrent.spi;
  * <code>ManagedExecutor</code> or <code>ThreadContext</code> must invoke the
  * <code>endContext</code> method.</p>
  */
+@FunctionalInterface
 public interface ThreadContextController {
     /**
      * <p>Invoked by the <code>ManagedExecutor</code> or
@@ -70,13 +71,4 @@ public interface ThreadContextController {
      * @throws IllegalStateException if invoked more than once on the same instance.
      */
     void endContext() throws IllegalStateException;
-
-    /**
-     * Indicates whether or not the context managed by this controller has been
-     * ended on this thread by invoking <code>endContext</code>.
-     *
-     * @return true if <code>endContext</code> was invoked on this controller,
-     *         otherwise false.
-     */
-    boolean isEnded();
 }
