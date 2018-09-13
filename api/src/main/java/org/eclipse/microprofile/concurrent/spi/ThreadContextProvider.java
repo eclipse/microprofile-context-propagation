@@ -18,7 +18,13 @@
  */
 package org.eclipse.microprofile.concurrent.spi;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 
 /**
@@ -52,6 +58,97 @@ import java.util.Set;
  * and contextualize dependent actions and tasks.</p>
  */
 public interface ThreadContextProvider {
+    /**
+     * <p>This convenience method is provided for product integration code that captures
+     * all available thread context types and is looking to avoid boilerplate code in its
+     * usage of the SPI.</p>
+     *
+     * <p>This method locates all available <code>ThreadContextProvider</code>s for the
+     * current thread context class loader, detects and rejects duplicate
+     * <code>ThreadContextProvider</code> types, and uses the
+     * <code>ThreadContextProvider</code>s to capture context from the current thread,
+     * or, where capture from the current thread is not supported, obtains default
+     * context.</p>
+     *
+     * @param props provided for compatibility with EE Concurrency spec, which allows
+     *        for specifying a set of 'execution properties' when capturing thread context.
+     *        Thread context providers that don't supply or use execution properties
+     *        can ignore this parameter.
+     * @return immutable combined snapshot of all context types, captured from the current
+     *         thread or defaulted, and ordered according to their declared context type
+     *         prerequisites.
+     */
+    public static ThreadContextSnapshot captureAllContext(Map<String, String> props) {
+        Set<String> contextTypes = new HashSet<String>();
+        List<ThreadContextProvider> providers = new ArrayList<ThreadContextProvider>();
+        List<ThreadContextProvider> providersWithUnmetPrereqs = new LinkedList<ThreadContextProvider>();
+
+        for (ThreadContextProvider provider : ServiceLoader.load(ThreadContextProvider.class)) {
+            String type = provider.getThreadContextType();
+            if (contextTypes.contains(type)) {
+                throw new Error("Multiple providers of thread context type " + type);
+            }
+            Set<String> prereqs = provider.getPrerequisites();
+            if (prereqs.size() == 0 || contextTypes.containsAll(prereqs)) {
+                providers.add(provider);
+                contextTypes.add(type);
+            }
+            else {
+                providersWithUnmetPrereqs.add(provider);
+            }
+        }
+
+        while (providersWithUnmetPrereqs.size() > 0) {
+            boolean atLeastOneAdded = false;
+            for (Iterator<ThreadContextProvider> it = providersWithUnmetPrereqs.iterator(); it.hasNext(); ) {
+                ThreadContextProvider provider = it.next();
+                String type = provider.getThreadContextType();
+                if (contextTypes.contains(type)) {
+                    throw new Error("Multiple providers of thread context type " + type);
+                }
+                Set<String> prereqs = provider.getPrerequisites();
+                if (prereqs.size() == 0 || contextTypes.containsAll(prereqs)) {
+                    providers.add(provider);
+                    contextTypes.add(type);
+                    it.remove();
+                }
+            }
+            if (!atLeastOneAdded) {
+                throw new Error("Prerequisites not met for " + providersWithUnmetPrereqs);
+            }
+        }
+
+        // TODO consider caching the ordered ThreadContextProvider list (computed above) per class loader
+
+        List<ThreadContextSnapshot> contextSnapshots = new ArrayList<ThreadContextSnapshot>();
+        for (ThreadContextProvider provider : providers) {
+            ThreadContextSnapshot contextSnapshot = provider.currentContext(props);
+            contextSnapshots.add(contextSnapshot == null ? provider.defaultContext(props) : contextSnapshot);
+        }
+
+        // implementation of multi-ThreadContextSnapshot.begin:
+        return () -> {
+            final LinkedList<ThreadContextController> appliedContexts = new LinkedList<ThreadContextController>();
+            try {
+                for (ThreadContextSnapshot contextSnapshot : contextSnapshots) {
+                    appliedContexts.addFirst(contextSnapshot.begin());
+                }
+            }
+            catch (RuntimeException | Error x) {
+                for (ThreadContextController controller : appliedContexts) {
+                    controller.endContext();
+                }
+                throw x;
+            }
+            // implementation of multi-ThreadContextController.endContext:
+            return () -> {
+                for (ThreadContextController controller : appliedContexts) {
+                    controller.endContext();
+                }
+            };
+        };
+    }
+
     /**
      * Captures from the current thread a snapshot of the provided thread context type.
      *
