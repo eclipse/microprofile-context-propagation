@@ -140,7 +140,7 @@ any given point in time to 5,
 
 [source,java]
 ----
-  @Inject @ManagedExecutorConfig(context=ThreadContext.CDI, maxAsync=5)
+  @Inject @ManagedExecutorConfig(propagated=ThreadContext.CDI, maxAsync=5)
   ManagedExecutor executor;
 ----
 
