@@ -25,7 +25,7 @@ import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
  *
  * <p>Example usage:</p>
  * <pre><code> ThreadContext threadContext = ThreadContextBuilder.instance()
- *                                                   .propagate(ThreadContext.APPLICATION, ThreadContext.SECURITY)
+ *                                                   .propagated(ThreadContext.APPLICATION, ThreadContext.SECURITY)
  *                                                   .unchanged(ThreadContext.TRANSACTION)
  *                                                   .build();
  * ...
@@ -44,7 +44,7 @@ public interface ThreadContextBuilder {
      *
      * @return new instance of <code>ThreadContext</code>.
      * @throws IllegalArgumentException if the same thread context type is
-     *         present in, or inferred by, both the {@link #propagate} set
+     *         present in, or inferred by, both the {@link #propagated} set
      *         and the {@link #unchanged} set.
      */
     ThreadContext build();
@@ -63,7 +63,7 @@ public interface ThreadContextBuilder {
      * that contextualizes an action or task. This context is later
      * re-established on the thread(s) where the action or task executes.</p>
      *
-     * <p>This set replaces the 'propagate' set that was previously specified
+     * <p>This set replaces the 'propagated' set that was previously specified
      * on the builder instance.</p>
      *
      * <p>The default set of thread context types is those required by the
@@ -78,17 +78,17 @@ public interface ThreadContextBuilder {
      * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>Thread context types which are not otherwise included in this set or
-     * in the {@link #unchanged} set are removed from the thread of execution
+     * in the {@link #unchanged} set are cleared from the thread of execution
      * for the duration of the action or task.</p>
      *
      * <p>A <code>ThreadContext</code> must fail to inject if the same context
      * type is included in this set as well as in the {@link #unchanged} set.
      * </p>
      *
-     * @param types types of thread context to capture and propagate.
+     * @param types types of thread context to capture and propagated.
      * @return the same builder instance upon which this method is invoked.
      */
-    ThreadContextBuilder propagate(String... types);
+    ThreadContextBuilder propagated(String... types);
 
     /**
      * <p>Defines a set of thread context types that are essentially ignored,
@@ -97,6 +97,11 @@ public interface ThreadContextBuilder {
      *
      * <p>This set replaces the <code>unchanged</code> set that was previously
      * specified on the builder instance.</p>
+     *
+     * <p>Constants for specifying some of the core context types are provided
+     * on {@link ThreadContext}. Other thread context types must be defined
+     * by the specification that defines the context type or by a related
+     * MicroProfile specification.</p>
      *
      * <p>The configuration of <code>unchanged</code> context is provided for
      * advanced patterns where it is desirable to leave certain context types
@@ -116,17 +121,19 @@ public interface ThreadContextBuilder {
      * tx.commit();
      * </code></pre>
      *
-     * <p>Inclusion in this set of a thread context type which is a
-     * prerequisite of other thread context types implies that these other
-     * dependent types of context are 'unchanged' as well, even if not
-     * explicitly specified.</p>
+     * <p>Inclusion of a thread context type with prerequisites implies
+     * inclusion of the prerequisites, in that the prequisistes are
+     * considered 'unchanged' as well, even if not explicitly specified.</p>
      *
      * <p>A <code>ThreadContext</code> must fail to inject if the same context
      * type is included in this set as well as in the set specified by
-     * {@link #propagate}.</p>
+     * {@link #propagated}.</p>
      *
      * @param types types of thread context to leave unchanged on the thread.
      * @return the same builder instance upon which this method is invoked.
+     * @throws IllegalArgumentException if {@link ThreadContext#ALL} is
+     *         included in the 'unchanged' set, because this would otherwise
+     *         render the <code>ThreadContext</code> instance meaningless.
      */
     ThreadContextBuilder unchanged(String... types);
 }

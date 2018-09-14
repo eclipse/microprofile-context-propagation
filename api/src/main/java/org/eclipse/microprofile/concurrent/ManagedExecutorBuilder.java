@@ -27,7 +27,7 @@ import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
  * <pre><code> ManagedExecutor executor = ManagedExecutorBuilder.instance()
  *                                                  .maxAsync(5)
  *                                                  .maxQueued(20)
- *                                                  .context(ThreadContext.SECURITY)
+ *                                                  .propagated(ThreadContext.SECURITY)
  *                                                  .build();
  * ...
  * </code></pre>
@@ -67,13 +67,13 @@ public interface ManagedExecutorBuilder {
      * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>Thread context types which are not otherwise included in this set
-     * are removed from the thread of execution for the duration of the
+     * are cleared from the thread of execution for the duration of the
      * action or task.</p>
      *
      * @param types types of thread context to capture and propagate.
      * @return the same builder instance upon which this method is invoked.
      */
-    ManagedExecutorBuilder context(String... types);
+    ManagedExecutorBuilder propagated(String... types);
 
     /**
      * Creates a new <code>ManagedExecutorBuilder</code> instance.
