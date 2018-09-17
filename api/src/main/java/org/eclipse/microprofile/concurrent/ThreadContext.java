@@ -19,6 +19,7 @@
 package org.eclipse.microprofile.concurrent;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -105,6 +106,24 @@ public interface ThreadContext {
      * @see ThreadContextConfig#unchanged
      */
     static final String TRANSACTION = "Transaction";
+
+    /**
+     * <p>Creates an <code>Executor</code>that runs tasks on the same thread from which
+     * <code>execute</code>is invoked but with context that is captured from the thread
+     * that invokes <code>withCurrentContext</code>.</p>
+     *
+     * <p>Example usage:</p>
+     * <pre>
+     * <code>Executor contextSnapshot = threadContext.withCurrentContext();
+     * ...
+     * // from another thread, or after thread context has changed,
+     * contextSnapshot.execute(() -> obj.doSomethingThatNeedsContext());
+     * contextSnapshot.execute(() -> doSomethingElseThatNeedsContext(x, y));
+     * </code></pre>
+     *
+     * @return an executor that wraps the <code>execute</code> method with context.
+     */
+    Executor withCurrentContext();
 
     /**
      * <p>Wraps a <code>BiConsumer</code> with context that is captured from the thread that invokes
