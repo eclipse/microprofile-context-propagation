@@ -53,7 +53,7 @@ public @interface ThreadContextConfig {
      * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>Thread context types which are not otherwise included in this set or
-     * in the {@link #unchanged} set are removed from the thread of execution
+     * in the {@link #unchanged} set are cleared from the thread of execution
      * for the duration of the action or task.</p>
      *
      * <p>A <code>ThreadContext</code> must fail to inject if the same context
@@ -66,6 +66,15 @@ public @interface ThreadContextConfig {
      * <p>Defines a set of thread context types that are essentially ignored,
      * in that they are neither captured nor are they propagated or cleared
      * from thread(s) that execute the action or task.</p>
+     *
+     * <p>Constants for specifying some of the core context types are provided
+     * on {@link ThreadContext}. Other thread context types must be defined
+     * by the specification that defines the context type or by a related
+     * MicroProfile specification. A <code>ThreadContext</code> must fail to
+     * inject, raising <code>DefinitionException</code> on application startup,
+     * if {@link ThreadContext#ALL} is included in the
+     * <code>unchanged</code> context because it would otherwise render the
+     * <code>ThreadContext</code> instance meaningless.</p>
      *
      * <p>The configuration <code>unchanged</code> context is provided for
      * advanced patterns where it is desirable to leave certain context types
@@ -84,10 +93,9 @@ public @interface ThreadContextConfig {
      * tx.commit();
      * </code></pre>
      *
-     * <p>Inclusion in this set of a thread context type which is a
-     * prerequisite of other thread context types implies that these other
-     * dependent types of context are 'unchanged' as well, even if not
-     * explicitly specified.</p>
+     * <p>Inclusion of a thread context type with prerequisites implies
+     * inclusion of the prerequisites, in that the prequisistes are
+     * considered 'unchanged' as well, even if not explicitly specified.</p>
      *
      * <p>A <code>ThreadContext</code> must fail to inject if the same context
      * type is included in this set as well as in the set specified by

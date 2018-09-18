@@ -28,7 +28,7 @@ import java.lang.annotation.Target;
  * <p>Configures an injected <code>ManagedExecutor</code> instance.</p>
  *
  * <p>Example usage:</p>
- * <pre><code> &commat;Inject &commat;ManagedExecutorConfig(context=ThreadContext.CDI, maxAsync=5)
+ * <pre><code> &commat;Inject &commat;ManagedExecutorConfig(propagated=ThreadContext.CDI, maxAsync=5)
  * ManagedExecutor executor;
  * ...
  * </code></pre>
@@ -53,10 +53,10 @@ public @interface ManagedExecutorConfig {
      * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>Thread context types which are not otherwise included in this set
-     * are removed from the thread of execution for the duration of the
+     * are cleared from the thread of execution for the duration of the
      * action or task.</p>
      */
-    String[] context() default { ThreadContext.APPLICATION, ThreadContext.CDI, ThreadContext.SECURITY };
+    String[] propagated() default { ThreadContext.APPLICATION, ThreadContext.CDI, ThreadContext.SECURITY };
 
     /**
      * <p>Establishes an upper bound on the number of async completion stage

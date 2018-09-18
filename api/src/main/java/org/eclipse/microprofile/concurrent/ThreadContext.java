@@ -48,9 +48,7 @@ public interface ThreadContext {
      * Identifier for all available thread context types that support capture
      * and propagation to other threads.
      * 
-     * TODO Must not be used on 'unchanged' context, belongs on that JavaDoc.
-     *
-     * @see ManagedExecutorConfig#context
+     * @see ManagedExecutorConfig#propagated
      * @see ThreadContextConfig#value
      */
     static final String ALL = "All";
@@ -63,7 +61,7 @@ public interface ThreadContext {
      * application context means that the thread is not associated with any
      * application.
      *
-     * @see ManagedExecutorConfig#context
+     * @see ManagedExecutorConfig#propagated
      * @see ThreadContextConfig
      */
     static final String APPLICATION = "Application";
@@ -74,7 +72,7 @@ public interface ThreadContext {
      * access to the scope of the session, request, and so forth that created the
      * contextualized action.
      *
-     * @see ManagedExecutorConfig#context
+     * @see ManagedExecutorConfig#propagated
      * @see ThreadContextConfig
      */
     static final String CDI = "CDI";
@@ -84,7 +82,7 @@ public interface ThreadContext {
      * that are associated with the thread. An empty/default security context
      * means that the thread is unauthenticated.
      * 
-     * @see ManagedExecutorConfig#context
+     * @see ManagedExecutorConfig#propagated
      * @see ThreadContextConfig
      */
     static final String SECURITY = "Security";
