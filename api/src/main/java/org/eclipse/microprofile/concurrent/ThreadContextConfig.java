@@ -71,7 +71,8 @@ public @interface ThreadContextConfig {
      * on {@link ThreadContext}. Other thread context types must be defined
      * by the specification that defines the context type or by a related
      * MicroProfile specification. A <code>ThreadContext</code> must fail to
-     * inject if {@link ThreadContext#ALL} is included in the
+     * inject, raising <code>DefinitionException</code> on application startup,
+     * if {@link ThreadContext#ALL} is included in the
      * <code>unchanged</code> context because it would otherwise render the
      * <code>ThreadContext</code> instance meaningless.</p>
      *
