@@ -18,6 +18,8 @@
  */
 package org.eclipse.microprofile.concurrent;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.BiConsumer;
@@ -215,4 +217,56 @@ public interface ThreadContext {
      * @return contextualized proxy instance that wraps execution of the <code>supply</code> method with context.
      */
     <R> Supplier<R> withCurrentContext(Supplier<R> supplier);
+
+    /**
+     * <p>Returns a new <code>CompletableFuture</code> that is completed by the completion of the
+     * specified stage.</p>
+     *
+     * <p>The container supplies the default asynchronous execution facility for the new completable
+     * future that is returned by this method and all dependent stages that are created from it,
+     * and all dependent stages that are created from those, and so forth.</p>
+     *
+     * <p>When dependent stages are created from the new completable future, thread context is captured
+     * from the thread that creates the dependent stage and is applied to the thread that runs the
+     * action, being removed afterward. When dependent stages are created from these dependent stages,
+     * and likewise from any dependent stages created from those, and so on, thread context is captured
+     * from the respective thread that creates each dependent stage. This guarantees that the action
+     * performed by each stage always runs under the thread context of the code that creates the stage.
+     * </p>
+     *
+     * <p>Invocation of this method does not impact thread context propagation for the supplied
+     * completable future or any dependent stages created from it, other than the new dependent
+     * completable future that is created by this method.</p>
+     *
+     * @param stage a completable future whose completion triggers completion of the new completable
+     *        future that is created by this method.
+     * @return the new completable future.
+     */
+    <T> CompletableFuture<T> withContextCapture(CompletableFuture<T> stage);
+
+    /**
+     * <p>Returns a new <code>CompletionStage</code> that is completed by the completion of the
+     * specified stage.</p>
+     *
+     * <p>The container supplies the default asynchronous execution facility for the new completion
+     * stage that is returned by this method and all dependent stages that are created from it,
+     * and all dependent stages that are created from those, and so forth.</p>
+     *
+     * <p>When dependent stages are created from the new completion stage, thread context is captured
+     * from the thread that creates the dependent stage and is applied to the thread that runs the
+     * action, being removed afterward. When dependent stages are created from these dependent stages,
+     * and likewise from any dependent stages created from those, and so on, thread context is captured
+     * from the respective thread that creates each dependent stage. This guarantees that the action
+     * performed by each stage always runs under the thread context of the code that creates the stage.
+     * </p>
+     *
+     * <p>Invocation of this method does not impact thread context propagation for the supplied
+     * stage or any dependent stages created from it, other than the new dependent
+     * completion stage that is created by this method.</p>
+     *
+     * @param stage a completion stage whose completion triggers completion of the new stage
+     *        that is created by this method.
+     * @return the new completion stage.
+     */
+    <T> CompletionStage<T> withContextCapture(CompletionStage<T> stage);
 }
