@@ -110,11 +110,11 @@ public interface ThreadContext {
     /**
      * <p>Creates an <code>Executor</code>that runs tasks on the same thread from which
      * <code>execute</code>is invoked but with context that is captured from the thread
-     * that invokes <code>withCurrentContext</code>.</p>
+     * that invokes <code>currentContextExecutor</code>.</p>
      *
      * <p>Example usage:</p>
      * <pre>
-     * <code>Executor contextSnapshot = threadContext.withCurrentContext();
+     * <code>Executor contextSnapshot = threadContext.currentContextExecutor();
      * ...
      * // from another thread, or after thread context has changed,
      * contextSnapshot.execute(() -> obj.doSomethingThatNeedsContext());
@@ -123,7 +123,7 @@ public interface ThreadContext {
      *
      * @return an executor that wraps the <code>execute</code> method with context.
      */
-    Executor withCurrentContext();
+    Executor currentContextExecutor();
 
     /**
      * <p>Wraps a <code>BiConsumer</code> with context that is captured from the thread that invokes
