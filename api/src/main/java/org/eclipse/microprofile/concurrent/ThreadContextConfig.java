@@ -32,6 +32,15 @@ import java.lang.annotation.Target;
  * ThreadContext threadContext;
  * ...
  * </code></pre>
+ *
+ * <p>A <code>ThreadContext</code> must fail to inject, raising
+ * <code>DeploymentException</code> on application startup,
+ * if the direct or indirect
+ * {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}
+ * of a <code>ThreadContextProvider</code> are unsatisfied,
+ * or a provider has itself as a direct or indirect prerequisite,
+ * or if more than one provider provides the same thread context
+ * {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}.
  */
 @Retention(RUNTIME)
 @Target(FIELD)
@@ -56,9 +65,10 @@ public @interface ThreadContextConfig {
      * in the {@link #unchanged} set are cleared from the thread of execution
      * for the duration of the action or task.</p>
      *
-     * <p>A <code>ThreadContext</code> must fail to inject if the same context
-     * type is included in this set as well as in the {@link #unchanged} set.
-     * </p>
+     * <p>A <code>ThreadContext</code> must fail to inject, raising
+     * <code>DefinitionException</code> on application startup, if the same
+     * context type is included in this set as well as in the {@link #unchanged}
+     * set.</p>
      */
     String[] value() default { ThreadContext.APPLICATION, ThreadContext.CDI, ThreadContext.SECURITY };
 
@@ -70,11 +80,7 @@ public @interface ThreadContextConfig {
      * <p>Constants for specifying some of the core context types are provided
      * on {@link ThreadContext}. Other thread context types must be defined
      * by the specification that defines the context type or by a related
-     * MicroProfile specification. A <code>ThreadContext</code> must fail to
-     * inject, raising <code>DefinitionException</code> on application startup,
-     * if {@link ThreadContext#ALL} is included in the
-     * <code>unchanged</code> context because it would otherwise render the
-     * <code>ThreadContext</code> instance meaningless.</p>
+     * MicroProfile specification.
      *
      * <p>The configuration <code>unchanged</code> context is provided for
      * advanced patterns where it is desirable to leave certain context types
@@ -97,9 +103,13 @@ public @interface ThreadContextConfig {
      * inclusion of the prerequisites, in that the prequisistes are
      * considered 'unchanged' as well, even if not explicitly specified.</p>
      *
-     * <p>A <code>ThreadContext</code> must fail to inject if the same context
-     * type is included in this set as well as in the set specified by
-     * {@link ThreadContextConfig#value}.</p>
+     * <p>A <code>ThreadContext</code> must fail to inject, raising
+     * <code>DefinitionException</code> on application startup, if the same
+     * context type is included in this set as well as in the set specified by
+     * {@link ThreadContextConfig#value}, or if {@link ThreadContext#ALL} is
+     * included in the <code>unchanged</code> context because the latter would
+     * otherwise render the <code>ThreadContext</code> instance meaningless.
+     * </p>
      */
     String[] unchanged() default {};
 }

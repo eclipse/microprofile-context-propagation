@@ -44,6 +44,12 @@ public interface ManagedExecutorBuilder {
      * instances.</p>
      *
      * @return new instance of <code>ManagedExecutor</code>.
+     * @throws IllegalStateException if the direct or indirect
+     *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}
+     *         of a <code>ThreadContextProvider</code> are unsatisfied,
+     *         or a provider has itself as a direct or indirect prerequisite,
+     *         or if more than one provider provides the same thread context
+     *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}.
      */
     ManagedExecutor build();
 

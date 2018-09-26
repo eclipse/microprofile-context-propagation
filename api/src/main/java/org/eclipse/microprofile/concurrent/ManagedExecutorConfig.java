@@ -32,6 +32,15 @@ import java.lang.annotation.Target;
  * ManagedExecutor executor;
  * ...
  * </code></pre>
+ *
+ * <p>A <code>ManagedExecutor</code> must fail to inject, raising
+ * <code>DeploymentException</code> on application startup,
+ * if the direct or indirect
+ * {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}
+ * of a <code>ThreadContextProvider</code> are unsatisfied,
+ * or a provider has itself as a direct or indirect prerequisite,
+ * or if more than one provider provides the same thread context
+ * {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}.
  */
 @Retention(RUNTIME)
 @Target(FIELD)
@@ -66,6 +75,10 @@ public @interface ManagedExecutorConfig {
      *
      * <p>The default value of <code>-1</code> indicates no upper bound,
      * although practically, resource constraints of the system will apply.</p>
+     *
+     * <p>A <code>ManagedExecutor</code> must fail to inject, raising
+     * <code>DefinitionException</code> on application startup, if the
+     * <code>maxAsync</code> value is 0 or less than -1.
      */
     int maxAsync() default -1;
 
@@ -76,6 +89,10 @@ public @interface ManagedExecutorConfig {
      *
      * <p>The default value of <code>-1</code> indicates no upper bound,
      * although practically, resource constraints of the system will apply.</p>
+     *
+     * <p>A <code>ManagedExecutor</code> must fail to inject, raising
+     * <code>DefinitionException</code> on application startup, if the
+     * <code>maxQueued</code> value is 0 or less than -1.
      */
     int maxQueued() default -1;
 }
