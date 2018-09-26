@@ -95,7 +95,7 @@ public interface ManagedExecutorBuilder {
      *
      * @param max upper bound on async completion stage actions and executor tasks.
      * @return the same builder instance upon which this method is invoked.
-     * @throws IllegalArgumentException if 0 or less than -1.
+     * @throws IllegalArgumentException if max is 0 or less than -1.
      */
     ManagedExecutorBuilder maxAsync(int max);
 
@@ -109,7 +109,7 @@ public interface ManagedExecutorBuilder {
      *
      * @param max upper bound on async actions and tasks that can be queued.
      * @return the same builder instance upon which this method is invoked.
-     * @throws IllegalArgumentException if 0 or less than -1.
+     * @throws IllegalArgumentException if max is 0 or less than -1.
      */
     ManagedExecutorBuilder maxQueued(int max);
 }
