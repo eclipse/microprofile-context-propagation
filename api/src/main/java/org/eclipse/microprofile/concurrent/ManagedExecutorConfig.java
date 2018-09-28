@@ -70,8 +70,10 @@ public @interface ManagedExecutorConfig {
     /**
      * <p>Establishes an upper bound on the number of async completion stage
      * actions and async executor tasks that can be running at any given point
-     * in time. Async actions and tasks remain queued until capacity is available
-     * to execute them.</p>
+     * in time. There is no guarantee that async actions or tasks will start
+     * running immediately, even when the <code>maxAsync</code> constraint has
+     * not get been reached. Async actions and tasks remain queued until
+     * the <code>ManagedExecutor</code> starts executing them.</p>
      *
      * <p>The default value of <code>-1</code> indicates no upper bound,
      * although practically, resource constraints of the system will apply.</p>
