@@ -122,6 +122,18 @@ public interface ManagedExecutor extends ExecutorService {
     <U> CompletionStage<U> failedStage(Throwable ex);
 
     /**
+     * <p>Returns a new incomplete <code>CompletableFuture</code>.</p>
+     *
+     * <p>This executor is the default asynchronous execution facility for the new completion stage
+     * that is returned by this method and all dependent stages that are created from it,
+     * and all dependent stages that are created from those, and so forth.</p>
+     *
+     * @param <U> result type of the completion stage.
+     * @return the new completion stage.
+     */
+    <U> CompletableFuture<U> newIncompleteFuture();
+
+    /**
      * <p>Returns a new CompletableFuture that is completed by a task running in this executor
      * after it runs the given action.</p>
      *
