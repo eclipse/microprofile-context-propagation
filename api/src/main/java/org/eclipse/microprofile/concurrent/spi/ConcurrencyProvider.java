@@ -63,10 +63,21 @@ public interface ConcurrencyProvider {
     ThreadContextBuilder newThreadContextBuilder(); 
 
     /**
-     * Allows the container to register the <code>ConcurrencyProvider</code>
+     * <p>Allows the container to register the <code>ConcurrencyProvider</code>
      * implementation. At most one implementation can be registered at any
      * given point in time. In order to register a different implementation,
-     * the container must first unregister its previous implementation.
+     * the container must first unregister its previous implementation.</p>
+     *
+     * <p>Upon successful registration of the <code>ConcurrencyProvider</code>,
+     * the MicroProfile Concurrency implementation must subsequently query the
+     * container's <code>ServiceLoader</code> for all
+     * <code>ConcurrencyProviderRegistrationListener</code>s and send the
+     * <code>providerRegistered</code> notification to each.
+     * <code>ConcurrencyProviderRegistrationListener</code> is an SPI level
+     * interface. It must not be supplied directly within applications because
+     * application classes might not be available on the
+     * <code>ServiceLoader</code> within the scope of the provider
+     * registration.</p>
      *
      * @param provider the provider implementation to register.
      * @throws IllegalStateException if an implementation is already registered.
