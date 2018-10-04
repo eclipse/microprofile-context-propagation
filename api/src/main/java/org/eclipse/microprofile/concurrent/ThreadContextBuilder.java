@@ -46,6 +46,13 @@ public interface ThreadContextBuilder {
      * @throws IllegalArgumentException if the same thread context type is
      *         present in, or inferred by, both the {@link #propagated} set
      *         and the {@link #unchanged} set.
+     * @throws IllegalStateException if the direct or indirect
+     *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}
+     *         of a <code>ThreadContextProvider</code> are unsatisfied,
+     *         or if a <code>ThreadContextProvider</code> has a direct or
+     *         indirect prerequisite on itself, or if more than one
+     *         <code>ThreadContextProvider</code> has the same thread context
+     *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}.
      */
     ThreadContext build();
 
@@ -81,9 +88,9 @@ public interface ThreadContextBuilder {
      * in the {@link #unchanged} set are cleared from the thread of execution
      * for the duration of the action or task.</p>
      *
-     * <p>A <code>ThreadContext</code> must fail to inject if the same context
-     * type is included in this set as well as in the {@link #unchanged} set.
-     * </p>
+     * <p>A <code>ThreadContext</code> must fail to {@link #build} if the same
+     * context type is included in this set as well as in the {@link #unchanged}
+     * set.</p>
      *
      * @param types types of thread context to capture and propagated.
      * @return the same builder instance upon which this method is invoked.
@@ -125,8 +132,8 @@ public interface ThreadContextBuilder {
      * inclusion of the prerequisites, in that the prequisistes are
      * considered 'unchanged' as well, even if not explicitly specified.</p>
      *
-     * <p>A <code>ThreadContext</code> must fail to inject if the same context
-     * type is included in this set as well as in the set specified by
+     * <p>A <code>ThreadContext</code> must fail to {@link #build} if the same
+     * context type is included in this set as well as in the set specified by
      * {@link #propagated}.</p>
      *
      * @param types types of thread context to leave unchanged on the thread.
