@@ -18,6 +18,7 @@
  */
 package org.eclipse.microprofile.concurrent.spi;
 
+import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.microprofile.concurrent.ManagedExecutorBuilder;
@@ -43,7 +44,17 @@ public interface ConcurrencyProvider {
     public static ConcurrencyProvider instance() {
         ConcurrencyProvider provider = INSTANCE.get();
         if (provider == null) {
-            throw new IllegalStateException("Container has not registered a ConcurrencyProvider");
+            for (ConcurrencyProvider serviceProvider : ServiceLoader.load(ConcurrencyProvider.class)) {
+                if (INSTANCE.compareAndSet(null, serviceProvider)) {
+                    provider = serviceProvider;
+                }
+                else {
+                    throw new IllegalStateException("ConcurrencyProvider already set");
+                }
+            }
+            if (provider == null) {
+                throw new IllegalStateException("Container has not registered a ConcurrencyProvider");
+            }
         }
         return provider;
     }
