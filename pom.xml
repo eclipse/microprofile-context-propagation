@@ -82,6 +82,7 @@
 
     <modules>
         <module>api</module>
+        <module>tck</module>
     </modules>
 
     <pluginRepositories>
