@@ -48,8 +48,12 @@ import java.util.function.Supplier;
  */
 public interface ThreadContext {
     /**
-     * Identifier for all available thread context types that support capture
-     * and propagation to other threads.
+     * <p>Identifier for all available thread context types that support
+     * capture and propagation to other threads.</p>
+     *
+     * <p>When using this constant, be aware that bringing in a new
+     * context provider or updating levels of an existing context provider
+     * might change the set of available thread context types.</p>
      * 
      * @see ManagedExecutorConfig#propagated
      * @see ThreadContextConfig#value
@@ -79,6 +83,25 @@ public interface ThreadContext {
      * @see ThreadContextConfig
      */
     static final String CDI = "CDI";
+
+    /**
+     * <p>Identifier for the default set of thread context types, which is
+     * defined as all available thread context types that support capture and
+     * propagation to other threads except for {@link #TRANSACTION} context,
+     * which is instead cleared (suspended) from the thread that runs the
+     * action or task. This enables the action or task to choose whether, and
+     * if so, how, it participates in transactional work and is consistent
+     * with the generally established practice that transactions do not
+     * span threads.</p>
+     *
+     * <p>When using this constant, be aware that bringing in a new
+     * context provider or updating levels of an existing context provider
+     * might change the set of available thread context types.</p>
+     *
+     * @see ManagedExecutorConfig#propagated
+     * @see ThreadContextConfig
+     */
+    static final String DEFAULTS = "Defaults";
 
     /**
      * Identifier for security context. Security context controls the credentials

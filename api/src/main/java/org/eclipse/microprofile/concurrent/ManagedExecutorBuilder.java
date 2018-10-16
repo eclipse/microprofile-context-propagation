@@ -61,8 +61,12 @@ public interface ManagedExecutorBuilder {
      * <p>This set replaces the set that was previously specified on the
      * builder instance.</p>
      *
-     * <p>The default set of thread context types is those required by the
-     * EE Concurrency spec, plus CDI.</p>
+     * <p>The default set of thread context types is
+     * {@link ThreadContext#DEFAULTS}, which includes all available
+     * thread context types that support capture and propagation to other
+     * threads, except for {@link ThreadContext#TRANSACTION} context, which
+     * is instead cleared (suspended) from the thread that runs the action or
+     * task.</p>
      *
      * <p>Constants for specifying some of the core context types are provided
      * on {@link ThreadContext}. Other thread context types must be defined

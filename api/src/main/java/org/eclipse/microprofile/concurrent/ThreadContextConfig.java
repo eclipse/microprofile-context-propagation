@@ -50,8 +50,12 @@ public @interface ThreadContextConfig {
      * that contextualizes an action or task. This context is later
      * re-established on the thread(s) where the action or task executes.</p>
      *
-     * <p>The default set of thread context types is those required by the
-     * EE Concurrency spec, plus CDI.</p>
+     * <p>The default set of thread context types is
+     * {@link ThreadContext#DEFAULTS}, which includes all available
+     * thread context types that support capture and propagation to other
+     * threads, except for {@link ThreadContext#TRANSACTION} context, which
+     * is instead cleared (suspended) from the thread that runs the action or
+     * task.</p>
      *
      * <p>Constants for specifying some of the core context types are provided
      * on {@link ThreadContext}. Other thread context types must be defined
@@ -70,7 +74,7 @@ public @interface ThreadContextConfig {
      * context type is included in this set as well as in the {@link #unchanged}
      * set.</p>
      */
-    String[] value() default { ThreadContext.APPLICATION, ThreadContext.CDI, ThreadContext.SECURITY };
+    String[] value() default { ThreadContext.DEFAULTS };
 
     /**
      * <p>Defines a set of thread context types that are essentially ignored,
