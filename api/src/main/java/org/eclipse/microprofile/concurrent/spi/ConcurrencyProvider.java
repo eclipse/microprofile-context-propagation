@@ -18,6 +18,7 @@
  */
 package org.eclipse.microprofile.concurrent.spi;
 
+import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.microprofile.concurrent.ManagedExecutorBuilder;
@@ -30,20 +31,52 @@ import org.eclipse.microprofile.concurrent.ThreadContextBuilder;
  * <code>ThreadContextBuilder</code>.</p>
  *
  * <p>The container must register its <code>ConcurrencyProvider</code>
- * implementation via the <code>register</code> method.</p>
+ * implementation via the <code>register</code> method, or by providing 
+ * an implementation via the standard {@link ServiceLoader} mechanism.</p>
+ * 
+ * <p><code>ConcurrencyProvider</code> implementations that wish to use
+ * the {@link ServiceLoader}  registration mechanism must include a file 
+ * of the following name and location in their jar:</p>
+ *
+ * <code>META-INF/services/org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider</code>
+ *
+ * <p>The content of the aforementioned file must be exactly one line, specifying
+ * the fully qualified name of a <code>ConcurrencyProvider</code> implementation
+ * that is provided within the JAR file.</p>
+ * 
+ * <p>If there is no manually registered <code>ConcurrencyProvider</code> (via
+ * {@link #register(ConcurrencyProvider)}), any call to {@link #instance()} will
+ * look up any <code>ConcurrencyProvider</code> implementation via the aforementioned
+ * {@link ServiceLoader} mechanism. If there are more than one such implementation
+ * registered, the {@link #instance()} method will throw an exception as documented</p>
  */
 public interface ConcurrencyProvider {
     static AtomicReference<ConcurrencyProvider> INSTANCE = new AtomicReference<ConcurrencyProvider>();
 
     /**
-     * Creates a new <code>ManagedExecutorBuilder</code> instance.
+     * Obtains the <code>ConcurrencyProvider</code> instance that has been previously registered, or
+     * uses {@link ServiceLoader} to load and register a <code>ConcurrencyProvider</code> from the
+     * current context class loader.
      *
-     * @return a new <code>ManagedExecutorBuilder</code> instance.
+     * @return the registered <code>ConcurrencyProvider</code> instance.
+     * @throws IllegalStateException if there are no registered <code>ConcurrencyProvider</code> and
+     *      we could not discover any via {@link ServiceLoader}, or if there are more than one
+     *      {@link ServiceLoader} results.
      */
     public static ConcurrencyProvider instance() {
         ConcurrencyProvider provider = INSTANCE.get();
         if (provider == null) {
-            throw new IllegalStateException("Container has not registered a ConcurrencyProvider");
+            for (ConcurrencyProvider serviceProvider : ServiceLoader.load(ConcurrencyProvider.class)) {
+                if (INSTANCE.compareAndSet(null, serviceProvider)) {
+                    provider = serviceProvider;
+                }
+                else {
+                    throw new IllegalStateException("ConcurrencyProvider already set");
+                }
+            }
+            if (provider == null) {
+                throw new IllegalStateException("Container has not registered a ConcurrencyProvider");
+            }
         }
         return provider;
     }
