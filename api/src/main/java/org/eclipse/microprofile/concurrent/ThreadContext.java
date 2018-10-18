@@ -48,17 +48,22 @@ import java.util.function.Supplier;
  */
 public interface ThreadContext {
     /**
-     * <p>Identifier for all available thread context types that support
-     * capture and propagation to other threads.</p>
+     * <p>Identifier for all available thread context types which are
+     * not specified individually under <code>cleared</code>,
+     * <code>propagated</code>, or <code>unchanged</code>.</p>
      *
      * <p>When using this constant, be aware that bringing in a new
      * context provider or updating levels of an existing context provider
      * might change the set of available thread context types.</p>
-     * 
+     *
+     * @see ManagedExecutorBuilder#cleared
+     * @see ManagedExecutorBuilder#propagated
+     * @see ManagedExecutorConfig#cleared
      * @see ManagedExecutorConfig#propagated
-     * @see ThreadContextConfig#value
+     * @see ThreadContextBuilder
+     * @see ThreadContextConfig
      */
-    static final String ALL = "All";
+    static final String ALL_OTHER = "All other";
 
     /**
      * Identifier for application context. Application context controls the
@@ -68,7 +73,11 @@ public interface ThreadContext {
      * application context means that the thread is not associated with any
      * application.
      *
+     * @see ManagedExecutorBuilder#cleared
+     * @see ManagedExecutorBuilder#propagated
+     * @see ManagedExecutorConfig#cleared
      * @see ManagedExecutorConfig#propagated
+     * @see ThreadContextBuilder
      * @see ThreadContextConfig
      */
     static final String APPLICATION = "Application";
@@ -79,36 +88,25 @@ public interface ThreadContext {
      * access to the scope of the session, request, and so forth that created the
      * contextualized action.
      *
+     * @see ManagedExecutorBuilder#cleared
+     * @see ManagedExecutorBuilder#propagated
+     * @see ManagedExecutorConfig#cleared
      * @see ManagedExecutorConfig#propagated
+     * @see ThreadContextBuilder
      * @see ThreadContextConfig
      */
     static final String CDI = "CDI";
-
-    /**
-     * <p>Identifier for the default set of thread context types, which is
-     * defined as all available thread context types that support capture and
-     * propagation to other threads except for {@link #TRANSACTION} context,
-     * which is instead cleared (suspended) from the thread that runs the
-     * action or task. This enables the action or task to choose whether, and
-     * if so, how, it participates in transactional work and is consistent
-     * with the generally established practice that transactions do not
-     * span threads.</p>
-     *
-     * <p>When using this constant, be aware that bringing in a new
-     * context provider or updating levels of an existing context provider
-     * might change the set of available thread context types.</p>
-     *
-     * @see ManagedExecutorConfig#propagated
-     * @see ThreadContextConfig
-     */
-    static final String DEFAULTS = "Defaults";
 
     /**
      * Identifier for security context. Security context controls the credentials
      * that are associated with the thread. An empty/default security context
      * means that the thread is unauthenticated.
      * 
+     * @see ManagedExecutorBuilder#cleared
+     * @see ManagedExecutorBuilder#propagated
+     * @see ManagedExecutorConfig#cleared
      * @see ManagedExecutorConfig#propagated
+     * @see ThreadContextBuilder
      * @see ThreadContextConfig
      */
     static final String SECURITY = "Security";
@@ -118,15 +116,20 @@ public interface ThreadContext {
      * active transaction scope that is associated with the thread.
      * Implementations are not expected to propagate transaction context across
      * threads. Instead, the concept of transaction context is provided for its
-     * empty/default context, which means the active transaction on the thread
+     * cleared context, which means the active transaction on the thread
      * is suspended such that a new transaction can be started if so desired.
      * In most cases, the most desirable behavior will be to leave transaction
-     * context unconfigured such that it is defaulted to empty (suspended),
+     * context defaulted to cleared (suspended),
      * in order to prevent dependent actions and tasks from accidentally
      * enlisting in transactions that are on the threads where they happen to
      * run.
      *
-     * @see ThreadContextConfig#unchanged
+     * @see ManagedExecutorBuilder#cleared
+     * @see ManagedExecutorBuilder#propagated
+     * @see ManagedExecutorConfig#cleared
+     * @see ManagedExecutorConfig#propagated
+     * @see ThreadContextBuilder
+     * @see ThreadContextConfig
      */
     static final String TRANSACTION = "Transaction";
 

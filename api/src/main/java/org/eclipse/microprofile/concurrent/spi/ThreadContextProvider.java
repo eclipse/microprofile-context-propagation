@@ -18,6 +18,7 @@
  */
 package org.eclipse.microprofile.concurrent.spi;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -67,20 +68,20 @@ public interface ThreadContextProvider {
     ThreadContextSnapshot currentContext(Map<String, String> props);
 
     /**
-     * <p>Returns empty/default context of the provided type. This context is not
+     * <p>Returns empty/cleared context of the provided type. This context is not
      * captured from the current thread, but instead represents the behavior that you
      * get for this context type when no particular context has been applied to the
      * thread.</p>
      *
      * <p>This is used in cases where the provided type of thread context should not be
      * propagated from the requesting thread or inherited from the thread of execution,
-     * in which case it is necessary to establish an empty/default context in its place,
+     * in which case it is necessary to establish an empty/cleared context in its place,
      * so that an action does not unintentionally inherit context of the thread that
      * happens to run it.</p>
      *
-     * <p>For example, a security context provider's empty/default context ensures there
+     * <p>For example, a security context provider's empty/cleared context ensures there
      * is no authenticated user on the thread. A transaction context provider's
-     * empty/default context ensures that any active transaction is suspended.
+     * empty/cleared context ensures that any active transaction is suspended.
      * And so forth.</p>
      *
      * @param props provided for compatibility with EE Concurrency spec, which allows
@@ -88,7 +89,7 @@ public interface ThreadContextProvider {
      *        that don't supply or use execution properties can ignore this parameter.
      * @return immutable empty/default context of the provided type.
      */
-    ThreadContextSnapshot defaultContext(Map<String, String> props);
+    ThreadContextSnapshot clearedContext(Map<String, String> props);
 
     /**
      * <p>Returns an immutable set of thread context type identifiers (refer to
@@ -105,11 +106,16 @@ public interface ThreadContextProvider {
      * for the duration of the contextualized action/task as well as during the initial
      * establishment and subsequent removal of thread context.</p>
      *
+     * <p>The default implementation of this method returns <code>Collections.EMPTY_SET</code>,
+     * indicating that this context type has no prerequisites.</p>
+     *
      * @return immutable set of identifiers for prerequisite thread context types.
      *         Thread context providers that have no prerequisites must return
      *         <code>Collections.EMPTY_SET</code> to indicate this.
      */
-    Set<String> getPrerequisites();
+    default Set<String> getPrerequisites() {
+        return Collections.EMPTY_SET;
+    }
 
     /**
      * <p>Returns a human readable identifier for the type of thread context that is
