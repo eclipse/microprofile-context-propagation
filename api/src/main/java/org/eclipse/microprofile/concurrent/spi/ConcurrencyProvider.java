@@ -82,20 +82,6 @@ public interface ConcurrencyProvider {
     }
 
     /**
-     * Creates a new <code>ManagedExecutorBuilder</code> instance.
-     *
-     * @return a new <code>ManagedExecutorBuilder</code> instance.
-     */
-    ManagedExecutorBuilder newManagedExecutorBuilder();
-
-    /**
-     * Creates a new <code>ThreadContextBuilder</code> instance.
-     *
-     * @return a new <code>ThreadContextBuilder</code> instance.
-     */
-    ThreadContextBuilder newThreadContextBuilder(); 
-
-    /**
      * Allows the container to register the <code>ConcurrencyProvider</code>
      * implementation. At most one implementation can be registered at any
      * given point in time. In order to register a different implementation,
@@ -111,5 +97,82 @@ public interface ConcurrencyProvider {
         else {
             throw new IllegalStateException("A ConcurrencyProvider implementation has already been registered.");
         }
+    }
+    
+    /**
+     * Gets a {@link ConcurrencyManager} for the current thread-context {@link ClassLoader}. This
+     * is equivalent to calling <code>getConcurrencyManager(Thread.currentThread().getContextClassLoader())</code>
+     * 
+     * @return a {@link ConcurrencyManager} for the current thread-context {@link ClassLoader}.
+     * @see #getConcurrencyManager(ClassLoader)
+     */
+    public ConcurrencyManager getConcurrencyManager();
+
+    /**
+     * Gets a {@link ConcurrencyManager} for the given {@link ClassLoader}. If there is already
+     * a {@link ConcurrencyManager} registered for the given {@link ClassLoader}, the existing
+     * instance will be returned. If not, one will be created using a {@link ConcurrencyManagerBuilder}
+     * using the specified {@link ClassLoader} (with {@link ConcurrencyManagerBuilder#forClassLoader(ClassLoader)})
+     * and with {@link ConcurrencyManagerBuilder#addDiscoveredThreadContextProviders()} called in
+     * order to load all {@link ThreadContextProvider} discoverable from the given {@link ClassLoader}.
+     * If created, the new {@link ConcurrencyManager} will then be registered for the given {@link ClassLoader}
+     * with {@link #registerConcurrencyManager(ConcurrencyManager, ClassLoader)}.
+     * 
+     * @return a {@link ConcurrencyManager} for the given {@link ClassLoader}.
+     * @see ConcurrencyManagerBuilder#addDiscoveredThreadContextProviders()
+     * @see ConcurrencyManagerBuilder#build()
+     * @see #registerConcurrencyManager(ConcurrencyManager, ClassLoader)
+     */
+    public ConcurrencyManager getConcurrencyManager(ClassLoader classLoader);
+
+    /**
+     * Returns a new {@link ConcurrencyManagerBuilder} to create new {@link ConcurrencyManager}
+     * instances. Watch out that instances created this way will not be automatically registered
+     * here, so you need to call {@link #registerConcurrencyManager(ConcurrencyManager, ClassLoader)}
+     * yourself if you need to.
+     * 
+     * @return a new {@link ConcurrencyManagerBuilder}
+     */
+    public ConcurrencyManagerBuilder getConcurrencyManagerBuilder();
+    
+    /**
+     * Registers the given {@link ConcurrencyManager} for the given {@link ClassLoader}, so that
+     * further calls to {@link #getConcurrencyManager(ClassLoader)} for the same {@link ClassLoader}
+     * will return this instance instead of creating a new one.
+     * 
+     * @param manager The {@link ConcurrencyManager} to register
+     * @param classLoader The {@link ClassLoader} to register it for
+     * @see #getConcurrencyManager(ClassLoader)
+     * @see #releaseConcurrencyManager(ConcurrencyManager)
+     */
+    public void registerConcurrencyManager(ConcurrencyManager manager, ClassLoader classLoader);
+
+    /**
+     * Releases a {@link ConcurrencyManager} that was previously registered with 
+     * {@link #registerConcurrencyManager(ConcurrencyManager, ClassLoader)}.
+     * 
+     * @param manager The {@link ConcurrencyManager} to release
+     * @see #registerConcurrencyManager(ConcurrencyManager, ClassLoader)
+     */
+    public void releaseConcurrencyManager(ConcurrencyManager manager);
+    
+    /**
+     * Creates a new <code>ManagedExecutorBuilder</code> instance using the 
+     * {@link ConcurrencyManager} returned by {@link #getConcurrencyManager()}.
+     *
+     * @return a new <code>ManagedExecutorBuilder</code> instance.
+     */
+    default ManagedExecutorBuilder newManagedExecutorBuilder() {
+        return getConcurrencyManager().newManagedExecutorBuilder();
+    }
+
+    /**
+     * Creates a new <code>ThreadContextBuilder</code> instance using the 
+     * {@link ConcurrencyManager} returned by {@link #getConcurrencyManager()}.
+     *
+     * @return a new <code>ThreadContextBuilder</code> instance.
+     */
+    default ThreadContextBuilder newThreadContextBuilder() {
+        return getConcurrencyManager().newThreadContextBuilder();
     }
 }
