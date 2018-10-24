@@ -156,7 +156,7 @@ public interface ThreadContextBuilder {
      *                                                   .propagated(ThreadContext.ALL_REMAINING)
      *                                                   .build();
      * ...
-     * task = threadContext.withCurrentContext(new MyTransactionlTask());
+     * task = threadContext.contextualRunnable(new MyTransactionlTask());
      * ...
      * // on another thread,
      * tx.begin();

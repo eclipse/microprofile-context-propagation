@@ -120,7 +120,7 @@ ThreadContext via the `@Inject` annotation, for example:
       .supplyAsync(supplier1)
       .thenApplyAsync(function1)
       .thenApply(function2)
-      .thenApply(threadContext.withCurrentContext(function3));
+      .thenApply(threadContext.contextualFunction(function3));
 ----
 
 The container provides default instances of ManagedExecutor and
