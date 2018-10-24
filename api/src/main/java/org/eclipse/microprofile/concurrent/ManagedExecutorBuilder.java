@@ -92,8 +92,8 @@ public interface ManagedExecutorBuilder {
      * <p>This set replaces the <code>propagated</code> set that was
      * previously specified on the builder instance, if any.</p>
      *
-     * <p>The default set of thread context types is
-     * {@link ThreadContext#ALL_OTHER}, which includes all available
+     * <p>The default set of propagated thread context types is
+     * {@link ThreadContext#ALL_REMAINING}, which includes all available
      * thread context types that support capture and propagation to other
      * threads, except for those that are explicitly {@link cleared},
      * which, by default is {@link ThreadContext#TRANSACTION} context,

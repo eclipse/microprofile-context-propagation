@@ -63,7 +63,7 @@ public interface ThreadContext {
      * @see ThreadContextBuilder
      * @see ThreadContextConfig
      */
-    static final String ALL_OTHER = "All other";
+    static final String ALL_REMAINING = "Remaining";
 
     /**
      * Identifier for application context. Application context controls the

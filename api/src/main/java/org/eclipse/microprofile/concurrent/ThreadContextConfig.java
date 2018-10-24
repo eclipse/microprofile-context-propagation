@@ -76,8 +76,8 @@ public @interface ThreadContextConfig {
      * that contextualizes an action or task. This context is later
      * re-established on the thread(s) where the action or task executes.</p>
      *
-     * <p>The default set of thread context types is
-     * {@link ThreadContext#ALL_OTHER}, which includes all available
+     * <p>The default set of propagated thread context types is
+     * {@link ThreadContext#ALL_REMAINING}, which includes all available
      * thread context types that support capture and propagation to other
      * threads, except for those that are explicitly {@link cleared},
      * which, by default is {@link ThreadContext#TRANSACTION} context,
@@ -101,7 +101,7 @@ public @interface ThreadContextConfig {
      * context type is included in this set as well as in the {@link #cleared}
      * set or the {@link #unchanged} set.</p>
      */
-    String[] value() default { ThreadContext.ALL_OTHER };
+    String[] value() default { ThreadContext.ALL_REMAINING };
 
     /**
      * <p>Defines a set of thread context types that are essentially ignored,
@@ -121,7 +121,7 @@ public @interface ThreadContextConfig {
      * transaction of the thread where the task executes:</p>
      * <pre><code> &commat;Inject &commat;ThreadContextConfig(unchanged = ThreadContext.TRANSACTION,
      *                              propagated = ThreadContext.APPLICATION,
-     *                              cleared = ThreadContext.ALL_OTHER)
+     *                              cleared = ThreadContext.ALL_REMAINING)
      * ThreadContext threadContext;
      * ...
      * task = threadContext.withCurrentContext(new MyTransactionalTask());

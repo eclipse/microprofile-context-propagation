@@ -75,8 +75,8 @@ public @interface ManagedExecutorConfig {
      * that creates a dependent stage (or that submits a task) and which to
      * propagate to the thread where the action or task executes.</p>
      *
-     * <p>The default set of thread context types is
-     * {@link ThreadContext#ALL_OTHER}, which includes all available
+     * <p>The default set of propagated thread context types is
+     * {@link ThreadContext#ALL_REMAINING}, which includes all available
      * thread context types that support capture and propagation to other
      * threads, except for those that are explicitly {@link cleared},
      * which, by default is {@link ThreadContext#TRANSACTION} context,
@@ -100,7 +100,7 @@ public @interface ManagedExecutorConfig {
      * context type is implicitly or explicitly included in this set
      * as well as in the set specified by {@link #cleared}.</p>
      */
-    String[] propagated() default { ThreadContext.ALL_OTHER };
+    String[] propagated() default { ThreadContext.ALL_REMAINING };
 
     /**
      * <p>Establishes an upper bound on the number of async completion stage
