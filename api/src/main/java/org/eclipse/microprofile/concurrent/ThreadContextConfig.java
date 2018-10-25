@@ -46,12 +46,43 @@ import java.lang.annotation.Target;
 @Target(FIELD)
 public @interface ThreadContextConfig {
     /**
+     * <p>Defines the set of thread context types to clear from the thread
+     * where the action or task executes. The previous context is resumed
+     * on the thread after the action or task ends.</p>
+     *
+     * <p>By default, the transaction context is cleared/suspended from
+     * the execution thread so that actions and tasks can start and
+     * end transactions of their choosing, to independently perform their
+     * own transactional work, as needed.</p>
+     *
+     * <p>Constants for specifying some of the core context types are provided
+     * on {@link ThreadContext}. Other thread context types must be defined
+     * by the specification that defines the context type or by a related
+     * MicroProfile specification.</p>
+     *
+     * <p>Inclusion of a thread context type with prerequisites implies
+     * inclusion of the prerequisites, even if not explicitly specified.</p>
+     *
+     * <p>A <code>ThreadContext</code> must fail to inject, raising
+     * <code>DefinitionException</code> on application startup, if the same
+     * context type is implicitly or explicitly included in this set
+     * as well as in the set specified by {@link #propagated}
+     * or the set specified by {@link #unchanged}.</p>
+     */
+    String[] cleared() default { ThreadContext.TRANSACTION };
+
+    /**
      * <p>Defines the set of thread context types to capture from the thread
      * that contextualizes an action or task. This context is later
      * re-established on the thread(s) where the action or task executes.</p>
      *
-     * <p>The default set of thread context types is those required by the
-     * EE Concurrency spec, plus CDI.</p>
+     * <p>The default set of propagated thread context types is
+     * {@link ThreadContext#ALL_REMAINING}, which includes all available
+     * thread context types that support capture and propagation to other
+     * threads, except for those that are explicitly {@link cleared},
+     * which, by default is {@link ThreadContext#TRANSACTION} context,
+     * in which case is suspended from the thread that runs the action or
+     * task.</p>
      *
      * <p>Constants for specifying some of the core context types are provided
      * on {@link ThreadContext}. Other thread context types must be defined
@@ -67,10 +98,10 @@ public @interface ThreadContextConfig {
      *
      * <p>A <code>ThreadContext</code> must fail to inject, raising
      * <code>DefinitionException</code> on application startup, if the same
-     * context type is included in this set as well as in the {@link #unchanged}
-     * set.</p>
+     * context type is included in this set as well as in the {@link #cleared}
+     * set or the {@link #unchanged} set.</p>
      */
-    String[] value() default { ThreadContext.APPLICATION, ThreadContext.CDI, ThreadContext.SECURITY };
+    String[] value() default { ThreadContext.ALL_REMAINING };
 
     /**
      * <p>Defines a set of thread context types that are essentially ignored,
@@ -86,8 +117,11 @@ public @interface ThreadContextConfig {
      * advanced patterns where it is desirable to leave certain context types
      * on the executing thread.</p>
      *
-     * <p>For example, to run under the transaction of the thread of execution:</p>
-     * <pre><code> &commat;Inject &commat;ThreadContextConfig(unchanged = ThreadContext.TRANSACTION)
+     * <p>For example, to run as the current application, but under the
+     * transaction of the thread where the task executes:</p>
+     * <pre><code> &commat;Inject &commat;ThreadContextConfig(unchanged = ThreadContext.TRANSACTION,
+     *                              propagated = ThreadContext.APPLICATION,
+     *                              cleared = ThreadContext.ALL_REMAINING)
      * ThreadContext threadContext;
      * ...
      * task = threadContext.withCurrentContext(new MyTransactionalTask());
@@ -106,10 +140,8 @@ public @interface ThreadContextConfig {
      * <p>A <code>ThreadContext</code> must fail to inject, raising
      * <code>DefinitionException</code> on application startup, if the same
      * context type is included in this set as well as in the set specified by
-     * {@link ThreadContextConfig#value}, or if {@link ThreadContext#ALL} is
-     * included in the <code>unchanged</code> context because the latter would
-     * otherwise render the <code>ThreadContext</code> instance meaningless.
-     * </p>
+     * {@link ThreadContextConfig#unchanged} or the set specified by
+     * {@link ThreadContextConfig#value}.</p>
      */
     String[] unchanged() default {};
 }
