@@ -64,9 +64,10 @@ public @interface ManagedExecutorConfig {
      * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>A <code>ManagedExecutor</code> must fail to inject, raising
-     * <code>DefinitionException</code> on application startup, if the same
-     * context type is implicitly or explicitly included in this set
-     * as well as in the set specified by {@link #propagated}.</p>
+     * <code>DefinitionException</code> on application startup,
+     * if a context type specified within this set is unavailable
+     * or if the {@link #propagated} set includes one or more of the
+     * same types as this set.</p>
      */
     String[] cleared() default { ThreadContext.TRANSACTION };
 
@@ -96,9 +97,10 @@ public @interface ManagedExecutorConfig {
      * action or task.</p>
      *
      * <p>A <code>ManagedExecutor</code> must fail to inject, raising
-     * <code>DefinitionException</code> on application startup, if the same
-     * context type is implicitly or explicitly included in this set
-     * as well as in the set specified by {@link #cleared}.</p>
+     * <code>DefinitionException</code> on application startup,
+     * if a context type specified within this set is unavailable
+     * or if the {@link #cleared} set includes one or more of the
+     * same types as this set.</p>
      */
     String[] propagated() default { ThreadContext.ALL_REMAINING };
 

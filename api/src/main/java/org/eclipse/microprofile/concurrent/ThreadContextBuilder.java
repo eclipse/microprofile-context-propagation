@@ -43,9 +43,11 @@ public interface ThreadContextBuilder {
      * instances.</p>
      *
      * @return new instance of <code>ThreadContext</code>.
-     * @throws IllegalArgumentException if the same thread context type is
-     *         present in, or inferred by, more than one of the
-     *         following categories:
+     * @throws IllegalArgumentException if a thread context type that is
+     *         configured to be {@link #cleared} or {@link #propagated} is
+     *         unavailable. Also raises IllegalArgumentException if one or
+     *         more of the same context types appear in multiple of the
+     *         following sets:
      *         ({@link #cleared}, {@link #propagated}, {@link #unchanged}).
      * @throws IllegalStateException if the direct or indirect
      *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}

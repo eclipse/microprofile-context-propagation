@@ -44,9 +44,11 @@ public interface ManagedExecutorBuilder {
      * instances.</p>
      *
      * @return new instance of <code>ManagedExecutor</code>.
-     * @throws IllegalArgumentException if the same thread context type is
-     *         present in, or inferred by, both the {@link #cleared} set
-     *         and the {@link #propagated} set.
+     * @throws IllegalArgumentException if a thread context type that is
+     *         configured to be {@link #cleared} or {@link #propagated} is
+     *         unavailable. Also raises IllegalArgumentException if one or
+     *         more of the same context types appear in both the
+     *         {@link #cleared} set and the {@link #propagated} set.
      * @throws IllegalStateException if the direct or indirect
      *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}
      *         of a <code>ThreadContextProvider</code> are unsatisfied,
