@@ -34,7 +34,8 @@ import java.lang.annotation.Target;
  * </code></pre>
  *
  * <p>A <code>ThreadContext</code> must fail to inject, raising
- * <code>DeploymentException</code> on application startup,
+ * {@link javax.enterprise.inject.spi.DeploymentException DeploymentException}
+ * on application startup,
  * if the direct or indirect
  * {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}
  * of a <code>ThreadContextProvider</code> are unsatisfied,
@@ -64,7 +65,8 @@ public @interface ThreadContextConfig {
      * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>A <code>ThreadContext</code> must fail to inject, raising
-     * <code>DefinitionException</code> on application startup,
+     * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
+     * on application startup,
      * if a context type specified within this set is unavailable
      * or if the {@link #value propagated} and/or {@link #unchanged} set
      * includes one or more of the same types as this set.</p>
@@ -97,7 +99,8 @@ public @interface ThreadContextConfig {
      * for the duration of the action or task.</p>
      *
      * <p>A <code>ThreadContext</code> must fail to inject, raising
-     * <code>DefinitionException</code> on application startup,
+     * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
+     * on application startup,
      * if a context type specified within this set is unavailable
      * or if the {@link #cleared} and/or {@link #unchanged} set
      * includes one or more of the same types as this set.</p>
@@ -139,7 +142,8 @@ public @interface ThreadContextConfig {
      * considered 'unchanged' as well, even if not explicitly specified.</p>
      *
      * <p>A <code>ThreadContext</code> must fail to inject, raising
-     * <code>DefinitionException</code> on application startup,
+     * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
+     * on application startup,
      * if a context type specified within this set is unavailable
      * or if the {@link #cleared} and/or {@link #value propagated} set
      * includes one or more of the same types as this set.</p>
