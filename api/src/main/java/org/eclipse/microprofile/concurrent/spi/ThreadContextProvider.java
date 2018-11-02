@@ -18,9 +18,7 @@
  */
 package org.eclipse.microprofile.concurrent.spi;
 
-import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * <p>Third party providers of thread context implement this interface to enable the
@@ -90,32 +88,6 @@ public interface ThreadContextProvider {
      * @return immutable empty/default context of the provided type.
      */
     ThreadContextSnapshot clearedContext(Map<String, String> props);
-
-    /**
-     * <p>Returns an immutable set of thread context type identifiers (refer to
-     * <code>getThreadContextType</code>) that the provided type of thread context
-     * depends upon.</p>
-     *
-     * <p>The <code>ManagedExecutor</code> and <code>ThreadContext</code> implementation
-     * must ensure that all prerequisite types are established on the thread
-     * before invoking the <code>ThreadContextSnapshot.begin</code> method for this type
-     * of thread context and must also ensure that the prerequisite types are not removed
-     * until after the corresponding <code>ThreadContextController.endContext</code> method.</p>
-     *
-     * <p>This has the effect of guaranteeing that prerequisite context types are available
-     * for the duration of the contextualized action/task as well as during the initial
-     * establishment and subsequent removal of thread context.</p>
-     *
-     * <p>The default implementation of this method returns <code>Collections.EMPTY_SET</code>,
-     * indicating that this context type has no prerequisites.</p>
-     *
-     * @return immutable set of identifiers for prerequisite thread context types.
-     *         Thread context providers that have no prerequisites must return
-     *         <code>Collections.EMPTY_SET</code> to indicate this.
-     */
-    default Set<String> getPrerequisites() {
-        return Collections.EMPTY_SET;
-    }
 
     /**
      * <p>Returns a human readable identifier for the type of thread context that is

@@ -176,6 +176,5 @@ With this model, the provider of thread context implements the
 org.eclipse.microprofile.concurrent.spi.ThreadContextProvider
 interface and packages it in a way that makes it available to the
 ServiceLoader. ThreadContextProvider identifies the thread context
-type and any prerequisite thread context types that it has,
-and it allows for capturing snapshots of thread context
-as well as for applying empty/default context to threads.
+type and provides a way to capture snapshots of thread context
+as well as for applying empty/cleared context to threads.

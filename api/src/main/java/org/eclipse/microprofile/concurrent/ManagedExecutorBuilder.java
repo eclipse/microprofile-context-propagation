@@ -50,11 +50,6 @@ public interface ManagedExecutorBuilder {
      *         {@link #cleared} set and the {@link #propagated} set</li>
      *         <li>if a thread context type that is configured to be
      *         {@link #cleared} or {@link #propagated} is unavailable</li>
-     *         <li>if the direct or indirect
-     *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}
-     *         of a <code>ThreadContextProvider</code> are unsatisfied</li>
-     *         <li>if a <code>ThreadContextProvider</code> has a direct or
-     *         indirect prerequisite on itself</li>
      *         <li>if more than one provider provides the same thread context
      *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}
      *         </li>
@@ -80,9 +75,6 @@ public interface ManagedExecutorBuilder {
      * on {@link ThreadContext}. Other thread context types must be defined
      * by the specification that defines the context type or by a related
      * MicroProfile specification.</p>
-     *
-     * <p>Inclusion of a thread context type with prerequisites implies
-     * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * @param types types of thread context to clear from threads that run
      *        actions and tasks.
@@ -110,9 +102,6 @@ public interface ManagedExecutorBuilder {
      * on {@link ThreadContext}. Other thread context types must be defined
      * by the specification that defines the context type or by a related
      * MicroProfile specification.</p>
-     *
-     * <p>Inclusion of a thread context type with prerequisites implies
-     * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>Thread context types which are not otherwise included in this set
      * are cleared from the thread of execution for the duration of the
