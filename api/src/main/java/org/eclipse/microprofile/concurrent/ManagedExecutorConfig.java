@@ -34,8 +34,8 @@ import java.lang.annotation.Target;
  * </code></pre>
  *
  * <p>A <code>ManagedExecutor</code> must fail to inject, raising
- * <code>DeploymentException</code> on application startup,
- * if the direct or indirect
+ * {@link javax.enterprise.inject.spi.DeploymentException DeploymentException}
+ * on application startup, if the direct or indirect
  * {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}
  * of a <code>ThreadContextProvider</code> are unsatisfied,
  * or a provider has itself as a direct or indirect prerequisite,
@@ -64,9 +64,11 @@ public @interface ManagedExecutorConfig {
      * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>A <code>ManagedExecutor</code> must fail to inject, raising
-     * <code>DefinitionException</code> on application startup, if the same
-     * context type is implicitly or explicitly included in this set
-     * as well as in the set specified by {@link #propagated}.</p>
+     * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
+     * on application startup,
+     * if a context type specified within this set is unavailable
+     * or if the {@link #propagated} set includes one or more of the
+     * same types as this set.</p>
      */
     String[] cleared() default { ThreadContext.TRANSACTION };
 
@@ -96,9 +98,11 @@ public @interface ManagedExecutorConfig {
      * action or task.</p>
      *
      * <p>A <code>ManagedExecutor</code> must fail to inject, raising
-     * <code>DefinitionException</code> on application startup, if the same
-     * context type is implicitly or explicitly included in this set
-     * as well as in the set specified by {@link #cleared}.</p>
+     * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
+     * on application startup,
+     * if a context type specified within this set is unavailable
+     * or if the {@link #cleared} set includes one or more of the
+     * same types as this set.</p>
      */
     String[] propagated() default { ThreadContext.ALL_REMAINING };
 
@@ -114,7 +118,8 @@ public @interface ManagedExecutorConfig {
      * although practically, resource constraints of the system will apply.</p>
      *
      * <p>A <code>ManagedExecutor</code> must fail to inject, raising
-     * <code>DefinitionException</code> on application startup, if the
+     * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
+     * on application startup, if the
      * <code>maxAsync</code> value is 0 or less than -1.
      */
     int maxAsync() default -1;
@@ -128,7 +133,8 @@ public @interface ManagedExecutorConfig {
      * although practically, resource constraints of the system will apply.</p>
      *
      * <p>A <code>ManagedExecutor</code> must fail to inject, raising
-     * <code>DefinitionException</code> on application startup, if the
+     * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
+     * on application startup, if the
      * <code>maxQueued</code> value is 0 or less than -1.
      */
     int maxQueued() default -1;
