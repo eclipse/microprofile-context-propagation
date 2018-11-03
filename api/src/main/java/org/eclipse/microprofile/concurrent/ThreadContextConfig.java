@@ -128,7 +128,7 @@ public @interface ThreadContextConfig {
      *                              cleared = ThreadContext.ALL_REMAINING)
      * ThreadContext threadContext;
      * ...
-     * task = threadContext.withCurrentContext(new MyTransactionalTask());
+     * task = threadContext.contextualRunnable(new MyTransactionalTask());
      * ...
      * // on another thread,
      * tx.begin();

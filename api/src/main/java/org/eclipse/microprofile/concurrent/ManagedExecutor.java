@@ -42,14 +42,14 @@ import java.util.function.Supplier;
  *
  * <p>This specification allows for managed executors that do not capture and propagate thread context,
  * which can offer better performance. If thread context propagation is desired only for specific stages,
- * the <code>ThreadContext.withCurrentContext</code> API can be used to propagate thread context to
+ * the <code>ThreadContext.contextual*</code> API methods can be used to propagate thread context to
  * individual actions.</p>
  *
  * <p>Example of single action with context propagation:</p>
  * <pre>
  * CompletableFuture&lt;?&gt; future = executor
  *    .runAsync(runnable1)
- *    .thenRun(threadContext.withCurrentContext(runnable2))
+ *    .thenRun(threadContext.contextualRunnable(runnable2))
  *    .thenRunAsync(runnable3)
  *    ...
  * </pre>

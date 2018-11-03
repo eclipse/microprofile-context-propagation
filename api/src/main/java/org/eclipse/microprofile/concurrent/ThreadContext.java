@@ -38,9 +38,9 @@ import java.util.function.Supplier;
  * <pre>
  * <code>&commat;Inject</code> ThreadContext threadContext;
  * ...
- * CompletableFuture&lt;Integer&gt; stage2 = stage1.thenApply(threadContext.withCurrentContext(function));
+ * CompletableFuture&lt;Integer&gt; stage2 = stage1.thenApply(threadContext.contextualFunction(function));
  * ...
- * Future&lt;Integer&gt; future = executor.submit(threadContext.withCurrentContext(callable));
+ * Future&lt;Integer&gt; future = executor.submit(threadContext.contextualCallable(callable));
  * </pre>
  *
  * <p>This interface is intentionally kept compatible with ContextService,
@@ -152,25 +152,56 @@ public interface ThreadContext {
     Executor currentContextExecutor();
 
     /**
-     * <p>Wraps a <code>BiConsumer</code> with context that is captured from the thread that invokes
-     * <code>withCurrentContext</code>.</p>
+     * <p>Wraps a <code>Callable</code> with context that is captured from the thread that invokes
+     * <code>contextualCallable</code>.</p>
      * 
+     * <p>When <code>call</code> is invoked on the proxy instance,
+     * context is first established on the thread that will run the <code>call</code> method,
+     * then the <code>call</code> method of the provided <code>Callable</code> is invoked.
+     * Finally, the previous context is restored on the thread, and the result of the
+     * <code>Callable</code> is returned to the invoker.</p> 
+     *
+     * @param <R> callable result type.
+     * @param callable instance to contextualize.
+     * @return contextualized proxy instance that wraps execution of the <code>call</code> method with context.
+     */
+    <R> Callable<R> contextualCallable(Callable<R> callable);
+
+    /**
+     * <p>Wraps a <code>BiConsumer</code> with context that is captured from the thread that invokes
+     * <code>contextualConsumer</code>.</p>
+     *
      * <p>When <code>accept</code> is invoked on the proxy instance,
      * context is first established on the thread that will run the <code>accept</code> method,
      * then the <code>accept</code> method of the provided <code>BiConsumer</code> is invoked.
-     * Finally, the previous context is restored on the thread, and control is returned to the invoker.</p> 
-     * 
+     * Finally, the previous context is restored on the thread, and control is returned to the invoker.</p>
+     *
      * @param <T> type of first parameter to consumer.
      * @param <U> type of second parameter to consumer.
      * @param consumer instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>accept</code> method with context.
      */
-    <T, U> BiConsumer<T, U> withCurrentContext(BiConsumer<T, U> consumer);
+    <T, U> BiConsumer<T, U> contextualConsumer(BiConsumer<T, U> consumer);
+
+    /**
+     * <p>Wraps a <code>Consumer</code> with context that is captured from the thread that invokes
+     * <code>contextualConsumer</code>.</p>
+     * 
+     * <p>When <code>accept</code> is invoked on the proxy instance,
+     * context is first established on the thread that will run the <code>accept</code> method,
+     * then the <code>accept</code> method of the provided <code>Consumer</code> is invoked.
+     * Finally, the previous context is restored on the thread, and control is returned to the invoker.</p> 
+     *
+     * @param <T> type of parameter to consumer.
+     * @param consumer instance to contextualize.
+     * @return contextualized proxy instance that wraps execution of the <code>accept</code> method with context.
+     */
+    <T> Consumer<T> contextualConsumer(Consumer<T> consumer);
 
     /**
      * <p>Wraps a <code>BiFunction</code> with context that is captured from the thread that invokes
-     * <code>withCurrentContext</code>.</p>
-     * 
+     * <code>contextualFunction</code>.</p>
+     *
      * <p>When <code>apply</code> is invoked on the proxy instance,
      * context is first established on the thread that will run the <code>apply</code> method,
      * then the <code>apply</code> method of the provided <code>BiFunction</code> is invoked.
@@ -183,42 +214,11 @@ public interface ThreadContext {
      * @param function instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>apply</code> method with context.
      */
-    <T, U, R> BiFunction<T, U, R> withCurrentContext(BiFunction<T, U, R> function);
-
-    /**
-     * <p>Wraps a <code>Callable</code> with context that is captured from the thread that invokes
-     * <code>withCurrentContext</code>.</p>
-     * 
-     * <p>When <code>call</code> is invoked on the proxy instance,
-     * context is first established on the thread that will run the <code>call</code> method,
-     * then the <code>call</code> method of the provided <code>Callable</code> is invoked.
-     * Finally, the previous context is restored on the thread, and the result of the
-     * <code>Callable</code> is returned to the invoker.</p> 
-     *
-     * @param <R> callable result type.
-     * @param callable instance to contextualize.
-     * @return contextualized proxy instance that wraps execution of the <code>call</code> method with context.
-     */
-    <R> Callable<R> withCurrentContext(Callable<R> callable);
-
-    /**
-     * <p>Wraps a <code>Consumer</code> with context that is captured from the thread that invokes
-     * <code>withCurrentContext</code>.</p>
-     * 
-     * <p>When <code>accept</code> is invoked on the proxy instance,
-     * context is first established on the thread that will run the <code>accept</code> method,
-     * then the <code>accept</code> method of the provided <code>Consumer</code> is invoked.
-     * Finally, the previous context is restored on the thread, and control is returned to the invoker.</p> 
-     *
-     * @param <T> type of parameter to consumer.
-     * @param consumer instance to contextualize.
-     * @return contextualized proxy instance that wraps execution of the <code>accept</code> method with context.
-     */
-    <T> Consumer<T> withCurrentContext(Consumer<T> consumer);
+    <T, U, R> BiFunction<T, U, R> contextualFunction(BiFunction<T, U, R> function);
 
     /**
      * <p>Wraps a <code>Function</code> with context that is captured from the thread that invokes
-     * <code>withCurrentContext</code>.</p>
+     * <code>contextualFunction</code>.</p>
      * 
      * <p>When <code>apply</code> is invoked on the proxy instance,
      * context is first established on the thread that will run the <code>apply</code> method,
@@ -231,11 +231,11 @@ public interface ThreadContext {
      * @param function instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>apply</code> method with context.
      */
-    <T, R> Function<T, R> withCurrentContext(Function<T, R> function);
+    <T, R> Function<T, R> contextualFunction(Function<T, R> function);
 
     /**
      * <p>Wraps a <code>Runnable</code> with context that is captured from the thread that invokes
-     * <code>withCurrentContext</code>.</p>
+     * <code>ContextualRunnable</code>.</p>
      * 
      * <p>When <code>run</code> is invoked on the proxy instance,
      * context is first established on the thread that will run the <code>run</code> method,
@@ -245,11 +245,11 @@ public interface ThreadContext {
      * @param runnable instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>run</code> method with context.
      */
-    Runnable withCurrentContext(Runnable runnable);
+    Runnable contextualRunnable(Runnable runnable);
 
     /**
      * <p>Wraps a <code>Supplier</code> with context captured from the thread that invokes
-     * <code>withCurrentContext</code>.</p>
+     * <code>contextualSupplier</code>.</p>
      * 
      * <p>When <code>supply</code> is invoked on the proxy instance,
      * context is first established on the thread that will run the <code>supply</code> method,
@@ -261,7 +261,7 @@ public interface ThreadContext {
      * @param supplier instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>supply</code> method with context.
      */
-    <R> Supplier<R> withCurrentContext(Supplier<R> supplier);
+    <R> Supplier<R> contextualSupplier(Supplier<R> supplier);
 
     /**
      * <p>Returns a new <code>CompletableFuture</code> that is completed by the completion of the
