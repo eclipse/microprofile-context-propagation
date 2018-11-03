@@ -35,12 +35,7 @@ import java.lang.annotation.Target;
  *
  * <p>A <code>ThreadContext</code> must fail to inject, raising
  * {@link javax.enterprise.inject.spi.DeploymentException DeploymentException}
- * on application startup,
- * if the direct or indirect
- * {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}
- * of a <code>ThreadContextProvider</code> are unsatisfied,
- * or a provider has itself as a direct or indirect prerequisite,
- * or if more than one provider provides the same thread context
+ * on application startup, if more than one provider provides the same thread context
  * {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}.
  */
 @Retention(RUNTIME)
@@ -60,9 +55,6 @@ public @interface ThreadContextConfig {
      * on {@link ThreadContext}. Other thread context types must be defined
      * by the specification that defines the context type or by a related
      * MicroProfile specification.</p>
-     *
-     * <p>Inclusion of a thread context type with prerequisites implies
-     * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>A <code>ThreadContext</code> must fail to inject, raising
      * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
@@ -90,9 +82,6 @@ public @interface ThreadContextConfig {
      * on {@link ThreadContext}. Other thread context types must be defined
      * by the specification that defines the context type or by a related
      * MicroProfile specification.</p>
-     *
-     * <p>Inclusion of a thread context type with prerequisites implies
-     * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>Thread context types which are not otherwise included in this set or
      * in the {@link #unchanged} set are cleared from the thread of execution
@@ -136,10 +125,6 @@ public @interface ThreadContextConfig {
      * task.run(); // runs under the transaction due to 'unchanged'
      * tx.commit();
      * </code></pre>
-     *
-     * <p>Inclusion of a thread context type with prerequisites implies
-     * inclusion of the prerequisites, in that the prequisistes are
-     * considered 'unchanged' as well, even if not explicitly specified.</p>
      *
      * <p>A <code>ThreadContext</code> must fail to inject, raising
      * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}

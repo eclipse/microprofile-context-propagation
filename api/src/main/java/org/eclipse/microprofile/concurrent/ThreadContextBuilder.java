@@ -50,11 +50,6 @@ public interface ThreadContextBuilder {
      *         ({@link #cleared}, {@link #propagated}, {@link #unchanged})</li>
      *         <li>if a thread context type that is configured to be
      *         {@link #cleared} or {@link #propagated} is unavailable</li>
-     *         <li>if the direct or indirect
-     *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getPrerequisites prerequisites}
-     *         of a <code>ThreadContextProvider</code> are unsatisfied</li>
-     *         <li>if a <code>ThreadContextProvider</code> has a direct or
-     *         indirect prerequisite on itself</li>
      *         <li>if more than one <code>ThreadContextProvider</code> has the
      *         same thread context
      *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}
@@ -91,9 +86,6 @@ public interface ThreadContextBuilder {
      * by the specification that defines the context type or by a related
      * MicroProfile specification.</p>
      *
-     * <p>Inclusion of a thread context type with prerequisites implies
-     * inclusion of the prerequisites, even if not explicitly specified.</p>
-     *
      * @param types types of thread context to clear from threads that run
      *        actions and tasks.
      * @return the same builder instance upon which this method is invoked.
@@ -120,9 +112,6 @@ public interface ThreadContextBuilder {
      * on {@link ThreadContext}. Other thread context types must be defined
      * by the specification that defines the context type or by a related
      * MicroProfile specification.</p>
-     *
-     * <p>Inclusion of a thread context type with prerequisites implies
-     * inclusion of the prerequisites, even if not explicitly specified.</p>
      *
      * <p>Thread context types which are not otherwise included in this set or
      * in the {@link #unchanged} set are cleared from the thread of execution
@@ -170,10 +159,6 @@ public interface ThreadContextBuilder {
      * task.run(); // runs under the transaction due to 'unchanged'
      * tx.commit();
      * </code></pre>
-     *
-     * <p>Inclusion of a thread context type with prerequisites implies
-     * inclusion of the prerequisites, in that the prequisistes are
-     * considered 'unchanged' as well, even if not explicitly specified.</p>
      *
      * <p>A <code>ThreadContext</code> must fail to {@link #build} if the same
      * context type is included in this set as well as in the set specified by
