@@ -18,15 +18,16 @@
  */
 package org.eclipse.microprofile.concurrent.spi;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.microprofile.concurrent.ManagedExecutor;
-import org.eclipse.microprofile.concurrent.ThreadContext;
-
 /**
  * <p>MicroProfile Concurrency provider implementation supplied by the
- * container, which creates new instances of
+ * container, which creates and caches instances of
+ * <code>ConcurrencyManager</code> per class loader,
+ * which in turn create new instances of
  * {@link org.eclipse.microprofile.concurrent.ManagedExecutor.Builder ManagedExecutor.Builder} and
  * {@link org.eclipse.microprofile.concurrent.ThreadContext.Builder ThreadContext.Builder}.</p>
  *
@@ -101,23 +102,32 @@ public interface ConcurrencyProvider {
     
     /**
      * Gets a {@link ConcurrencyManager} for the current thread-context {@link ClassLoader}. This
-     * is equivalent to calling <code>getConcurrencyManager(Thread.currentThread().getContextClassLoader())</code>
+     * is equivalent to calling <code>getConcurrencyManager(Thread.currentThread().getContextClassLoader())</code>,
+     * which is the default implementation of this method.
      * 
      * @return a {@link ConcurrencyManager} for the current thread-context {@link ClassLoader}.
      * @see #getConcurrencyManager(ClassLoader)
      */
-    public ConcurrencyManager getConcurrencyManager();
+    public default ConcurrencyManager getConcurrencyManager() {
+        ClassLoader loader = System.getSecurityManager() == null
+            ? Thread.currentThread().getContextClassLoader()
+            : AccessController.doPrivileged((PrivilegedAction<ClassLoader>) () -> Thread.currentThread().getContextClassLoader());
+        return getConcurrencyManager(loader);
+    }
 
     /**
      * Gets a {@link ConcurrencyManager} for the given {@link ClassLoader}. If there is already
-     * a {@link ConcurrencyManager} registered for the given {@link ClassLoader}, the existing
-     * instance will be returned. If not, one will be created using a {@link ConcurrencyManagerBuilder}
+     * a {@link ConcurrencyManager} registered for the given {@link ClassLoader} or the concurrency provider
+     * uses a single fixed set of {@link ThreadContextProvider} regardless of the class loader, the existing
+     * instance will be returned. If not, one will be created, either by provider-specific mechanisms
+     * if {@link ConcurrencyManagerBuilder} is not supported, or with a {@link ConcurrencyManagerBuilder}
      * using the specified {@link ClassLoader} (with {@link ConcurrencyManagerBuilder#forClassLoader(ClassLoader)})
      * and with {@link ConcurrencyManagerBuilder#addDiscoveredThreadContextProviders()} called in
      * order to load all {@link ThreadContextProvider} discoverable from the given {@link ClassLoader}.
      * If created, the new {@link ConcurrencyManager} will then be registered for the given {@link ClassLoader}
      * with {@link #registerConcurrencyManager(ConcurrencyManager, ClassLoader)}.
-     * 
+     *
+     * @param classloader the class loader for which to obtain the concurrency manager.
      * @return a {@link ConcurrencyManager} for the given {@link ClassLoader}.
      * @see ConcurrencyManagerBuilder#addDiscoveredThreadContextProviders()
      * @see ConcurrencyManagerBuilder#build()
@@ -132,8 +142,13 @@ public interface ConcurrencyProvider {
      * yourself if you need to.
      * 
      * @return a new {@link ConcurrencyManagerBuilder}
+     * @throws UnsupportedOperationException if the <code>ConcurrencyProvider</code>
+     *         always uses the same set of <code>ThreadContextProvider</code>
+     *         or is inseparable from the container.
      */
-    public ConcurrencyManagerBuilder getConcurrencyManagerBuilder();
+    public default ConcurrencyManagerBuilder getConcurrencyManagerBuilder() {
+        throw new UnsupportedOperationException();
+    }
     
     /**
      * Registers the given {@link ConcurrencyManager} for the given {@link ClassLoader}, so that
@@ -142,37 +157,27 @@ public interface ConcurrencyProvider {
      * 
      * @param manager The {@link ConcurrencyManager} to register
      * @param classLoader The {@link ClassLoader} to register it for
+     * @throws UnsupportedOperationException if the <code>ConcurrencyProvider</code>
+     *         always uses the same set of <code>ThreadContextProvider</code>
+     *         or is inseparable from the container.
      * @see #getConcurrencyManager(ClassLoader)
      * @see #releaseConcurrencyManager(ConcurrencyManager)
      */
-    public void registerConcurrencyManager(ConcurrencyManager manager, ClassLoader classLoader);
+    public default void registerConcurrencyManager(ConcurrencyManager manager, ClassLoader classLoader) {
+        throw new UnsupportedOperationException();
+    }
 
     /**
      * Releases a {@link ConcurrencyManager} that was previously registered with 
      * {@link #registerConcurrencyManager(ConcurrencyManager, ClassLoader)}.
      * 
      * @param manager The {@link ConcurrencyManager} to release
+     * @throws UnsupportedOperationException if the <code>ConcurrencyProvider</code>
+     *         always uses the same set of <code>ThreadContextProvider</code>
+     *         or is inseparable from the container.
      * @see #registerConcurrencyManager(ConcurrencyManager, ClassLoader)
      */
-    public void releaseConcurrencyManager(ConcurrencyManager manager);
-    
-    /**
-     * Creates a new {@link org.eclipse.microprofile.concurrent.ManagedExecutor.Builder ManagedExecutor.Builder} instance using the 
-     * {@link ConcurrencyManager} returned by {@link #getConcurrencyManager()}.
-     *
-     * @return a new {@link org.eclipse.microprofile.concurrent.ManagedExecutor.Builder ManagedExecutor.Builder} instance.
-     */
-    default ManagedExecutor.Builder newManagedExecutorBuilder() {
-        return getConcurrencyManager().newManagedExecutorBuilder();
-    }
-
-    /**
-     * Creates a new {@link org.eclipse.microprofile.concurrent.ThreadContext.Builder ThreadContext.Builder} instance using the 
-     * {@link ConcurrencyManager} returned by {@link #getConcurrencyManager()}.
-     *
-     * @return a new {@link org.eclipse.microprofile.concurrent.ThreadContext.Builder ThreadContext.Builder} instance.
-     */
-    default ThreadContext.Builder newThreadContextBuilder() {
-        return getConcurrencyManager().newThreadContextBuilder();
+    public default void releaseConcurrencyManager(ConcurrencyManager manager) {
+        throw new UnsupportedOperationException();
     }
 }

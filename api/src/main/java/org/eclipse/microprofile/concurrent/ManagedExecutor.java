@@ -81,7 +81,7 @@ public interface ManagedExecutor extends ExecutorService {
      * @return a new {@link Builder} instance.
      */
     public static Builder builder() {
-        return ConcurrencyProvider.instance().newManagedExecutorBuilder();
+        return ConcurrencyProvider.instance().getConcurrencyManager().newManagedExecutorBuilder();
     }
 
     /**
