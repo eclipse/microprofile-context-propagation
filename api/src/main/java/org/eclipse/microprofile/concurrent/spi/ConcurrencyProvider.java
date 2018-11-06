@@ -106,6 +106,8 @@ public interface ConcurrencyProvider {
      * which is the default implementation of this method.
      * 
      * @return a {@link ConcurrencyManager} for the current thread-context {@link ClassLoader}.
+     * @throws IllegalStateException if more than one {@link ThreadContextProvider}
+     *         provides the same thread context {@link ThreadContextProvider#getThreadContextType type}
      * @see #getConcurrencyManager(ClassLoader)
      */
     public default ConcurrencyManager getConcurrencyManager() {
@@ -129,6 +131,8 @@ public interface ConcurrencyProvider {
      *
      * @param classloader the class loader for which to obtain the concurrency manager.
      * @return a {@link ConcurrencyManager} for the given {@link ClassLoader}.
+     * @throws IllegalStateException if more than one {@link ThreadContextProvider}
+     *         provides the same thread context {@link ThreadContextProvider#getThreadContextType type}
      * @see ConcurrencyManagerBuilder#addDiscoveredThreadContextProviders()
      * @see ConcurrencyManagerBuilder#build()
      * @see #registerConcurrencyManager(ConcurrencyManager, ClassLoader)
