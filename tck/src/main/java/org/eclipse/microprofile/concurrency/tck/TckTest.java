@@ -16,46 +16,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.microprofile.concurrency.tck;
+package org.eclipse.microprofile.concurrency.tck;
 
-import javax.inject.Inject;
-
-import org.eclipse.microprofile.concurrent.ThreadContext;
 import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
-import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.EmptyAsset;
-import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
-@RunWith(Arquillian.class)
-public class TckTest {
+public class TckTest extends Arquillian {
 
     @Deployment
     public static WebArchive createDeployment() {
-        JavaArchive testJar = ShrinkWrap.create(JavaArchive.class)
-                .addClass(TckTest.class)
-                .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml");
-        WebArchive war = ShrinkWrap.create(WebArchive.class, "tckTest.war")
-                .addAsLibrary(testJar);
-        return war;
+        return ShrinkWrap.create(WebArchive.class, TckTest.class.getSimpleName() + ".war")
+        .addClass(TckTest.class);
     }
 
     @Test
     public void providerSet() {
         ConcurrencyProvider provider = ConcurrencyProvider.instance();
-        Assert.assertNotNull("Provider is set", provider);
+        Assert.assertNotNull(provider, "Provider is set");
     }
 
-    @Inject
-    ThreadContext injectedContext;
-
-    @Test
-    public void injectionWorks() {
-        Assert.assertNotNull("Injected context works", injectedContext);
-    }
 }
