@@ -19,13 +19,21 @@
 package org.eclipse.microprofile.concurrent;
 
 import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
+import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * <p>Configures an injected <code>ThreadContext</code> instance.</p>
+ * <p>Provides configuration for an injected {@link ThreadContext} instance,
+ * which is {@link javax.enterprise.context.Dependent dependent} scoped.
+ * When an application has multiple injection points for {@link ThreadContext}
+ * with matching configuration, the container must inject the same instance.
+ * For the purposes of matching, array attributes of this annotation are
+ * considered as unordered sets where duplicate elements are ignored.</p>
  *
  * <p>Example usage:</p>
  * <pre><code> &commat;Inject &commat;ThreadContextConfig(ThreadContext.CDI)
@@ -33,13 +41,20 @@ import java.lang.annotation.Target;
  * ...
  * </code></pre>
  *
+ * <p>A {@link ThreadContext} service's life cycle is tied to that of the application.
+ * When the application stops, the container automatically shuts down the
+ * {@link ThreadContext} service, cancels its remaining
+ * <code>CompletableFuture</code>s and <code>CompletionStage</code>s, and
+ * and raises <code>IllegalStateException</code> to reject subsequent attempts
+ * to apply previously captured thread context.</p>
+ *
  * <p>A <code>ThreadContext</code> must fail to inject, raising
  * {@link javax.enterprise.inject.spi.DeploymentException DeploymentException}
  * on application startup, if more than one provider provides the same thread context
  * {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}.
  */
 @Retention(RUNTIME)
-@Target(FIELD)
+@Target({ FIELD, METHOD, PARAMETER, TYPE })
 public @interface ThreadContextConfig {
     /**
      * <p>Defines the set of thread context types to clear from the thread
