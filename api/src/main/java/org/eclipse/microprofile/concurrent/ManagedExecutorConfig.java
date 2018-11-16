@@ -31,7 +31,7 @@ import java.lang.annotation.Target;
  * <p>Provides configuration for an injected {@link ManagedExecutor} instance
  * which is {@link javax.enterprise.context.Dependent dependent} scoped.
  * When an application has multiple injection points for {@link ManagedExecutor}
- * with matching configuration, the container must inject the same instance.
+ * with matching configuration, the container injects the same instance.
  * For the purposes of matching, array attributes of this annotation are
  * considered as unordered sets where duplicate elements are ignored.</p>
  *
@@ -41,9 +41,9 @@ import java.lang.annotation.Target;
  * ...
  * </code></pre>
  *
- * <p>A {@link ManagedExecutor}'s life cycle is tied to that of the application.
- * When the application stops, the container automatically shuts down the
- * managed executor and cancels its remaining actions/tasks.</p>
+ * <p>All created instances of {@link ManagedExecutor} are destroyed
+ * when the application is stopped. The container automatically shuts down these
+ * managed executors and cancels their remaining actions/tasks.</p>
  *
  * <p>A {@link ManagedExecutor} must fail to inject, raising
  * {@link javax.enterprise.inject.spi.DeploymentException DeploymentException}

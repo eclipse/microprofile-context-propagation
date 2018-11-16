@@ -31,7 +31,7 @@ import java.lang.annotation.Target;
  * <p>Provides configuration for an injected {@link ThreadContext} instance,
  * which is {@link javax.enterprise.context.Dependent dependent} scoped.
  * When an application has multiple injection points for {@link ThreadContext}
- * with matching configuration, the container must inject the same instance.
+ * with matching configuration, the container injects the same instance.
  * For the purposes of matching, array attributes of this annotation are
  * considered as unordered sets where duplicate elements are ignored.</p>
  *
@@ -41,9 +41,9 @@ import java.lang.annotation.Target;
  * ...
  * </code></pre>
  *
- * <p>A {@link ThreadContext} service's life cycle is tied to that of the application.
- * When the application stops, the container automatically shuts down the
- * {@link ThreadContext} service, cancels its remaining
+ * <p>All created instances of {@link ThreadContext} are destroyed
+ * when the application is stopped. The container automatically shuts down these
+ * {@link ThreadContext} instances, cancels their remaining
  * <code>CompletableFuture</code>s and <code>CompletionStage</code>s, and
  * and raises <code>IllegalStateException</code> to reject subsequent attempts
  * to apply previously captured thread context.</p>
