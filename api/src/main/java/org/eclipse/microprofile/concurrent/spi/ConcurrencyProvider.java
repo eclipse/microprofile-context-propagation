@@ -21,14 +21,14 @@ package org.eclipse.microprofile.concurrent.spi;
 import java.util.ServiceLoader;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.eclipse.microprofile.concurrent.ManagedExecutorBuilder;
-import org.eclipse.microprofile.concurrent.ThreadContextBuilder;
+import org.eclipse.microprofile.concurrent.ManagedExecutor;
+import org.eclipse.microprofile.concurrent.ThreadContext;
 
 /**
  * <p>MicroProfile Concurrency provider implementation supplied by the
  * container, which creates new instances of
- * <code>ManagedExecutorBuilder</code> and
- * <code>ThreadContextBuilder</code>.</p>
+ * {@link org.eclipse.microprofile.concurrent.ManagedExecutor.Builder ManagedExecutor.Builder} and
+ * {@link org.eclipse.microprofile.concurrent.ThreadContext.Builder ThreadContext.Builder}.</p>
  *
  * <p>The container must register its <code>ConcurrencyProvider</code>
  * implementation via the <code>register</code> method, or by providing 
@@ -157,22 +157,22 @@ public interface ConcurrencyProvider {
     public void releaseConcurrencyManager(ConcurrencyManager manager);
     
     /**
-     * Creates a new <code>ManagedExecutorBuilder</code> instance using the 
+     * Creates a new {@link org.eclipse.microprofile.concurrent.ManagedExecutor.Builder ManagedExecutor.Builder} instance using the 
      * {@link ConcurrencyManager} returned by {@link #getConcurrencyManager()}.
      *
-     * @return a new <code>ManagedExecutorBuilder</code> instance.
+     * @return a new {@link org.eclipse.microprofile.concurrent.ManagedExecutor.Builder ManagedExecutor.Builder} instance.
      */
-    default ManagedExecutorBuilder newManagedExecutorBuilder() {
+    default ManagedExecutor.Builder newManagedExecutorBuilder() {
         return getConcurrencyManager().newManagedExecutorBuilder();
     }
 
     /**
-     * Creates a new <code>ThreadContextBuilder</code> instance using the 
+     * Creates a new {@link org.eclipse.microprofile.concurrent.ThreadContext.Builder ThreadContext.Builder} instance using the 
      * {@link ConcurrencyManager} returned by {@link #getConcurrencyManager()}.
      *
-     * @return a new <code>ThreadContextBuilder</code> instance.
+     * @return a new {@link org.eclipse.microprofile.concurrent.ThreadContext.Builder ThreadContext.Builder} instance.
      */
-    default ThreadContextBuilder newThreadContextBuilder() {
+    default ThreadContext.Builder newThreadContextBuilder() {
         return getConcurrencyManager().newThreadContextBuilder();
     }
 }

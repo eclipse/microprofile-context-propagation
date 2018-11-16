@@ -23,6 +23,8 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
+import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
+
 /**
  * <p>A container-managed executor service that creates instances of CompletableFuture,
  * which it backs as the default asynchronous execution facility, both for the
@@ -73,6 +75,143 @@ import java.util.function.Supplier;
  * awaitTermination, isShutdown, isTerminated, shutdown, shutdownNow</p>
  */
 public interface ManagedExecutor extends ExecutorService {
+    /**
+     * Creates a new {@link Builder} instance.
+     *
+     * @return a new {@link Builder} instance.
+     */
+    public static Builder builder() {
+        return ConcurrencyProvider.instance().newManagedExecutorBuilder();
+    }
+
+    /**
+     * <p>Builder for {@link ManagedExecutor} instances.</p>
+     *
+     * <p>Example usage:</p>
+     * <pre><code> ManagedExecutor executor = ManagedExecutor.builder()
+     *                                                  .maxAsync(5)
+     *                                                  .maxQueued(20)
+     *                                                  .propagated(ThreadContext.SECURITY)
+     *                                                  .build();
+     * ...
+     * </code></pre>
+     */
+    public interface Builder {
+        /**
+         * <p>Builds a new {@link ManagedExecutor} with the configuration
+         * that this builder represents as of the point in time when this method
+         * is invoked.</p>
+         *
+         * <p>After {@link #build} is invoked, the builder instance retains its
+         * configuration and may be further updated to represent different
+         * configurations and build additional {@link ManagedExecutor}
+         * instances.</p>
+         *
+         * <p>All created instances of {@link ManagedExecutor} are destroyed
+         * when the application is stopped. The container automatically shuts down these
+         * managed executors and cancels their remaining actions/tasks.</p>
+         *
+         * @return new instance of {@link ManagedExecutor}.
+         * @throws IllegalStateException for any of the following error conditions
+         *         <ul>
+         *         <li>if one or more of the same context types appear in both the
+         *         {@link #cleared} set and the {@link #propagated} set</li>
+         *         <li>if a thread context type that is configured to be
+         *         {@link #cleared} or {@link #propagated} is unavailable</li>
+         *         <li>if more than one provider provides the same thread context
+         *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}
+         *         </li>
+         *         </ul>
+         */
+        ManagedExecutor build();
+
+        /**
+         * <p>Defines the set of thread context types to clear from the thread
+         * where the action or task executes. The previous context is resumed
+         * on the thread after the action or task ends.</p>
+         *
+         * <p>This set replaces the <code>cleared</code> set that was previously
+         * specified on the builder instance, if any.</p>
+         *
+         * <p>The default set of cleared thread context types is
+         * {@link ThreadContext#TRANSACTION}, which means that a transaction
+         * is not active on the thread when the action or task runs, such
+         * that each action or task is able to independently start and end
+         * its own transactional work.</p>
+         *
+         * <p>Constants for specifying some of the core context types are provided
+         * on {@link ThreadContext}. Other thread context types must be defined
+         * by the specification that defines the context type or by a related
+         * MicroProfile specification.</p>
+         *
+         * @param types types of thread context to clear from threads that run
+         *        actions and tasks.
+         * @return the same builder instance upon which this method is invoked.
+         */
+        Builder cleared(String... types);
+
+        /**
+         * <p>Defines the set of thread context types to capture from the thread
+         * that creates a dependent stage (or that submits a task) and which to
+         * propagate to the thread where the action or task executes.</p>
+         *
+         * <p>This set replaces the <code>propagated</code> set that was
+         * previously specified on the builder instance, if any.</p>
+         *
+         * <p>The default set of propagated thread context types is
+         * {@link ThreadContext#ALL_REMAINING}, which includes all available
+         * thread context types that support capture and propagation to other
+         * threads, except for those that are explicitly {@link cleared},
+         * which, by default is {@link ThreadContext#TRANSACTION} context,
+         * in which case is suspended from the thread that runs the action or
+         * task.</p>
+         *
+         * <p>Constants for specifying some of the core context types are provided
+         * on {@link ThreadContext}. Other thread context types must be defined
+         * by the specification that defines the context type or by a related
+         * MicroProfile specification.</p>
+         *
+         * <p>Thread context types which are not otherwise included in this set
+         * are cleared from the thread of execution for the duration of the
+         * action or task.</p>
+         *
+         * @param types types of thread context to capture and propagate.
+         * @return the same builder instance upon which this method is invoked.
+         */
+        Builder propagated(String... types);
+
+        /**
+         * <p>Establishes an upper bound on the number of async completion stage
+         * actions and async executor tasks that can be running at any given point
+         * in time. There is no guarantee that async actions or tasks will start
+         * running immediately, even when the <code>maxAsync</code> constraint has
+         * not get been reached. Async actions and tasks remain queued until
+         * the <code>ManagedExecutor</code> starts executing them.</p>
+         *
+         * <p>The default value of <code>-1</code> indicates no upper bound,
+         * although practically, resource constraints of the system will apply.</p>
+         *
+         * @param max upper bound on async completion stage actions and executor tasks.
+         * @return the same builder instance upon which this method is invoked.
+         * @throws IllegalArgumentException if max is 0 or less than -1.
+         */
+        Builder maxAsync(int max);
+
+        /**
+         * <p>Establishes an upper bound on the number of async actions and async tasks
+         * that can be queued up for execution. Async actions and tasks are rejected
+         * if no space in the queue is available to accept them.</p>
+         *
+         * <p>The default value of <code>-1</code> indicates no upper bound,
+         * although practically, resource constraints of the system will apply.</p>
+         *
+         * @param max upper bound on async actions and tasks that can be queued.
+         * @return the same builder instance upon which this method is invoked.
+         * @throws IllegalArgumentException if max is 0 or less than -1.
+         */
+        Builder maxQueued(int max);
+    }
+
     /**
      * <p>Returns a new CompletableFuture that is already completed with the specified value.</p>
      *

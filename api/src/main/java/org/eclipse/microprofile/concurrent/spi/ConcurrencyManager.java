@@ -18,8 +18,8 @@
  */
 package org.eclipse.microprofile.concurrent.spi;
 
-import org.eclipse.microprofile.concurrent.ManagedExecutorBuilder;
-import org.eclipse.microprofile.concurrent.ThreadContextBuilder;
+import org.eclipse.microprofile.concurrent.ManagedExecutor;
+import org.eclipse.microprofile.concurrent.ThreadContext;
 
 /**
  * {@link ConcurrencyManager} instances can be used to create {@link #newManagedExecutorBuilder()}
@@ -32,17 +32,17 @@ import org.eclipse.microprofile.concurrent.ThreadContextBuilder;
  */
 public interface ConcurrencyManager {
     /**
-     * Creates a new <code>ManagedExecutorBuilder</code> instance.
+     * Creates a new {@link org.eclipse.microprofile.concurrent.ManagedExecutor.Builder ManagedExecutor.Builder} instance.
      *
-     * @return a new <code>ManagedExecutorBuilder</code> instance.
+     * @return a new {@link org.eclipse.microprofile.concurrent.ManagedExecutor.Builder ManagedExecutor.Builder} instance.
      */
-    ManagedExecutorBuilder newManagedExecutorBuilder();
+    ManagedExecutor.Builder newManagedExecutorBuilder();
 
     /**
-     * Creates a new <code>ThreadContextBuilder</code> instance.
+     * Creates a new {@link org.eclipse.microprofile.concurrent.ThreadContext.Builder ThreadContext.Builder} instance.
      *
-     * @return a new <code>ThreadContextBuilder</code> instance.
+     * @return a new {@link org.eclipse.microprofile.concurrent.ThreadContext.Builder ThreadContext.Builder} instance.
      */
-    ThreadContextBuilder newThreadContextBuilder(); 
+    ThreadContext.Builder newThreadContextBuilder();
 
 }
