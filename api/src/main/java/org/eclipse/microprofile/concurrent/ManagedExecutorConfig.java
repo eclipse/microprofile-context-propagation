@@ -19,13 +19,21 @@
 package org.eclipse.microprofile.concurrent;
 
 import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
+import static java.lang.annotation.ElementType.TYPE;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * <p>Configures an injected <code>ManagedExecutor</code> instance.</p>
+ * <p>Provides configuration for an injected {@link ManagedExecutor} instance
+ * which is {@link javax.enterprise.context.Dependent dependent} scoped.
+ * When an application has multiple injection points for {@link ManagedExecutor}
+ * with matching configuration, the container injects the same instance.
+ * For the purposes of matching, array attributes of this annotation are
+ * considered as unordered sets where duplicate elements are ignored.</p>
  *
  * <p>Example usage:</p>
  * <pre><code> &commat;Inject &commat;ManagedExecutorConfig(propagated=ThreadContext.CDI, maxAsync=5)
@@ -33,13 +41,17 @@ import java.lang.annotation.Target;
  * ...
  * </code></pre>
  *
- * <p>A <code>ManagedExecutor</code> must fail to inject, raising
+ * <p>All created instances of {@link ManagedExecutor} are destroyed
+ * when the application is stopped. The container automatically shuts down these
+ * managed executors and cancels their remaining actions/tasks.</p>
+ *
+ * <p>A {@link ManagedExecutor} must fail to inject, raising
  * {@link javax.enterprise.inject.spi.DeploymentException DeploymentException}
  * on application startup, if more than one provider provides the same thread context
  * {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}.
  */
 @Retention(RUNTIME)
-@Target(FIELD)
+@Target({ FIELD, METHOD, PARAMETER, TYPE })
 public @interface ManagedExecutorConfig {
     /**
      * <p>Defines the set of thread context types to clear from the thread
