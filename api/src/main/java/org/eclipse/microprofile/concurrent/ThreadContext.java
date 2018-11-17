@@ -28,6 +28,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
+
 /**
  * This interface offers various methods for capturing the context of the current thread
  * and applying it to various interfaces that are commonly used with completion stages
@@ -48,6 +50,163 @@ import java.util.function.Supplier;
  */
 public interface ThreadContext {
     /**
+     * Creates a new {@link Builder} instance.
+     *
+     * @return a new {@link Builder} instance.
+     */
+    public static Builder builder() {
+        return ConcurrencyProvider.instance().newThreadContextBuilder();
+    }
+
+    /**
+     * <p>Builder for {@link ThreadContext} instances.</p>
+     *
+     * <p>Example usage:</p>
+     * <pre><code> ThreadContext threadContext = ThreadContext.builder()
+     *                                                   .propagated(ThreadContext.APPLICATION, ThreadContext.SECURITY)
+     *                                                   .unchanged(ThreadContext.TRANSACTION)
+     *                                                   .build();
+     * ...
+     * </code></pre>
+     */
+    interface Builder {
+        /**
+         * <p>Builds a new {@link ThreadContext} instance with the
+         * configuration that this builder represents as of the point in time when
+         * this method is invoked.</p>
+         *
+         * <p>After {@link #build} is invoked, the builder instance retains its
+         * configuration and may be further updated to represent different
+         * configurations and build additional <code>ThreadContext</code>
+         * instances.</p>
+         *
+         * <p>All created instances of {@link ThreadContext} are destroyed
+         * when the application is stopped. The container automatically shuts down these
+         * {@link ThreadContext} instances, cancels their remaining
+         * <code>CompletableFuture</code>s and <code>CompletionStage</code>s, and
+         * and raises <code>IllegalStateException</code> to reject subsequent attempts
+         * to apply previously captured thread context.</p>
+         *
+         * @return new instance of {@link ThreadContext}.
+         * @throws IllegalStateException for any of the following error conditions
+         *         <ul>
+         *         <li>if one or more of the same context types appear in multiple
+         *         of the following sets:
+         *         ({@link #cleared}, {@link #propagated}, {@link #unchanged})</li>
+         *         <li>if a thread context type that is configured to be
+         *         {@link #cleared} or {@link #propagated} is unavailable</li>
+         *         <li>if more than one <code>ThreadContextProvider</code> has the
+         *         same thread context
+         *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}
+         *         </li>
+         *         </ul>
+         */
+        ThreadContext build();
+
+        /**
+         * <p>Defines the set of thread context types to clear from the thread
+         * where the action or task executes. The previous context is resumed
+         * on the thread after the action or task ends.</p>
+         *
+         * <p>This set replaces the <code>cleared</code> set that was
+         * previously specified on the builder instance, if any.</p>
+         *
+         * <p>The default set of cleared thread context types is
+         * {@link ThreadContext#TRANSACTION}, which means that a transaction
+         * is not active on the thread when the action or task runs, such
+         * that each action or task is able to independently start and end
+         * its own transactional work.</p>
+         *
+         * <p>Constants for specifying some of the core context types are provided
+         * on {@link ThreadContext}. Other thread context types must be defined
+         * by the specification that defines the context type or by a related
+         * MicroProfile specification.</p>
+         *
+         * @param types types of thread context to clear from threads that run
+         *        actions and tasks.
+         * @return the same builder instance upon which this method is invoked.
+         */
+        Builder cleared(String... types);
+
+        /**
+         * <p>Defines the set of thread context types to capture from the thread
+         * that contextualizes an action or task. This context is later
+         * re-established on the thread(s) where the action or task executes.</p>
+         *
+         * <p>This set replaces the <code>propagated</code> set that was
+         * previously specified on the builder instance, if any.</p>
+         *
+         * <p>The default set of propagated thread context types is
+         * {@link ThreadContext#ALL_REMAINING}, which includes all available
+         * thread context types that support capture and propagation to other
+         * threads, except for those that are explicitly {@link cleared},
+         * which, by default is {@link ThreadContext#TRANSACTION} context,
+         * in which case is suspended from the thread that runs the action or
+         * task.</p>
+         *
+         * <p>Constants for specifying some of the core context types are provided
+         * on {@link ThreadContext}. Other thread context types must be defined
+         * by the specification that defines the context type or by a related
+         * MicroProfile specification.</p>
+         *
+         * <p>Thread context types which are not otherwise included in this set or
+         * in the {@link #unchanged} set are cleared from the thread of execution
+         * for the duration of the action or task.</p>
+         *
+         * <p>A <code>ThreadContext</code> must fail to {@link #build} if the same
+         * context type is included in this set as well as in the {@link #unchanged}
+         * set.</p>
+         *
+         * @param types types of thread context to capture and propagated.
+         * @return the same builder instance upon which this method is invoked.
+         */
+        Builder propagated(String... types);
+
+        /**
+         * <p>Defines a set of thread context types that are essentially ignored,
+         * in that they are neither captured nor are they propagated or cleared
+         * from thread(s) that execute the action or task.</p>
+         *
+         * <p>This set replaces the <code>unchanged</code> set that was previously
+         * specified on the builder instance.</p>
+         *
+         * <p>Constants for specifying some of the core context types are provided
+         * on {@link ThreadContext}. Other thread context types must be defined
+         * by the specification that defines the context type or by a related
+         * MicroProfile specification.</p>
+         *
+         * <p>The configuration of <code>unchanged</code> context is provided for
+         * advanced patterns where it is desirable to leave certain context types
+         * on the executing thread.</p>
+         *
+         * <p>For example, to run under the transaction of the thread of execution,
+         * with security context cleared and all other thread contexts propagated:</p>
+         * <pre><code> ThreadContext threadContext = ThreadContext.builder()
+         *                                                   .unchanged(ThreadContext.TRANSACTION)
+         *                                                   .cleared(ThreadContext.SECURITY)
+         *                                                   .propagated(ThreadContext.ALL_REMAINING)
+         *                                                   .build();
+         * ...
+         * task = threadContext.contextualRunnable(new MyTransactionlTask());
+         * ...
+         * // on another thread,
+         * tx.begin();
+         * ...
+         * task.run(); // runs under the transaction due to 'unchanged'
+         * tx.commit();
+         * </code></pre>
+         *
+         * <p>A {@link ThreadContext} must fail to {@link #build} if the same
+         * context type is included in this set as well as in the set specified by
+         * {@link #propagated}.</p>
+         *
+         * @param types types of thread context to leave unchanged on the thread.
+         * @return the same builder instance upon which this method is invoked.
+         */
+        Builder unchanged(String... types);
+    }
+
+    /**
      * <p>Identifier for all available thread context types which are
      * not specified individually under <code>cleared</code>,
      * <code>propagated</code>, or <code>unchanged</code>.</p>
@@ -56,11 +215,11 @@ public interface ThreadContext {
      * context provider or updating levels of an existing context provider
      * might change the set of available thread context types.</p>
      *
-     * @see ManagedExecutorBuilder#cleared
-     * @see ManagedExecutorBuilder#propagated
+     * @see ManagedExecutor.Builder#cleared
+     * @see ManagedExecutor.Builder#propagated
      * @see ManagedExecutorConfig#cleared
      * @see ManagedExecutorConfig#propagated
-     * @see ThreadContextBuilder
+     * @see ThreadContext.Builder
      * @see ThreadContextConfig
      */
     static final String ALL_REMAINING = "Remaining";
@@ -73,11 +232,11 @@ public interface ThreadContext {
      * application context means that the thread is not associated with any
      * application.
      *
-     * @see ManagedExecutorBuilder#cleared
-     * @see ManagedExecutorBuilder#propagated
+     * @see ManagedExecutor.Builder#cleared
+     * @see ManagedExecutor.Builder#propagated
      * @see ManagedExecutorConfig#cleared
      * @see ManagedExecutorConfig#propagated
-     * @see ThreadContextBuilder
+     * @see ThreadContext.Builder
      * @see ThreadContextConfig
      */
     static final String APPLICATION = "Application";
@@ -88,11 +247,11 @@ public interface ThreadContext {
      * access to the scope of the session, request, and so forth that created the
      * contextualized action.
      *
-     * @see ManagedExecutorBuilder#cleared
-     * @see ManagedExecutorBuilder#propagated
+     * @see ManagedExecutor.Builder#cleared
+     * @see ManagedExecutor.Builder#propagated
      * @see ManagedExecutorConfig#cleared
      * @see ManagedExecutorConfig#propagated
-     * @see ThreadContextBuilder
+     * @see ThreadContext.Builder
      * @see ThreadContextConfig
      */
     static final String CDI = "CDI";
@@ -102,11 +261,11 @@ public interface ThreadContext {
      * that are associated with the thread. An empty/default security context
      * means that the thread is unauthenticated.
      * 
-     * @see ManagedExecutorBuilder#cleared
-     * @see ManagedExecutorBuilder#propagated
+     * @see ManagedExecutor.Builder#cleared
+     * @see ManagedExecutor.Builder#propagated
      * @see ManagedExecutorConfig#cleared
      * @see ManagedExecutorConfig#propagated
-     * @see ThreadContextBuilder
+     * @see ThreadContext.Builder
      * @see ThreadContextConfig
      */
     static final String SECURITY = "Security";
@@ -124,11 +283,11 @@ public interface ThreadContext {
      * enlisting in transactions that are on the threads where they happen to
      * run.
      *
-     * @see ManagedExecutorBuilder#cleared
-     * @see ManagedExecutorBuilder#propagated
+     * @see ManagedExecutor.Builder#cleared
+     * @see ManagedExecutor.Builder#propagated
      * @see ManagedExecutorConfig#cleared
      * @see ManagedExecutorConfig#propagated
-     * @see ThreadContextBuilder
+     * @see ThreadContext.Builder
      * @see ThreadContextConfig
      */
     static final String TRANSACTION = "Transaction";
