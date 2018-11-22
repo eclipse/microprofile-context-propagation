@@ -48,7 +48,11 @@ public interface ConcurrencyManagerBuilder {
     public ConcurrencyManagerBuilder forClassLoader(ClassLoader classLoader);
     
     /**
-     * Creates a new {@link ConcurrencyManager} with the specified configuration.
+     * <p>Creates a new {@link ConcurrencyManager} with the specified configuration.</p>
+     * 
+     * <p>Creating a {@link ConcurrencyManager} will load and invoke all related
+     * {@link ConcurrencyManagerExtension} as described in its documentation.</p>
+     * 
      * @return a new {@link ConcurrencyManager} with the specified configuration.
      */
     public ConcurrencyManager build();
