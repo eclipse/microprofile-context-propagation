@@ -55,7 +55,7 @@ public interface ThreadContext {
      * @return a new {@link Builder} instance.
      */
     public static Builder builder() {
-        return ConcurrencyProvider.instance().newThreadContextBuilder();
+        return ConcurrencyProvider.instance().getConcurrencyManager().newThreadContextBuilder();
     }
 
     /**
