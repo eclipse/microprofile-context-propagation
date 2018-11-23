@@ -31,6 +31,21 @@ public interface ConcurrencyManagerBuilder {
     public ConcurrencyManagerBuilder withThreadContextProviders(ThreadContextProvider... providers);
 
     /**
+     * Load all discoverable {@link ConcurrencyManagerExtension} instances via the {@link ServiceLoader}
+     * mechanism on the current thread-context {@link ClassLoader} (unless overridden by {@link #forClassLoader(ClassLoader)}).
+     * 
+     * @return this builder
+     */
+    public ConcurrencyManagerBuilder addDiscoveredConcurrencyManagerExtensions();
+
+    /**
+     * Use the specified {@link ConcurrencyManagerExtension} instances.
+     * @param extensions the {@link ConcurrencyManagerExtension} instances to use.
+     * @return this builder
+     */
+    public ConcurrencyManagerBuilder withConcurrencyManagerExtensions(ConcurrencyManagerExtension... extensions);
+
+    /**
      * Load all discoverable {@link ThreadContextProvider} instances via the {@link ServiceLoader}
      * mechanism on the current thread-context {@link ClassLoader} (unless overridden by {@link #forClassLoader(ClassLoader)}).
      * 
@@ -48,7 +63,11 @@ public interface ConcurrencyManagerBuilder {
     public ConcurrencyManagerBuilder forClassLoader(ClassLoader classLoader);
     
     /**
-     * Creates a new {@link ConcurrencyManager} with the specified configuration.
+     * <p>Creates a new {@link ConcurrencyManager} with the specified configuration.</p>
+     * 
+     * <p>Creating a {@link ConcurrencyManager} will load and invoke all related
+     * {@link ConcurrencyManagerExtension} as described in its documentation.</p>
+     * 
      * @return a new {@link ConcurrencyManager} with the specified configuration.
      */
     public ConcurrencyManager build();
