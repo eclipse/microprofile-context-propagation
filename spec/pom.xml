@@ -88,7 +88,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <sourceDocumentName>microprofile-rest-client.asciidoc</sourceDocumentName>
+                    <sourceDocumentName>microprofile-concurrency.asciidoc</sourceDocumentName>
                     <sourceHighlighter>coderay</sourceHighlighter>
                     <attributes>
                         <license>Apache License v2.0</license>
