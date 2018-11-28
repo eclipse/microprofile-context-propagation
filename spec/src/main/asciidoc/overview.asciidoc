@@ -1,0 +1,90 @@
+//
+// Copyright (c) 2018 Contributors to the Eclipse Foundation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+[[concurrencyspec]]
+== MicroProfile Concurrency Specification
+
+=== Introduction
+
+MicroProfile Concurrency introduces APIs for obtaining CompletableFutures that are backed by managed threads (threads that are managed by the container), with the ability to capture context from the thread that creates the CompletableFuture and apply it when running the CompletionStage action.
+
+=== Motivation
+
+When using a reactive model with dependent stages which execute upon completion of prior stages, the context under which dependent stages execute is unpredictable. Dependent stages might run with the context of a thread that awaits completion, or the context of a previous stage that completed and triggered the dependent stage, or with no/undefined context at all. Existing solutions for transferring thread context, such as the EE Concurrency Utilities ContextService, are difficult to use and require a lot of boilerplate code. This specification makes it possible for thread context propagation to easily be done in a type-safe way, keeping boilerplate code to a minimum, as well as allowing for thread context propagation to be done automatically when using a CompletableFuture.
+
+It is also important that CompletableFutures and their dependent stages, and dependent stages created by those stages, and so on, all run on threads that are known by the container and properly managed by it. This specification makes it possible to do so by providing an API by which the user obtains managed CompletableFuture instances from a managed executor.
+
+Goals
+
+    - Proper management of CompletableFuture threads by the container.
+
+    - Mechanism for thread context propagation to CompletableFuture actions that reduces the need for boilerplate code.
+
+    - Full compatibility with EE Concurrency spec, such that proposed interfaces can eventually be seamlessly merged into EE Concurrency.
+
+=== Solution
+
+This specification introduces two interfaces that contain methods that we hope will eventually be added to Jakarta EE Concurrency.
+
+The interface, org.eclipse.microprofile.concurrent.ManagedExecutor, provides methods for obtaining managed instances of CompletableFuture which are backed by the managed executor as the default asynchronous execution facility and the default mechanism of defining thread context propagation. Similar to EE Concurrency’s ManagedExecutorService, the MicroProfile ManagedExecutor also implements the Java SE java.util.concurrent.ExecutorService interface, using managed threads when asynchronous invocation is required and disallowing the same life cycle methods as ManagedExecutorService. It is intended that ManagedExecutor methods will one day be added to ManagedExecutorService, and for a single implementation to be capable of simultaneously implementing both interfaces, both currently as well as after adoption into Jakarta EE.
+
+A second interface, org.eclipse.microprofile.concurrent.ThreadContext, provides methods for individually contextualizing dependent stage actions. This gives the user finer-grained control over the capture and propagation of thread context. It is intended that ThreadContext methods will one day be added to EE Concurrency’s ContextService and for a single implementation to be capable of simultaneously implementing both interfaces, both currently as well as after adoption into Jakarta EE.
+
+=== Builders
+
+Instances of ManagedExecutor and ThreadContext can be constructed via builders with fluent API, for example,
+
+[source, java]
+----
+    ManagedExecutor executor = ManagedExecutor.builder()
+        .propagated(ThreadContext.APPLICATION)
+        .maxAsync(5)
+        .build();
+
+    ThreadContext threadContext = ThreadContext.builder()
+        .propagated(ThreadContext.APPLICATION, ThreadContext.CDI)
+        .cleared(ThreadContext.ALL_REMAINING)
+        .build();
+----
+
+Applications should shut down ManagedExecutors that they build after they are no longer needed. The shutdown request serves as a signal notifying the container that resources can be safely cleaned up.
+
+=== Injection
+
+Instances of ManagedExecutor and ThreadContext can be injected into CDI beans via the `@Inject` annotation, for example:
+
+[source, java]
+----
+    @Inject ManagedExecutor executor;
+    @Inject ThreadContext threadContext;
+    ...
+    CompletableFuture<Integer> stage = executor
+        .supplyAsync(supplier1)
+        .thenApplyAsync(function1)
+        .thenApply(function2);
+    ...
+    unmanagedCompletionStage.thenApply(threadContext.contextualFunction(function3));
+----
+
+The container provides instances of ManagedExecutor and ThreadContext, which are injected above.
+
+=== Injection of Configured Instances
+
+TODO write this section after discussion about the Config annotations is resolved.
+
+=== Thread Context Provider SPI
+
+External providers of thread context can implement an SPI standardized by the MicroProfile Concurrency specification that allows capture/clear/propagate/restore operations to be plugged in for third party implementations of context.
