@@ -28,22 +28,47 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * <p>Provides configuration for an injected {@link ManagedExecutor} instance
- * which is {@link javax.enterprise.context.Dependent dependent} scoped.
- * When an application has multiple injection points for {@link ManagedExecutor}
- * with matching configuration, the container injects the same instance.
- * For the purposes of matching, array attributes of this annotation are
- * considered as unordered sets where duplicate elements are ignored.</p>
+ * <p>Annotates a CDI injection point for a {@link ManagedExecutor} such that the container
+ * creates a new instance, which is scoped within an application to its unique name.
+ * The unique name is generated as the fully qualified class and field name of the
+ * injection point, unless annotated with the {@link NamedExecutor} qualifier,
+ * in which case the unique name is specified by the name attribute of that qualifier.</p>
  *
- * <p>Example usage:</p>
- * <pre><code> &commat;Inject &commat;ManagedExecutorConfig(propagated=ThreadContext.CDI, maxAsync=5)
+ * <p>For example, the following injection points share a single
+ * {@link ManagedExecutor} instance,</p>
+ *
+ * <pre><code> &commat;Inject &commat;NamedExecutor("exec1") &commat;ManagedExecutorConfig(maxAsync=5)
  * ManagedExecutor executor;
- * ...
+ *
+ * int doSomething(&commat;Inject &commat;NamedExecutor("exec1") ManagedExecutor exec) {
+ *     ...
+ * }
+ *
+ * int doSomethingElse(&commat;Inject &commat;NamedExecutor("exec1") ManagedExecutor exec) {
+ *     ...
+ * }
  * </code></pre>
  *
- * <p>All created instances of {@link ManagedExecutor} are destroyed
- * when the application is stopped. The container automatically shuts down these
- * managed executors and cancels their remaining actions/tasks.</p>
+ * <p>Alternatively, the following injection points each represent a distinct
+ * {@link ManagedExecutor} instance,</p>
+ *
+ * <pre><code> &commat;Inject &commat;ManagedExecutorConfig(propagated=ThreadContext.CDI)
+ * ManagedExecutor exec2;
+ *
+ * &commat;Inject &commat;ManagedExecutorConfig(maxAsync=5)
+ * ManagedExecutor exec3;
+ * </code></pre>
+ *
+ * <p>When the application stops, the container automatically shuts down instances
+ * of {@link ManagedExecutor} that it created. The application can manually use the
+ * {@link ManagedExecutor#shutdown} or {@link ManagedExecutor#shutdownNow} method
+ * to shut down a managed executor at an earlier point.</p>
+ *
+ * <p>A <code>ManagedExecutor</code> must fail to inject, raising
+ * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
+ * on application startup,
+ * if multiple injection points that are annotated with <code>@ManagedExecutorConfig</code>
+ * have the same name.</p>
  *
  * <p>A {@link ManagedExecutor} must fail to inject, raising
  * {@link javax.enterprise.inject.spi.DeploymentException DeploymentException}

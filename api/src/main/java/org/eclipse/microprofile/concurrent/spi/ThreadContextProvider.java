@@ -107,7 +107,7 @@ public interface ThreadContextProvider {
      *
      * <p>For example:</p>
      * <pre><code>
-     * &commat;Inject &commat;ManagedExecutorConfig(context = ThreadContext.CDI)
+     * &commat;Inject &commat;ManagedExecutorConfig(propagated = ThreadContext.CDI)
      * ManagedExecutor executor;
      * </code></pre>
      *
