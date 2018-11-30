@@ -30,33 +30,39 @@ import java.lang.annotation.Target;
 import javax.inject.Qualifier;
 
 /**
- * <p>Qualifies a CDI injection point for a {@link ManagedExecutor} with a unique name.</p>
+ * <p>Qualifies a CDI injection point for a {@link ManagedExecutor} or {@link ThreadContext} with a unique name.</p>
  *
- * <p>This annotation can be used in combination with the {@link ManagedExecutorConfig}
+ * <p>This annotation can be used in combination with the {@link ManagedExecutorConfig} or {@link ThreadContextConfig}
  * annotation to define a new instance. For example,</p>
  *
- * <pre><code> &commat;Inject &commat;NamedExecutor("myExecutor") &commat;ManagedExecutorConfig(maxAsync=10)
+ * <pre><code> &commat;Inject &commat;NamedInstance("myExecutor") &commat;ManagedExecutorConfig(maxAsync=10)
  * ManagedExecutor myExecutor;
+ *
+ * &commat;Inject &commat;NamedInstance("myContext") &commat;ThreadContextConfig({ ThreadContext.SECURITY, ThreadContext.CDI })
+ * ThreadContext myThreadContext;
  * </code></pre>
  *
  * <p>This annotation can be used on its own to qualify an injection point with the name of
- * an existing instance. For example, referencing the executor name from the previous example,</p>
+ * an existing instance. For example, referencing a name from the previous example,</p>
  *
- * <pre><code> &commat;Inject &commat;NamedExecutor("myExecutor")
+ * <pre><code> &commat;Inject &commat;NamedInstance("myExecutor")
  * ManagedExecutor exec1;
+ *
+ * &commat;Inject &commat;NamedInstance("myContext")
+ * ThreadContext myContextPropagator;
  * </code></pre>
  *
  * <p>Alternatively, an application can use this annotation as a normal CDI qualifier,
  * defining its own scope, producer, and disposer. For example,</p>
  *
- * <pre><code> &commat;Produces &commat;ApplicationScoped &commat;NamedExecutor("exec2")
+ * <pre><code> &commat;Produces &commat;ApplicationScoped &commat;NamedInstance("exec2")
  * ManagedExecutor exec2 = ManagedExecutor.builder().maxAsync(5).build();
  *
- * public void shutdown(&commat;Disposes &commat;NamedExecutor("exec2") ManagedExecutor executor) {
+ * public void shutdown(&commat;Disposes &commat;NamedInstance("exec2") ManagedExecutor executor) {
  *     executor.shutdown();
  * }
  *
- * int doSomething(&commat;Inject &commat;NamedExecutor("exec2") ManagedExecutor executor) {
+ * int doSomething(&commat;Inject &commat;NamedInstance("exec2") ManagedExecutor executor) {
  *     ...
  * }
  * </code></pre>
@@ -64,9 +70,9 @@ import javax.inject.Qualifier;
 @Qualifier
 @Retention(RUNTIME)
 @Target({ FIELD, METHOD, PARAMETER, TYPE })
-public @interface NamedExecutor {
+public @interface NamedInstance {
     /**
-     * Unique name that qualifies a {@link ManagedExecutor}.
+     * Unique name that qualifies a {@link ManagedExecutor} or {@link ThreadContext}.
      */
     String value();
 }

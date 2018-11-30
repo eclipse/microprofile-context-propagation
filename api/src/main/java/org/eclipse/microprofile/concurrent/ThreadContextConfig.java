@@ -29,22 +29,22 @@ import java.lang.annotation.Target;
 
 /**
  * <p>Annotates a CDI injection point for a {@link ThreadContext} such that the container
- * creates a new instance, which is scoped within an application to its unique name.
+ * creates a new instance, which is identified within an application by its unique name.
  * The unique name is generated as the fully qualified class and field name of the
- * injection point, unless annotated with the {@link NamedContext} qualifier,
- * in which case the unique name is specified by the name attribute of that qualifier.</p>
+ * injection point separated by <code>.</code>, unless annotated with the {@link NamedInstance} qualifier,
+ * in which case the unique name is specified by the {@link NamedInstance#value value} attribute of that qualifier.</p>
  *
  * <p>For example, the following injection points share a single
  * {@link ThreadContext} instance,</p>
  *
- * <pre><code> &commat;Inject &commat;NamedContext("tc1") &commat;ThreadContextConfig({ ThreadContext.CDI, ThreadContext.APPLICATION })
+ * <pre><code> &commat;Inject &commat;NamedInstance("tc1") &commat;ThreadContextConfig({ ThreadContext.CDI, ThreadContext.APPLICATION })
  * ThreadContext threadContext1;
  *
- * void doSomething(&commat;Inject &commat;NamedContext("tc1") ThreadContext contextPropagator) {
+ * void doSomething(&commat;Inject &commat;NamedInstance("tc1") ThreadContext contextPropagator) {
  *     ...
  * }
  *
- * void doSomethingElse(&commat;Inject &commat;NamedContext("tc1") ThreadContext contextPropagator) {
+ * void doSomethingElse(&commat;Inject &commat;NamedInstance("tc1") ThreadContext contextPropagator) {
  *     ...
  * }
  * </code></pre>
@@ -62,8 +62,7 @@ import java.lang.annotation.Target;
  * <p>A <code>ThreadContext</code> must fail to inject, raising
  * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
  * on application startup,
- * if multiple injection points that are annotated with <code>@ThreadContextConfig</code>
- * have the same name.</p>
+ * if multiple injection points are annotated to create instances with the same name.</p>
  *
  * <p>A <code>ThreadContext</code> must fail to inject, raising
  * {@link javax.enterprise.inject.spi.DeploymentException DeploymentException}
