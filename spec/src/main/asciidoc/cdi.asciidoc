@@ -17,6 +17,6 @@
 [[concurrencycdi]]
 == CDI Injection
 
-If a CDI implementation is available, instances of ManagedExecutor and ThreadContext can be injected as CDI beans.
+If a CDI implementation is available, instances of `ManagedExecutor` and `ThreadContext` can be injected as CDI beans.
 
 TODO write the documentation after discussion on Config annotations is resolved

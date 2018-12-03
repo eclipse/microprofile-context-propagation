@@ -17,7 +17,7 @@
 [[examples]]
 == MicroProfile Concurrency Examples
 
-This page includes some additional examples of spec usage.
+This section includes some additional examples of spec usage.
 
 === Contextualize a new CompletableFuture and all dependent stages
 

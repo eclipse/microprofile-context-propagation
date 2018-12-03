@@ -21,7 +21,7 @@ The initial release of EE Concurrency assumed a single monolithic implementation
 
 The thread context provider SPI is defined to bridge the gap, allowing any provider of thread context to publish and make available the type of thread context it supports, following a standard and predictable pattern that can be relied upon by a MicroProfile Concurrency implementation, enabling it to facilitate the inclusion of any generic thread context alongside the spec-defined thread context types that it captures and propagates.
 
-With this model, the provider of thread context implements the org.eclipse.microprofile.concurrent.spi.ThreadContextProvider interface and packages it in a way that makes it available to the ServiceLoader. ThreadContextProvider identifies the thread context type and provides a way to capture snapshots of thread context as well as for applying empty/cleared context to threads.
+With this model, the provider of thread context implements the `org.eclipse.microprofile.concurrent.spi.ThreadContextProvider` interface and packages it in a way that makes it available to the `ServiceLoader`. `ThreadContextProvider` identifies the thread context type and provides a way to capture snapshots of thread context as well as for applying empty/cleared context to threads.
 
 
 === Example
@@ -31,7 +31,7 @@ The example context type that it propagates is the priority of a thread. This is
 
 ==== ThreadContextProvider
 
-The interface, org.eclipse.microprofile.concurrent.spi.ThreadContextProvider, is the first point of interaction between the MicroProfile Concurrency implementation and a thread context provider. This interface is the means by which the MicroProfile Concurrency implementation requests the capturing of a particular context type from the current thread. It also provides a way to obtain a snapshot of empty/cleared context of this type and identifies the name by which the user refers to this context type when configuring a ManagedExecutor or ThreadContext.
+The interface, `org.eclipse.microprofile.concurrent.spi.ThreadContextProvider`, is the first point of interaction between the MicroProfile Concurrency implementation and a thread context provider. This interface is the means by which the MicroProfile Concurrency implementation requests the capturing of a particular context type from the current thread. It also provides a way to obtain a snapshot of empty/cleared context of this type and identifies the name by which the user refers to this context type when configuring a `ManagedExecutor` or `ThreadContext`.
 
 [source, java]
 ----
@@ -58,7 +58,7 @@ public class ThreadPriorityContextProvider implements ThreadContextProvider {
 
 ==== ThreadContextSnapshot
 
-The interface, org.eclipse.microprofile.concurrent.spi.ThreadContextSnapshot, represents an immutable snapshot of thread context. The MicroProfile Concurrency implementation can request the context represented by this snapshot to be applied to any number of threads by invoking the the begin method. The begin method must save the previous context of the thread so that it can return an instance of org.eclipse.microprofile.concurrent.spi.ThreadContextController for one-time use by the MicroProfile Concurrency implementation to restore the previous context after the context represented by the snapshot is no longer needed on the thread.
+The interface, `org.eclipse.microprofile.concurrent.spi.ThreadContextSnapshot`, represents a snapshot of thread context. The MicroProfile Concurrency implementation can request the context represented by this snapshot to be applied to any number of threads by invoking the `begin` method. An instance of  `org.eclipse.microprofile.concurrent.spi.ThreadContextController`, which is returned by the `begin` method, stores the previous context of the thread. The `ThreadContextController` instance provided for one-time use by the MicroProfile Concurrency implementation to restore the previous context after the context represented by the snapshot is no longer needed on the thread.
 
 [source, java]
 ----
@@ -96,14 +96,14 @@ public class ThreadPrioritySnapshot implements ThreadContextSnapshot {
 
 ==== ServiceLoader entry
 
-To make the ThreadContextProvider implementation available to the ServiceLoader, the provider JAR includes a file of the following name and location,
+To make the `ThreadContextProvider` implementation available to the `ServiceLoader`, the provider JAR includes a file of the following name and location,
 
 [source]
 ----
 META-INF/services/org.eclipse.microprofile.concurrent.spi.ThreadContextProvider
 ----
 
-The content of the aforementioned file must be one or more lines, each specifying the fully qualified name of a ThreadContextProvider implementation that is provided within the JAR file. For our example context provider, this file consists of the following line:
+The content of the aforementioned file must be one or more lines, each specifying the fully qualified name of a `ThreadContextProvider` implementation that is provided within the JAR file. For our example context provider, this file consists of the following line:
 
 [source]
 ----
@@ -112,7 +112,7 @@ org.eclipse.microprofile.example.context.priority.ThreadPriorityContextProvider
 
 ==== Usage from Application
 
-The following example shows application code that uses a ManagedExecutor that propagates the example context type. If the provider is implemented correctly and made available on the application's thread context class loader, the async Runnable should report that it is running with a priority of 3.
+The following example shows application code that uses a `ManagedExecutor` that propagates the example context type. If the provider is implemented correctly and made available on the application's thread context class loader, the async `Runnable` should report that it is running with a priority of 3.
 
 [source, java]
 ----
