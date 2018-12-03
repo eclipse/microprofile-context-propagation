@@ -28,25 +28,41 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 /**
- * <p>Provides configuration for an injected {@link ThreadContext} instance,
- * which is {@link javax.enterprise.context.Dependent dependent} scoped.
- * When an application has multiple injection points for {@link ThreadContext}
- * with matching configuration, the container injects the same instance.
- * For the purposes of matching, array attributes of this annotation are
- * considered as unordered sets where duplicate elements are ignored.</p>
+ * <p>Annotates a CDI injection point for a {@link ThreadContext} such that the container
+ * creates a new instance, which is identified within an application by its unique name.
+ * The unique name is generated as the fully qualified class and field name of the
+ * injection point separated by <code>.</code>, unless annotated with the {@link NamedInstance} qualifier,
+ * in which case the unique name is specified by the {@link NamedInstance#value value} attribute of that qualifier.</p>
  *
- * <p>Example usage:</p>
- * <pre><code> &commat;Inject &commat;ThreadContextConfig(ThreadContext.CDI)
- * ThreadContext threadContext;
- * ...
+ * <p>For example, the following injection points share a single
+ * {@link ThreadContext} instance,</p>
+ *
+ * <pre><code> &commat;Inject &commat;NamedInstance("tc1") &commat;ThreadContextConfig({ ThreadContext.CDI, ThreadContext.APPLICATION })
+ * ThreadContext threadContext1;
+ *
+ * void doSomething(&commat;Inject &commat;NamedInstance("tc1") ThreadContext contextPropagator) {
+ *     ...
+ * }
+ *
+ * void doSomethingElse(&commat;Inject &commat;NamedInstance("tc1") ThreadContext contextPropagator) {
+ *     ...
+ * }
  * </code></pre>
  *
- * <p>All created instances of {@link ThreadContext} are destroyed
- * when the application is stopped. The container automatically shuts down these
- * {@link ThreadContext} instances, cancels their remaining
- * <code>CompletableFuture</code>s and <code>CompletionStage</code>s, and
- * and raises <code>IllegalStateException</code> to reject subsequent attempts
- * to apply previously captured thread context.</p>
+ * <p>Alternatively, the following injection points each represent a distinct
+ * {@link ThreadContext} instance,</p>
+ *
+ * <pre><code> &commat;Inject &commat;ThreadContextConfig({ ThreadContext.SECURITY, ThreadContext.APPLICATION })
+ * ThreadContext tc2;
+ *
+ * &commat;Inject &commat;ThreadContextConfig(cleared = ThreadContext.SECURITY, unchanged = ThreadContext.TRANSACTION)
+ * ThreadContext tc3;
+ * </code></pre>
+ *
+ * <p>A <code>ThreadContext</code> must fail to inject, raising
+ * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
+ * on application startup,
+ * if multiple injection points are annotated to create instances with the same name.</p>
  *
  * <p>A <code>ThreadContext</code> must fail to inject, raising
  * {@link javax.enterprise.inject.spi.DeploymentException DeploymentException}
