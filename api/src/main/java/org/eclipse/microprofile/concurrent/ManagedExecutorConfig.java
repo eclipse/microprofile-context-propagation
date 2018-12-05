@@ -27,6 +27,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
+import javax.enterprise.util.AnnotationLiteral;
+
 /**
  * <p>Annotates a CDI injection point for a {@link ManagedExecutor} such that the container
  * creates a new instance, which is identified within an application by its unique name.
@@ -164,4 +166,47 @@ public @interface ManagedExecutorConfig {
      * <code>maxQueued</code> value is 0 or less than -1.
      */
     int maxQueued() default -1;
+
+        /**
+        * Util class used for inline creation of {@link ManagedExecutorConfig} annotation instances.
+        */
+        public final class Literal extends AnnotationLiteral<ManagedExecutorConfig> implements ManagedExecutorConfig {
+
+            public static final Literal DEFAULT_INSTANCE = 
+                of(-1, -1, new String[]{ThreadContext.TRANSACTION}, new String[]{ThreadContext.ALL_REMAINING});
+
+            private static final long serialVersionUID = 1L;
+
+            private final int maxAsync;
+            private final int maxQueued;
+            private final String[] cleared;
+            private final String[] propagated;
+
+            public int maxAsync() {
+                return maxAsync;
+            }
+
+            public int maxQueued() {
+                return maxQueued;
+            }
+
+            public String[] cleared() {
+                return cleared;
+            }
+
+            public String[] propagated() {
+                return propagated;
+            }
+
+            public static Literal of(int maxAsync, int maxQueued, String[] cleared, String[] propagated) {
+                return new Literal(maxAsync, maxQueued, cleared, propagated);
+            }
+
+            private Literal(int maxAsync, int maxQueued, String[] cleared, String[] propagated) {
+                this.cleared = cleared;
+                this.propagated = propagated;
+                this.maxAsync = maxAsync;
+                this.maxQueued = maxQueued;
+            }
+        }
 }
