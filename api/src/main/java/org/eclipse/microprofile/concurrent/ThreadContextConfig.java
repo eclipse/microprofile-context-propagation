@@ -27,6 +27,8 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
+import javax.enterprise.util.AnnotationLiteral;
+
 /**
  * <p>Annotates a CDI injection point for a {@link ThreadContext} such that the container
  * creates a new instance, which is identified within an application by its unique name.
@@ -165,4 +167,40 @@ public @interface ThreadContextConfig {
      * includes one or more of the same types as this set.</p>
      */
     String[] unchanged() default {};
+    
+        /**
+        * Util class used for inline creation of {@link ThreadContextConfig} annotation instances.
+        */
+        public final class Literal extends AnnotationLiteral<ThreadContextConfig> implements ThreadContextConfig {
+
+            public static final Literal DEFAULT_INSTANCE = 
+                of(new String[]{ThreadContext.TRANSACTION}, new String[]{}, new String[]{ThreadContext.ALL_REMAINING});;
+
+            private static final long serialVersionUID = 1L;
+
+            private final String[] cleared;
+            private final String[] unchanged;
+            private final String[] value;
+
+            public String[] cleared() {
+                return cleared;
+            }
+
+            public String[] unchanged() {
+                return unchanged;
+            }
+            public String[] value() {
+                return value;
+            }
+
+            public static Literal of(String[] cleared, String[] unchanged, String[] value) {
+                return new Literal(cleared, unchanged, value);
+            }
+
+            private Literal(String[] cleared, String[] unchanged, String[] value) {
+                this.cleared = cleared;
+                this.unchanged = unchanged;
+                this.value = value;
+            }
+        }
 }

@@ -27,6 +27,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
+import javax.enterprise.util.AnnotationLiteral;
 import javax.inject.Qualifier;
 
 /**
@@ -75,4 +76,26 @@ public @interface NamedInstance {
      * Unique name that qualifies a {@link ManagedExecutor} or {@link ThreadContext}.
      */
     String value();
+    
+    /**
+     * Supports inline instantiation of the {@link NamedInstance} qualifier.
+     *
+     */
+    public final class Literal extends AnnotationLiteral<NamedInstance> implements NamedInstance {
+
+        private static final long serialVersionUID = 1L;
+        private final String value;
+
+        public static Literal of(String value) {
+            return new Literal(value);
+        }
+
+        public String value() {
+            return value;
+        }
+
+        private Literal(String value) {
+            this.value = value;
+        }
+    }
 }
