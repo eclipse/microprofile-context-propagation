@@ -42,12 +42,14 @@ import javax.enterprise.util.AnnotationLiteral;
  * <pre><code> &commat;Inject &commat;NamedInstance("tc1") &commat;ThreadContextConfig({ ThreadContext.CDI, ThreadContext.APPLICATION })
  * ThreadContext threadContext1;
  *
- * void doSomething(&commat;Inject &commat;NamedInstance("tc1") ThreadContext contextPropagator) {
- *     ...
+ * &commat;Inject
+ * void setTask(&commat;NamedInstance("tc1") ThreadContext contextPropagator) {
+ *     task = contextPropagator.contextualTask(...);
  * }
  *
- * void doSomethingElse(&commat;Inject &commat;NamedInstance("tc1") ThreadContext contextPropagator) {
- *     ...
+ * &commat;Inject
+ * void setContextSnapshot(&commat;NamedInstance("tc1") ThreadContext contextPropagator) {
+ *     contextSnapshot = contextPropagator.currentContextExecutor();
  * }
  * </code></pre>
  *

@@ -42,12 +42,14 @@ import javax.enterprise.util.AnnotationLiteral;
  * <pre><code> &commat;Inject &commat;NamedInstance("exec1") &commat;ManagedExecutorConfig(maxAsync=5)
  * ManagedExecutor executor;
  *
- * int doSomething(&commat;Inject &commat;NamedInstance("exec1") ManagedExecutor exec) {
- *     ...
+ * &commat;Inject
+ * void setCompletableFuture(&commat;NamedInstance("exec1") ManagedExecutor exec) {
+ *     completableFuture = exec.newIncompleteFuture();
  * }
  *
- * int doSomethingElse(&commat;Inject &commat;NamedInstance("exec1") ManagedExecutor exec) {
- *     ...
+ * &commat;Inject
+ * void setCompletionStage(&commat;NamedInstance("exec1") ManagedExecutor exec) {
+ *     completionStage = exec.supplyAsync(supplier);
  * }
  * </code></pre>
  *
