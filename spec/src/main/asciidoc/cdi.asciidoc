@@ -17,6 +17,75 @@
 [[concurrencycdi]]
 == CDI Injection
 
-If a CDI implementation is available, instances of `ManagedExecutor` and `ThreadContext` can be injected as CDI beans.
+If a CDI implementation is available, instances of `ManagedExecutor` and `ThreadContext` can be injected as CDI beans. 
 
-TODO write the documentation after discussion on Config annotations is resolved
+=== Injecting ManagedExecutor
+
+The application can annotate injection points of `ManagedExecutor` with both, either or neither of,
+
+- `@NamedInstance` - This annotation is a standard CDI qualifier. It has a single value, which is the unique name for a `ManagedExecutor` instance. All injection points within an application that specify the same name inject the same instance.
+
+- `@ManagedExecutorConfig` - This annotation supplies configuration for an instance of `ManagedExecutor` that is built and managed by the container. The same instance is shared within an application across injection points that have the same unique name. The unique name is determined by the value `@NamedInstance` annotation if present. Otherwise, it is generated from the fully qualified class name and field name of the injection point, with the `.` character as the delimiter.
+
+When an injection point for `ManagedExecutor` is annotated with only the `@NamedInstance` qualifier, the container injects an existing instance of `ManagedExecutor` that is shared across all injection points in the application that have the same name.
+
+When an injection point for `ManagedExecutor` is annotated with only the `@ManagedExecutorConfig` annotation, the container builds a single instance of `ManagedExecutor` matching the configuration attributes of the `@ManagedExecutorConfig` annotation. The container injects this same instance into the annotated injection point, managing its life cycle, and shutting it down when the application stops.
+
+When an injection point for `ManagedExecutor` is annotated with both `@ManagedExecutorConfig` and `@NamedInstance`, the container builds a single instance of `ManagedExecutor` matching the configuration attributes of the `@ManagedExecutorConfig` annotation. The container injects this same instance into the annotated injection point, in addition to all other injection points that are annotated with `@NamedInstance` that specify the same name. The container manages the life cycle of the `ManagedExecutor` instance, shutting it down when the application stops.
+
+When an injection point for `ManagedExecutor` is annotated with neither of the above, the container creates a new instance of `ManagedExecutor` for that injection point. The configuration of this instance matches the default attribute values that are used by `@ManagedExecutorConfig()`.
+
+=== Injecting ThreadContext
+
+The application can annotate injection points of `ThreadContext` with both, either or neither of,
+
+- `@NamedInstance` - This annotation is a standard CDI qualifier. It has a single value, which is the unique name for a `ThreadContext` instance. All injection points within an application that specify the same name inject the same instance.
+
+- `@ThreadContextConfig` - This annotation supplies configuration for an instance of `ThreadContext` that is built and managed by the container. The same instance is shared within an application across injection points that have the same unique name. The unique name is determined by the value `@NamedInstance` annotation if present. Otherwise, it is generated from the fully qualified class name and field name of the injection point, with the `.` character as the delimiter.
+
+When an injection point for `ThreadContext` is annotated with only the `@NamedInstance` qualifier, the container injects an existing instance of `ThreadContext` that is shared across all injection points in the application that have the same name.
+
+When an injection point for `ThreadContext` is annotated with only the `@ThreadContextConfig` annotation, the container builds a single instance of `ThreadContext` matching the configuration attributes of the `@ThreadContextConfig` annotation. The container injects this same instance into the annotated injection point.
+
+When an injection point for `ThreadContext` is annotated with both `@ThreadContextConfig` and `@NamedInstance`, the container builds a single instance of `ThreadContext` matching the configuration attributes of the `@ThreadContextConfig` annotation. The container injects this same instance into the annotated injection point, in addition to all other injection points that are annotated with `@NamedInstance` that specify the same name.
+
+When an injection point for `ThreadContext` is annotated with neither of the above, the container creates a new instance of `ThreadContext` for that injection point. The configuration of this instance matches the default attribute values that are used by `@ThreadContextConfig()`.
+
+=== Example of ThreadContextConfig annotation
+
+[source, java]
+----
+    @Inject @ThreadContextConfig({ThreadContext.CDI, ThreadContext.APPLICATION})
+    ThreadContext contextPropagator;
+
+    ...
+    return CompletableFuture
+        .newIncompleteFuture()
+        .thenApply(function1)
+        .thenApply(contextPropagator.contextualFunction(function2))
+        .thenAccept(consumer);
+----
+
+=== Example of ThreadContextConfig and NamedInstance annotations
+
+[source, java]
+----
+    @Inject @NamedInstance("myContext")
+    @ThreadContextConfig({ThreadContext.APPLICATION, ThreadContext.CDI, ThreadContext.SECURITY})
+    ThreadContext contextPropagator;
+
+    @Inject
+    void setContextSnapshot(@NamedInstance("myContext") ThreadContext contextPropagator) {
+        contextSnapshot = contextPropagator.currentContextExecutor();
+    }
+----
+
+=== Example of default ThreadContext instance
+
+[source, java]
+----
+    @Inject ThreadContext contextPropagator;
+
+    ...
+    unmanagedExecutor.submit(contextPropagator.contextualCallable(task));
+----

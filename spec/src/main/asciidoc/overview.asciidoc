@@ -79,11 +79,39 @@ Instances of `ManagedExecutor` and `ThreadContext` can be injected into CDI bean
     unmanagedCompletionStage.thenApply(threadContext.contextualFunction(function3));
 ----
 
-The container provides default instances of `ManagedExecutor` and `ThreadContext`, as injected above, which are shared within an application with all other injection points for `ManagedExecutor` and `ThreadContext` that do not specify a qualifier. Their configuration is equivalent to `ManagedExecutor.builder().build()` and `ThreadContext.builder().build()`.
+As shown above, the container creates and injects a new instance for each injection point that is neither annotated as a named instance nor with a config annotation. Configuration of the injected instance is equivalent to the default attribute values of `@ManagedExecutorConfig()` and `@ThreadContextConfig()`.
 
 === Injection of Configured Instances
 
-TODO write this section after discussion about the Config annotations is resolved.
+Instances of `ManagedExecutor` and `ThreadContext` with configuration can also be injected into CDI beans via the `@Inject` annotation. The `@ManagedExecutorConfig` and `@ThreadContextConfig` annotations supply the configuration. For example:
+
+[source, java]
+----
+    @Inject @ManagedExecutorConfig(maxAsync = 5, propagated = ThreadContext.SECURITY)
+    ManagedExecutor executor;
+    ...
+    CompletableFuture<Long> stage = executor
+        .newIncompleteFuture()
+        .thenApply(function)
+        .thenAccept(consumer);
+    stage.completeAsync(supplier);
+----
+
+=== Sharing Configured Instances
+
+Configured instances of `ManagedExecutor` and `ThreadContext` can be assigned a `@NamedInstance` qualifier, which can then be used to inject the same instance into other CDI injection points within the application. For example:
+
+[source, java]
+----
+    @Inject @NamedInstance("exec1")
+    @ManagedExecutorConfig(propagated = { ThreadContext.SECURITY, ThreadContext.APPLICATION })
+    ManagedExecutor executor1;
+    ...
+    @Inject
+    void setCompletableFuture(@NamedInstance("exec1") ManagedExecutor exec) {
+        completableFuture = exec.newIncompleteFuture();
+    }
+----
 
 === Thread Context Provider SPI
 
