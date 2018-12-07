@@ -39,7 +39,7 @@ import javax.inject.Qualifier;
  * <pre><code> &commat;Inject &commat;NamedInstance("myExecutor") &commat;ManagedExecutorConfig(maxAsync=10)
  * ManagedExecutor myExecutor;
  *
- * &commat;Inject &commat;NamedInstance("myContext") &commat;ThreadContextConfig({ ThreadContext.SECURITY, ThreadContext.CDI })
+ * &commat;Inject &commat;NamedInstance("myContext") &commat;ThreadContextConfig(propagated = { ThreadContext.SECURITY, ThreadContext.CDI })
  * ThreadContext myThreadContext;
  * </code></pre>
  *

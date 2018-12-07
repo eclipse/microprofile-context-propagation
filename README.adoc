@@ -149,7 +149,7 @@ capture and propagate Security context,
 
 [source,java]
 ----
-  @Inject @ThreadContextConfig(ThreadContext.SECURITY)
+  @Inject @ThreadContextConfig(propagated=ThreadContext.SECURITY)
   ThreadContext threadContext;
 ----
 
