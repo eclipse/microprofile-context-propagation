@@ -177,7 +177,7 @@
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
-                <version>0.12</version>
+                <version>0.13</version>
                 <executions>
                     <execution>
                         <id>rat-check</id>
@@ -189,7 +189,7 @@
                 <configuration>
                     <excludes>
                         <exclude>**/*.svg</exclude>
-                        <exclude>**/target</exclude>
+                        <exclude>**/target/*</exclude>
                         <exclude>.travis.yml.*</exclude>
                         <exclude>bnd.bnd</exclude>
                         <exclude>*.log</exclude>
