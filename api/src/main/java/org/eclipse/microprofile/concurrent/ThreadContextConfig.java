@@ -39,7 +39,7 @@ import javax.enterprise.util.AnnotationLiteral;
  * <p>For example, the following injection points share a single
  * {@link ThreadContext} instance,</p>
  *
- * <pre><code> &commat;Inject &commat;NamedInstance("tc1") &commat;ThreadContextConfig({ ThreadContext.CDI, ThreadContext.APPLICATION })
+ * <pre><code> &commat;Inject &commat;NamedInstance("tc1") &commat;ThreadContextConfig(propagated = { ThreadContext.CDI, ThreadContext.APPLICATION })
  * ThreadContext threadContext1;
  *
  * &commat;Inject
@@ -56,7 +56,7 @@ import javax.enterprise.util.AnnotationLiteral;
  * <p>Alternatively, the following injection points each represent a distinct
  * {@link ThreadContext} instance,</p>
  *
- * <pre><code> &commat;Inject &commat;ThreadContextConfig({ ThreadContext.SECURITY, ThreadContext.APPLICATION })
+ * <pre><code> &commat;Inject &commat;ThreadContextConfig(propagated = { ThreadContext.SECURITY, ThreadContext.APPLICATION })
  * ThreadContext tc2;
  *
  * &commat;Inject &commat;ThreadContextConfig(cleared = ThreadContext.SECURITY, unchanged = ThreadContext.TRANSACTION)
@@ -95,7 +95,7 @@ public @interface ThreadContextConfig {
      * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
      * on application startup,
      * if a context type specified within this set is unavailable
-     * or if the {@link #value propagated} and/or {@link #unchanged} set
+     * or if the {@link #propagated} and/or {@link #unchanged} set
      * includes one or more of the same types as this set.</p>
      */
     String[] cleared() default { ThreadContext.TRANSACTION };
@@ -129,7 +129,7 @@ public @interface ThreadContextConfig {
      * or if the {@link #cleared} and/or {@link #unchanged} set
      * includes one or more of the same types as this set.</p>
      */
-    String[] value() default { ThreadContext.ALL_REMAINING };
+    String[] propagated() default { ThreadContext.ALL_REMAINING };
 
     /**
      * <p>Defines a set of thread context types that are essentially ignored,
@@ -165,7 +165,7 @@ public @interface ThreadContextConfig {
      * {@link javax.enterprise.inject.spi.DefinitionException DefinitionException}
      * on application startup,
      * if a context type specified within this set is unavailable
-     * or if the {@link #cleared} and/or {@link #value propagated} set
+     * or if the {@link #cleared} and/or {@link #propagated} set
      * includes one or more of the same types as this set.</p>
      */
     String[] unchanged() default {};
@@ -182,7 +182,7 @@ public @interface ThreadContextConfig {
 
             private final String[] cleared;
             private final String[] unchanged;
-            private final String[] value;
+            private final String[] propagated;
 
             public String[] cleared() {
                 return cleared;
@@ -191,18 +191,18 @@ public @interface ThreadContextConfig {
             public String[] unchanged() {
                 return unchanged;
             }
-            public String[] value() {
-                return value;
+            public String[] propagated() {
+                return propagated;
             }
 
-            public static Literal of(String[] cleared, String[] unchanged, String[] value) {
-                return new Literal(cleared, unchanged, value);
+            public static Literal of(String[] cleared, String[] unchanged, String[] propagated) {
+                return new Literal(cleared, unchanged, propagated);
             }
 
-            private Literal(String[] cleared, String[] unchanged, String[] value) {
+            private Literal(String[] cleared, String[] unchanged, String[] propagated) {
                 this.cleared = cleared;
                 this.unchanged = unchanged;
-                this.value = value;
+                this.propagated = propagated;
             }
         }
 }
