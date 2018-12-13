@@ -31,13 +31,12 @@ public class TckTest extends Arquillian {
     @Deployment
     public static WebArchive createDeployment() {
         return ShrinkWrap.create(WebArchive.class, TckTest.class.getSimpleName() + ".war")
-        .addClass(TckTest.class);
+                .addClass(TckTest.class);
     }
 
     @Test
     public void providerSet() {
         ConcurrencyProvider provider = ConcurrencyProvider.instance();
-        Assert.assertNotNull(provider, "Provider is set");
+        Assert.assertNotNull(provider, "ConcurrencyProvider is not set");
     }
-
 }
