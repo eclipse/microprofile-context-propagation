@@ -40,7 +40,20 @@ public class BufferContextSnapshot implements ThreadContextSnapshot {
     @Override
     public ThreadContextController begin() {
         ThreadContextController contextRestorer = new BufferContextRestorer();
-        Buffer.set(buffer);
+        Buffer.set(buffer == null ? new StringBuffer() : buffer);
         return contextRestorer;
+    }
+
+    // For easier debug
+    @Override
+    public String toString() {
+        String s = "BufferContextSnapshot@" + Integer.toHexString(System.identityHashCode(this));
+        if (buffer == null) {
+            s += " CLEARED";
+        }
+        else {
+            s += " for StringBuffer@" + Integer.toHexString(System.identityHashCode(buffer)) + ": " + buffer.toString();
+        }
+        return s;
     }
 }

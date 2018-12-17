@@ -58,4 +58,10 @@ public class ThreadPrioritySnapshot implements ThreadContextSnapshot {
 
         return contextRestorer;
     }
+
+    // For easier debug
+    @Override
+    public String toString() {
+        return "ThreadPrioritySnapshot@" + Integer.toHexString(System.identityHashCode(this)) + ": " + priority;
+    }
 }

@@ -35,7 +35,7 @@ public class BufferContextProvider implements ThreadContextProvider {
      */
     @Override
     public ThreadContextSnapshot clearedContext(Map<String, String> props) {
-        return new BufferContextSnapshot(new StringBuffer());
+        return new BufferContextSnapshot(null);
     }
 
     /**

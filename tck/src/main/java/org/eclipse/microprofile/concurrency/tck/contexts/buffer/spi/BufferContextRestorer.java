@@ -42,4 +42,12 @@ public class BufferContextRestorer implements ThreadContextController {
             throw new IllegalStateException();
         }
     }
+
+    // For easier debug
+    @Override
+    public String toString() {
+        return "BufferContextRestorer@" + Integer.toHexString(System.identityHashCode(this)) +
+                " for StringBuffer@" + Integer.toHexString(System.identityHashCode(bufferToRestore)) +
+               ": " + bufferToRestore.toString();
+    }
 }
