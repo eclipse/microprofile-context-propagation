@@ -262,16 +262,17 @@ public class ManagedExecutorTest extends Arquillian {
                 Assert.assertNull(v,
                         "Non-null value supplied to 'handle' method.");
 
-                // CompletableFuture JavaDoc is unclear on whether CompletionException or
-                // original exception is used here, so tolerate either.
-                if (x instanceof CompletionException && x.getCause() != null) {
-                    x = x.getCause();
-                }
+                Assert.assertEquals(x.getClass(), CompletionException.class,
+                        "Exception parameter to 'handle' method is inconsistent with java.util.concurrent.CompletableFuture.");
 
-                Assert.assertEquals(x.getClass(), NegativeArraySizeException.class,
+                Throwable cause = x.getCause();
+                Assert.assertNotNull(cause,
+                        "CompletionException supplied to 'handle' method lacks cause.");
+
+                Assert.assertEquals(cause.getClass(), NegativeArraySizeException.class,
                         "Wrong exception class supplied to 'handle' method.");
 
-                Assert.assertEquals(x.getMessage(), "Fake exception raised by test",
+                Assert.assertEquals(cause.getMessage(), "Fake exception raised by test",
                         "Exception message was lost or altered.");
 
                 Assert.assertEquals(Buffer.get().toString(), "",
