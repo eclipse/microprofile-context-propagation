@@ -153,10 +153,6 @@ public interface ThreadContext {
          * in the {@link #unchanged} set are cleared from the thread of execution
          * for the duration of the action or task.</p>
          *
-         * <p>A <code>ThreadContext</code> must fail to {@link #build} if the same
-         * context type is included in this set as well as in the {@link #unchanged}
-         * set.</p>
-         *
          * @param types types of thread context to capture and propagated.
          * @return the same builder instance upon which this method is invoked.
          */
@@ -195,10 +191,6 @@ public interface ThreadContext {
          * task.run(); // runs under the transaction due to 'unchanged'
          * tx.commit();
          * </code></pre>
-         *
-         * <p>A {@link ThreadContext} must fail to {@link #build} if the same
-         * context type is included in this set as well as in the set specified by
-         * {@link #propagated}.</p>
          *
          * @param types types of thread context to leave unchanged on the thread.
          * @return the same builder instance upon which this method is invoked.
