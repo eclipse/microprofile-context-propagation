@@ -558,6 +558,14 @@ public class ManagedExecutorTest extends Arquillian {
         }
 
         try {
+            builder.maxAsync(-2);
+            Assert.fail("ManagedExecutor builder permitted value of -2 for maxAsync.");
+        }
+        catch (IllegalArgumentException x) {
+            // test passes
+        }
+
+        try {
             builder.maxQueued(0);
             Assert.fail("ManagedExecutor builder permitted value of 0 for maxAsync.");
         }
@@ -588,9 +596,9 @@ public class ManagedExecutorTest extends Arquillian {
                 .maxQueued(3)
                 .build();
 
+        Phaser barrier = new Phaser(1);
         try {
             // First, use up the single maxAsync slot with a blocking task and wait for it to start
-            Phaser barrier = new Phaser(1);
             executor.submit(() -> barrier.awaitAdvanceInterruptibly(barrier.arrive() + 1));
             barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
 
@@ -644,6 +652,7 @@ public class ManagedExecutorTest extends Arquillian {
                     "Unexpected result of seventh task.");
         }
         finally {
+            barrier.forceTermination();
             executor.shutdownNow();
         }
     }
