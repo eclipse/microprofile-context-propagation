@@ -18,15 +18,19 @@
  */
 package org.eclipse.microprofile.concurrency.tck;
 
+import java.io.CharConversionException;
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.spi.BufferContextProvider;
@@ -100,6 +104,381 @@ public class ManagedExecutorTest extends Arquillian {
     public void builderForManagedExecutorIsProvided() {
         Assert.assertNotNull(ManagedExecutor.builder(),
                 "MicroProfile Concurrency implementation does not provide a ManagedExecutor builder.");
+    }
+
+    /**
+     * Verify that thread context is captured and propagated per the configuration of the
+     * ManagedExecutor builder for all dependent stages of the completed future that is created
+     * by the ManagedExecutor's completedFuture implementation. Thread context is captured
+     * at each point where a dependent stage is added, rather than solely upon creation of the
+     * initial stage or construction of the builder.
+     */
+    @Test
+    public void completedFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .build();
+
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("completedFuture-test-buffer-A"));
+            Label.set("completedFuture-test-label");
+
+            CompletableFuture<Long> stage1a = executor.completedFuture(1000L);
+
+            Assert.assertTrue(stage1a.isDone(),
+                    "Future created by completedFuture is not complete.");
+
+            Assert.assertFalse(stage1a.isCompletedExceptionally(),
+                    "Future created by completedFuture reports exceptional completion.");
+
+            Assert.assertEquals(stage1a.getNow(1234L), Long.valueOf(1000L),
+                    "Future created by completedFuture has result that differs from what was specified.");
+
+            // The following incomplete future blocks subsequent stages from running inline on the current thread
+            CompletableFuture<Long> stage1b = new CompletableFuture<Long>();
+
+            Buffer.set(new StringBuffer("completedFuture-test-buffer-B"));
+
+            CompletableFuture<Long> stage2 = stage1a.thenCombine(stage1b, (a, b) -> {
+                Assert.assertEquals(a, Long.valueOf(1000L),
+                        "First value supplied to BiFunction was lost or altered.");
+
+                Assert.assertEquals(b, Long.valueOf(3L),
+                        "Second value supplied to BiFunction was lost or altered.");
+
+                Assert.assertEquals(Buffer.get().toString(), "completedFuture-test-buffer-B",
+                        "Context type was not propagated to contextual action.");
+
+                Assert.assertEquals(Label.get(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                return a * b;
+            });
+            
+            Buffer.set(new StringBuffer("completedFuture-test-buffer-C"));
+
+            CompletableFuture<Long> stage3 = stage2.thenApply(i -> {
+                Assert.assertEquals(i, Long.valueOf(3000L),
+                        "Value supplied to third stage was lost or altered.");
+
+                Assert.assertEquals(Buffer.get().toString(), "completedFuture-test-buffer-C",
+                        "Context type was not propagated to contextual action.");
+
+                // This stage runs inline on the same thread as the test, so alter the
+                // context here and later verify that the MicroProfile Concurrency implementation
+                // properly restores it to the thread's previous value, which will be
+                // completedFuture-test-buffer-E at the point when this runs.
+                Buffer.set(new StringBuffer("completedFuture-test-buffer-D"));
+
+                Assert.assertEquals(Label.get(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+                
+                return i - 300;
+            });
+
+            Buffer.set(new StringBuffer("completedFuture-test-buffer-E"));
+
+            // Complete stage 1b, allowing stage 2 and then 3 to run
+            stage1b.complete(3L);
+
+            Assert.assertEquals(stage3.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Long.valueOf(2700L),
+                    "Unexpected result for stage 3.");
+
+            Assert.assertEquals(stage2.getNow(3333L), Long.valueOf(3000L),
+                    "Unexpected or missing result for stage 2.");
+
+            Assert.assertTrue(stage2.isDone(), "Second stage did not transition to done upon completion.");
+            Assert.assertTrue(stage3.isDone(), "Third stage did not transition to done upon completion.");
+
+            Assert.assertFalse(stage2.isCompletedExceptionally(), "Second stage should not report exceptional completion.");
+            Assert.assertFalse(stage3.isCompletedExceptionally(), "Third stage should not report exceptional completion.");
+
+            // Is context properly restored on current thread?
+            Assert.assertEquals(Buffer.get().toString(), "completedFuture-test-buffer-E",
+                    "Previous context was not restored after context was cleared for managed executor tasks.");
+            Assert.assertEquals(Label.get(), "completedFuture-test-label",
+                    "Previous context was not restored after context was propagated for managed executor tasks.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that thread context is captured and propagated per the configuration of the
+     * ManagedExecutor builder for all dependent stages of the completed future that is created
+     * by the ManagedExecutor's completedStage implementation. Thread context is captured
+     * at each point where a dependent stage is added, rather than solely upon creation of the
+     * initial stage or construction of the builder.
+     */
+    @Test
+    public void completedStageDependentStagesRunWithContext() throws InterruptedException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .build();
+
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("completedStage-test-buffer"));
+            Label.set("completedStage-test-label-A");
+
+            CompletionStage<String> stage1 = executor.completedStage("5A");
+
+            // The following incomplete future prevents subsequent stages from completing
+            CompletableFuture<Integer> stage2 = new CompletableFuture<Integer>();
+
+            Label.set("completedStage-test-label-B");
+
+            CompletionStage<Integer> stage3 = stage1.thenCompose(s -> {
+                Assert.assertEquals(s, "5A",
+                        "Value supplied to compose function was lost or altered.");
+
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Label.get(), "completedStage-test-label-B",
+                        "Context type was not propagated to contextual action.");
+
+                return stage2.thenApply(i -> i + Integer.parseInt(s, 16));
+            });
+
+            Label.set("completedStage-test-label-C");
+
+            CompletionStage<Integer> stage4 = stage3.applyToEither(new CompletableFuture<Integer>(), i -> {
+                Assert.assertEquals(i, Integer.valueOf(99),
+                        "Value supplied to function was lost or altered.");
+
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Label.get(), "completedStage-test-label-C",
+                        "Context type was not propagated to contextual action.");
+
+                return i + 1;
+            });
+
+            Label.set("completedStage-test-label-D");
+
+            CountDownLatch completed = new CountDownLatch(1);
+            AtomicInteger resultRef = new AtomicInteger();
+            stage4.whenComplete((result, failure) -> {
+                resultRef.set(result);
+                completed.countDown();
+            });
+
+            // allow stages 3 and 4 to complete
+            stage2.complete(9);
+
+            Assert.assertTrue(completed.await(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Completion stage did not finish in a reasonable amount of time.");
+
+            Assert.assertEquals(resultRef.get(), 100,
+                    "Unexpected result for stage 4.");
+
+            // Is context properly restored on current thread?
+            Assert.assertEquals(Buffer.get().toString(), "completedStage-test-buffer",
+                    "Previous context was not restored after context was cleared for managed executor tasks.");
+            Assert.assertEquals(Label.get(), "completedStage-test-label-D",
+                    "Previous context was not restored after context was propagated for managed executor tasks.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that thread context is captured and propagated per the configuration of the
+     * ManagedExecutor builder for all dependent stages of the completed future that is created
+     * by the ManagedExecutor's failedFuture implementation. Thread context is captured
+     * at each point where a dependent stage is added, rather than solely upon creation of the
+     * initial stage or construction of the builder.
+     */
+    @Test
+    public void failedFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .build();
+
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("failedFuture-test-buffer-1"));
+            Label.set("failedFuture-test-label");
+
+            CompletableFuture<Character> stage1 = executor.failedFuture(new CharConversionException("A fake exception created by the test"));
+
+            Assert.assertTrue(stage1.isDone(),
+                    "Future created by failedFuture is not complete.");
+
+            Assert.assertTrue(stage1.isCompletedExceptionally(),
+                    "Future created by failedFuture does not report exceptional completion.");
+
+            try {
+                Character result = stage1.getNow('1');
+                Assert.fail("Failed future must raise exception. Instead, getNow returned: " + result);
+            }
+            catch (CompletionException x) {
+                if (x.getCause() == null || !(x.getCause() instanceof CharConversionException)
+                        || !"A fake exception created by the test".equals(x.getCause().getMessage())) {
+                    throw x;
+                }
+            }
+
+            Buffer.set(new StringBuffer("failedFuture-test-buffer-B"));
+
+            CompletableFuture<Character> stage2a = stage1.exceptionally(x -> {
+                Assert.assertEquals(x.getClass(), CharConversionException.class,
+                        "Wrong exception class supplied to 'exceptionally' method.");
+
+                Assert.assertEquals(x.getMessage(), "A fake exception created by the test",
+                        "Exception message was lost or altered.");
+
+                Assert.assertEquals(Buffer.get().toString(), "failedFuture-test-buffer-B",
+                        "Context type was not propagated to contextual action.");
+
+                Assert.assertEquals(Label.get(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                return 'A';
+            });
+
+            // The following incomplete future blocks subsequent stages from running inline on the current thread
+            CompletableFuture<Character> stage2b = new CompletableFuture<Character>();
+
+            Buffer.set(new StringBuffer("failedFuture-test-buffer-C"));
+
+            AtomicBoolean stage3Runs = new AtomicBoolean();
+
+            CompletableFuture<Void> stage3 = stage2a.runAfterBoth(stage2b, () -> {
+                stage3Runs.set(true);
+
+                Assert.assertEquals(Buffer.get().toString(), "failedFuture-test-buffer-C",
+                        "Context type was not propagated to contextual action.");
+
+                Assert.assertEquals(Label.get(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+            });
+            
+            Buffer.set(new StringBuffer("failedFuture-test-buffer-D"));
+
+            Assert.assertFalse(stage3.isDone(),
+                    "Third stage should not report done until both of the stages upon which it depends complete.");
+
+            // Complete stage 2b, allowing stage 3 to run
+            stage2b.complete('B');
+
+            Assert.assertNull(stage3.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Unexpected result for stage 3.");
+
+            Assert.assertTrue(stage3Runs.get(),
+                    "The Runnable for stage 3 did not run.");
+
+            Assert.assertEquals(stage2a.getNow('F'), Character.valueOf('A'),
+                    "Unexpected or missing result for stage 2.");
+
+            Assert.assertTrue(stage2a.isDone(), "Second stage did not transition to done upon completion.");
+            Assert.assertTrue(stage3.isDone(), "Third stage did not transition to done upon completion.");
+
+            Assert.assertFalse(stage2a.isCompletedExceptionally(), "Second stage should not report exceptional completion.");
+            Assert.assertFalse(stage3.isCompletedExceptionally(), "Third stage should not report exceptional completion.");
+
+            // Is context properly restored on current thread?
+            Assert.assertEquals(Buffer.get().toString(), "failedFuture-test-buffer-D",
+                    "Previous context was not restored after context was cleared for managed executor tasks.");
+            Assert.assertEquals(Label.get(), "failedFuture-test-label",
+                    "Previous context was not restored after context was propagated for managed executor tasks.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that thread context is captured and propagated per the configuration of the
+     * ManagedExecutor builder for all dependent stages of the completed future that is created
+     * by the ManagedExecutor's failedStage implementation. Thread context is captured
+     * at each point where a dependent stage is added, rather than solely upon creation of the
+     * initial stage or construction of the builder.
+     */
+    @Test
+    public void failedStageDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .build();
+
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("failedStage-test-buffer"));
+            Label.set("failedStage-test-label-A");
+
+            CompletionStage<Integer> stage1 = executor.failedStage(new LinkageError("Error intentionally raised by test case"));
+
+            Label.set("failedStage-test-label-B");
+
+            CompletionStage<Integer> stage2 = stage1.whenComplete((result, failure) -> {
+                Assert.assertEquals(failure.getClass(), LinkageError.class,
+                        "Wrong exception class supplied to 'whenComplete' method.");
+
+                Assert.assertEquals(failure.getMessage(), "Error intentionally raised by test case",
+                        "Error message was lost or altered.");
+
+                Assert.assertNull(result,
+                        "Non-null result supplied to whenComplete for failed stage.");
+
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Label.get(), "failedStage-test-label-B",
+                        "Context type was not propagated to contextual action.");
+
+            });
+
+            Label.set("failedStage-test-label-C");
+
+            CompletableFuture<Integer> future1 = stage1.toCompletableFuture();
+            try {
+                Integer result = future1.join();
+                Assert.fail("The join operation did not raise the error from the failed stage. Instead: " + result);
+            }
+            catch (CompletionException x) {
+                if (x.getCause() == null || !(x.getCause() instanceof LinkageError)
+                        || !"Error intentionally raised by test case".equals(x.getCause().getMessage())) {
+                    throw x;
+                }
+            }
+
+            CompletableFuture<Integer> future2 = stage2.toCompletableFuture();
+            try {
+                Integer result = future2.get();
+                Assert.fail("The get operation did not raise the error from the failed stage. Instead: " + result);
+            }
+            catch (ExecutionException x) {
+                if (x.getCause() == null || !(x.getCause() instanceof LinkageError)
+                        || !"Error intentionally raised by test case".equals(x.getCause().getMessage())) {
+                    throw x;
+                }
+            }
+
+            Assert.assertEquals(Buffer.get().toString(), "failedStage-test-buffer",
+                    "Previous context was not restored after context was cleared for managed executor tasks.");
+            Assert.assertEquals(Label.get(), "failedStage-test-label-C",
+                    "Previous context was not restored after context was propagated for managed executor tasks.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
     }
 
     /**
