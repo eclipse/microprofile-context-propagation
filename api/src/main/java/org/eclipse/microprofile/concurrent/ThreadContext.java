@@ -418,9 +418,10 @@ public interface ThreadContext {
      * <p>Returns a new <code>CompletableFuture</code> that is completed by the completion of the
      * specified stage.</p>
      *
-     * <p>The container supplies the default asynchronous execution facility for the new completable
-     * future that is returned by this method and all dependent stages that are created from it,
-     * and all dependent stages that are created from those, and so forth.</p>
+     * <p>The new completable future is backed by a ThreadContext rather than a ManagedExecutor,
+     * and therefore its default asynchronous execution facility, which is supplied by the container,
+     * must run all dependent stages (and all dependent stages created from those, and so forth)
+     * inline rather than as separate asynchronous requests.</p>
      *
      * <p>When dependent stages are created from the new completable future, thread context is captured
      * from the thread that creates the dependent stage and is applied to the thread that runs the
@@ -444,9 +445,10 @@ public interface ThreadContext {
      * <p>Returns a new <code>CompletionStage</code> that is completed by the completion of the
      * specified stage.</p>
      *
-     * <p>The container supplies the default asynchronous execution facility for the new completion
-     * stage that is returned by this method and all dependent stages that are created from it,
-     * and all dependent stages that are created from those, and so forth.</p>
+     * <p>The new completion stage is backed by a ThreadContext rather than a ManagedExecutor,
+     * and therefore its default asynchronous execution facility, which is supplied by the container,
+     * must run all dependent stages (and all dependent stages created from those, and so forth)
+     * inline rather than as separate asynchronous requests.</p>
      *
      * <p>When dependent stages are created from the new completion stage, thread context is captured
      * from the thread that creates the dependent stage and is applied to the thread that runs the
