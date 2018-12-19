@@ -27,6 +27,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Phaser;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -478,6 +482,207 @@ public class ManagedExecutorTest extends Arquillian {
             // Restore original values
             Buffer.set(null);
             Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that the ManagedExecutor implementation starts 2 async tasks/actions, and no more,
+     * when maxAsync is configured to 2.
+     */
+    @Test
+    public void maxAsync2() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .maxAsync(2)
+                .build();
+
+        Phaser barrier = new Phaser(2);
+        System.out.println("Unarrived: " + barrier.getUnarrivedParties());
+        try {
+            // Use up both maxAsync slots on blocking operations and wait for them to start
+            Future<Integer> future1 = executor.submit(() -> barrier.awaitAdvance(barrier.arriveAndAwaitAdvance()));
+            CompletableFuture<Integer> future2 = executor.supplyAsync(() -> barrier.awaitAdvance(barrier.arriveAndAwaitAdvance()));
+            barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            // This data structure holds the results of tasks which shouldn't be able to run yet
+            LinkedBlockingQueue<String> results = new LinkedBlockingQueue<String>();
+
+            // Submit additional tasks/actions for async execution.
+            // These should queue, but otherwise be unable to start yet due to maxAsync=2.
+            CompletableFuture<Void> future3 = executor.runAsync(() -> results.offer("Result3"));
+            CompletableFuture<Boolean> future4 = executor.supplyAsync(() -> results.offer("Result4"));
+            Future<Boolean> future5 = executor.submit(() -> results.offer("Result5"));
+            CompletableFuture<Boolean> future6 = executor.completedFuture("6")
+                    .thenApplyAsync(s -> results.offer("Result" + s));
+
+            // Detect whether any of the above tasks/actions run within the next 5 seconds
+            Assert.assertNull(results.poll(5, TimeUnit.SECONDS),
+                    "Should not be able start more than 2 async tasks when maxAsync is 2.");
+
+            // unblock and allow tasks to finish
+            barrier.arrive();
+            barrier.arrive(); // there are 2 parties in each phase
+
+            Assert.assertNotNull(results.poll(MAX_WAIT_NS, TimeUnit.SECONDS), "None of the queued tasks ran.");
+            Assert.assertNotNull(results.poll(MAX_WAIT_NS, TimeUnit.SECONDS), "Only 1 of the queued tasks ran.");
+            Assert.assertNotNull(results.poll(MAX_WAIT_NS, TimeUnit.SECONDS), "Only 2 of the queued tasks ran.");
+            Assert.assertNotNull(results.poll(MAX_WAIT_NS, TimeUnit.SECONDS), "Only 3 of the queued tasks ran.");
+
+            Assert.assertEquals(future1.get(), Integer.valueOf(2), "Unexpected result of first task.");
+            Assert.assertEquals(future2.get(), Integer.valueOf(2), "Unexpected result of second task.");
+            Assert.assertNull(future3.join(), "Unexpected result of third task.");
+            Assert.assertEquals(future4.join(), Boolean.TRUE, "Unexpected result of fourth task.");
+            Assert.assertEquals(future5.get(), Boolean.TRUE, "Unexpected result of fifth task.");
+            Assert.assertEquals(future6.get(), Boolean.TRUE, "Unexpected result of sixth task.");
+        }
+        finally {
+            barrier.forceTermination();
+            executor.shutdownNow();
+        }
+    }
+
+    /**
+     * Attempt to specify invalid values (less than -1 and 0) for maxAsync.
+     * Require this to be rejected upon the maxQueued operation per JavaDoc
+     * rather than from the build method.
+     */
+    @Test
+    public void maxAsyncInvalidValues() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor.Builder builder = ManagedExecutor.builder();
+
+        try {
+            builder.maxAsync(-10);
+            Assert.fail("ManagedExecutor builder permitted value of -10 for maxAsync.");
+        }
+        catch (IllegalArgumentException x) {
+            // test passes
+        }
+
+        try {
+            builder.maxQueued(0);
+            Assert.fail("ManagedExecutor builder permitted value of 0 for maxAsync.");
+        }
+        catch (IllegalArgumentException x) {
+            // test passes
+        }
+
+        // builder remains usable
+        ManagedExecutor executor = builder.build();
+        try {
+            // neither of the invalid values apply - can run a task
+            Future<String> future = executor.submit(() -> "it worked!");
+            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "it worked!",
+                    "Task had missing or unexpected result.");
+        }
+        finally {
+            executor.shutdownNow();
+        }
+    }
+
+    /**
+     * Verify that 3 tasks/actions, and no more, can be queued when maxQueued is configured to 3.
+     */
+    @Test
+    public void maxQueued3() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .maxAsync(1)
+                .maxQueued(3)
+                .build();
+
+        try {
+            // First, use up the single maxAsync slot with a blocking task and wait for it to start
+            Phaser barrier = new Phaser(1);
+            executor.submit(() -> barrier.awaitAdvanceInterruptibly(barrier.arrive() + 1));
+            barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            // Use up first queue position
+            Future<Integer> future1 = executor.submit(() -> 101);
+
+            // Use up second queue position
+            CompletableFuture<Void> future2 = executor.runAsync(() -> System.out.println("second task running"));
+
+            // Use up third queue position
+            Future<Integer> future3 = executor.submit(() -> 103);
+
+            // Fourth attempt to queue a task must be rejected
+            try {
+                Future<Integer> future4 = executor.submit(() -> 104);
+                Assert.fail("Exceeded maxQueued of 3. Future for 4th queued task/action is " + future4);
+            }
+            catch (RejectedExecutionException x) {
+                // test passes
+            }
+
+            // Fifth attempt to queue a task must also be rejected
+            try {
+                CompletableFuture<Integer> future5 = executor.supplyAsync(() -> 105);
+                Assert.fail("Exceeded maxQueued of 3. Future for 5th queued task/action is " + future5);
+            }
+            catch (RejectedExecutionException x) {
+                // test passes
+            }
+
+            // unblock and allow tasks to finish
+            barrier.arrive();
+
+            Assert.assertEquals(future1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(101),
+                    "Unexpected result of first task.");
+
+            Assert.assertNull(future2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Unexpected result of second task.");
+
+            // At least 2 queue positions must be available at this point
+            Future<Integer> future6 = executor.submit(() -> 106);
+            CompletableFuture<Integer> future7 = executor.supplyAsync(() -> 107);
+
+            Assert.assertEquals(future3.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(103),
+                    "Unexpected result of third task.");
+
+            Assert.assertEquals(future6.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(106),
+                    "Unexpected result of sixth task.");
+
+            Assert.assertEquals(future7.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(107),
+                    "Unexpected result of seventh task.");
+        }
+        finally {
+            executor.shutdownNow();
+        }
+    }
+
+    /**
+     * Attempt to specify invalid values (less than -1 and 0) for maxQueued.
+     * Require this to be rejected upon the maxQueued operation per JavaDoc
+     * rather than from the build method.
+     */
+    @Test
+    public void maxQueuedInvalidValues() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor.Builder builder = ManagedExecutor.builder();
+
+        try {
+            builder.maxQueued(-2);
+            Assert.fail("ManagedExecutor builder permitted value of -2 for maxQueued.");
+        }
+        catch (IllegalArgumentException x) {
+            // test passes
+        }
+
+        try {
+            builder.maxQueued(0);
+            Assert.fail("ManagedExecutor builder permitted value of 0 for maxQueued.");
+        }
+        catch (IllegalArgumentException x) {
+            // test passes
+        }
+
+        // builder remains usable
+        ManagedExecutor executor = builder.build();
+        try {
+            // neither of the invalid values apply - can queue a task and run it
+            Future<String> future = executor.submit(() -> "successful!");
+            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "successful!",
+                    "Task had missing or unexpected result.");
+        }
+        finally {
+            executor.shutdownNow();
         }
     }
 
