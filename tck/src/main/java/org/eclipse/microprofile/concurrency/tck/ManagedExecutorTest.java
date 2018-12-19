@@ -165,6 +165,10 @@ public class ManagedExecutorTest extends Arquillian {
                 Assert.assertEquals(Buffer.get().toString(), "completedFuture-test-buffer-C",
                         "Context type was not propagated to contextual action.");
 
+                // This stage runs inline on the same thread as the test, so alter the
+                // context here and later verify that the MicroProfile Concurrency implementation
+                // properly restores it to the thread's previous value, which will be
+                // completedFuture-test-buffer-E at the point when this runs.
                 Buffer.set(new StringBuffer("completedFuture-test-buffer-D"));
 
                 Assert.assertEquals(Label.get(), "",
