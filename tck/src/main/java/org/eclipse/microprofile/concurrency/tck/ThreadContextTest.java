@@ -583,82 +583,91 @@ public class ThreadContextTest extends Arquillian {
         }
     }
     
-     /**
+    /**
      * Verify the MicroProfile Concurrency implementation of propagate(), cleared(), and unchanged()
      * for ThreadContext.Builder.
      */
     @Test
     public void contextControlsForThreadContextBuilder() throws InterruptedException, ExecutionException, TimeoutException {
-    	ThreadContext allContext = ThreadContext.builder()
+    	ThreadContext bufferContext = ThreadContext.builder()
     			.propagated(Buffer.CONTEXT_NAME)
     			.cleared(Label.CONTEXT_NAME)
     			.unchanged(THREAD_PRIORITY)
     			.build();
-    	
+
     	try {
-        	ThreadContext.builder()
-			.propagated(Buffer.CONTEXT_NAME)
-			.cleared(Label.CONTEXT_NAME, Buffer.CONTEXT_NAME)
-			.unchanged(THREAD_PRIORITY)
-			.build();
-        	Assert.fail("ThreadContext.Builder.build() should throw an IllegalStateException for set overlap between propagated and cleared");
+    		ThreadContext.builder()
+    		.propagated(Buffer.CONTEXT_NAME)
+    		.cleared(Label.CONTEXT_NAME, Buffer.CONTEXT_NAME)
+    		.unchanged(THREAD_PRIORITY)
+    		.build();
+    		Assert.fail("ThreadContext.Builder.build() should throw an IllegalStateException for set overlap between propagated and cleared");
     	} catch (IllegalStateException ISE) {
     		//expected.
     	}
 
-        int originalPriority = Thread.currentThread().getPriority();
-        try {
-            // Set non-default values
-            int newPriority = originalPriority == 4 ? 3 : 4;
-            Buffer.get().append("contextControls-test-buffer-A");
-            Label.set("contextControls-test-label-A");
+    	int originalPriority = Thread.currentThread().getPriority();
+    	try {
+    		// Set non-default values
+    		int newPriority = originalPriority == 4 ? 3 : 4;
+    		Buffer.get().append("contextControls-test-buffer-A");
+    		Label.set("contextControls-test-label-A");
 
-            //Future<Integer> future1 = unmanagedThreads.submit(
+    		Callable<Integer> callable = bufferContext.contextualCallable(() -> {
+    			Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A-B",
+    					"Context type was not propagated to contextual action.");
+
+    			Buffer.get().append("-C");
+
+    			Assert.assertEquals(Label.get(), "",
+    					"Context type that is configured to be cleared was not cleared.");
+
+    			Label.set("contextControls-test-label-C");
+
+    			return Thread.currentThread().getPriority();
+    		});
+
+    		Buffer.get().append("-B");
+    		Label.set("contextControls-test-label-B");
+
+    		Future<Integer> future = unmanagedThreads.submit(() -> {
+    			try {
+    				Buffer.get().append("unpropagated-buffer");
+        			Label.set("unpropagated-label");
+        			Thread.currentThread().setPriority(newPriority);
+        			
+        			Integer returnedPriority = callable.call();
+        			
+            		Assert.assertEquals(Buffer.get().toString(), "unpropagated-buffer",
+            				"Context type was not left unchanged by contextual action.");
             		
-            Callable<Integer> callable = allContext.contextualCallable(() -> {
-            	Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A-B",
-            			"Context type was not propagated to contextual action.");
+            		Assert.assertEquals(Label.get(), "unpropagated-label",
+            				"Context type was not left unchanged by contextual action.");
+            		
+            		return returnedPriority;
+    			}
+    	    	finally {
+    	    		// Restore original values
+    	    		Buffer.set(null);
+    	    		Label.set(null);
+    	    		Thread.currentThread().setPriority(originalPriority);
+    	    	}
+    		});
 
-            	Buffer.get().append("-C");
+    		Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(newPriority),
+    				"Callable returned incorrect value.");
 
-            	Assert.assertEquals(Label.get(), "",
-            			"Context type that is configured to be cleared was not cleared.");
-
-            	Label.set("contextControls-test-label-C");
-            	
-            	return Thread.currentThread().getPriority();
-            });
-            
-            Buffer.get().append("-B");
-            Label.set("contextControls-test-label-B");
-
-            Future<Integer> future = unmanagedThreads.submit(() -> {
-            		Buffer.get().append("unpropagated-buffer");
-            		Label.set("unpropagated-label");
-            		Thread.currentThread().setPriority(newPriority);
-            		return callable.call();
-            });
-
-            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(newPriority),
-                    "Callable returned incorrect value.");
-            
-            Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A-B-C",
-            		"Context type was not propagated to contextual action.");
-
-            Assert.assertEquals(Label.get(), "contextControls-test-label-B",
-            		"Context type was not propagated to contextual action.");
-
-            Assert.assertEquals(Thread.currentThread().getPriority(), originalPriority,
-            		"Context type was not left unchanged on contextual action.");
-        }
-        finally {
-        	// Restore original values
-        	Buffer.set(null);
-            Label.set(null);
-            Thread.currentThread().setPriority(originalPriority);
-        }
+    		Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A-B-C",
+    				"Context type was not propagated to contextual action.");
+    	}
+    	finally {
+    		// Restore original values
+    		Buffer.set(null);
+    		Label.set(null);
+    		Thread.currentThread().setPriority(originalPriority);
+    	}
     }
-    
+
     /**
      * Verify that the MicroProfile Concurrency ThreadContext implementation's currentContextExecutor
      * method can be used to create an Executor instance with the context that is captured from the
@@ -668,54 +677,61 @@ public class ThreadContextTest extends Arquillian {
      */
     @Test
     public void currentContextExecutorRunsWithContext() throws InterruptedException, ExecutionException, TimeoutException {
-        ThreadContext priorityAndBufferContext = ThreadContext.builder()
-                .propagated(Buffer.CONTEXT_NAME)
-                .build();
+    	ThreadContext bufferContext = ThreadContext.builder()
+    			.propagated(Buffer.CONTEXT_NAME)
+    			.build();
 
-        try {
-            // Set non-default values
-            Buffer.get().append("currentContextExecutor-test-buffer-A");
-            Label.set("currentContextExecutor-test-label-A");
+    	try {
+    		// Set non-default values
+    		Buffer.get().append("currentContextExecutor-test-buffer-A");
+    		Label.set("currentContextExecutor-test-label-A");
 
-            // Reusable contextual Executor
-            Executor contextSnapshot = priorityAndBufferContext.currentContextExecutor();
-            
-            Buffer.get().append("-B");
-            Label.set("currentContextExecutor-test-label-B");
-            
-            // Run contextSnapshot.execute from another thread.
-            Future<Void> future = unmanagedThreads.submit(() -> {
-            	Buffer.get().append("currentContextExecutor-test-buffer-C");
-            	Label.set("currentContextExecutor-test-label-C");
-            	contextSnapshot.execute(() -> {
-            		Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-A-B",
-            				"Context type was not propagated to contextual action.");
-            		Buffer.get().append("-D");
+    		// Reusable contextual Executor
+    		Executor contextSnapshot = bufferContext.currentContextExecutor();
 
-            		Assert.assertEquals(Label.get(), "",
-            				"Context type that is configured to be cleared was not cleared.");
-            		Label.set("currentContextExecutor-test-label-D");
-            	});
+    		Buffer.get().append("-B");
+    		Label.set("currentContextExecutor-test-label-B");
 
-            	// Execute should not have changed the current thread's context
-            	Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-C",
-            			"Existing context was altered by a contextual Executor.execute().");
+    		// Run contextSnapshot.execute from another thread.
+    		Future<Void> future = unmanagedThreads.submit(() -> {
+    			try {
+        			Buffer.get().append("currentContextExecutor-test-buffer-C");
+        			Label.set("currentContextExecutor-test-label-C");
+        			contextSnapshot.execute(() -> {
+        				Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-A-B",
+        						"Context type was not propagated to contextual action.");
+        				Buffer.get().append("-D");
 
-            	Assert.assertEquals(Label.get(), "currentContextExecutor-test-label-C",
-            			"Existing context was altered by a contextual Executor.execute().");
-            	return null;
-            });
-            
-            future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
-            
-            // Execute should not have changed the current thread's context
+        				Assert.assertEquals(Label.get(), "",
+        						"Context type that is configured to be cleared was not cleared.");
+        				Label.set("currentContextExecutor-test-label-D");
+        			});
+
+        			// Execute should not have changed the current thread's context
+        			Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-C",
+        					"Existing context was altered by a contextual Executor.execute().");
+
+        			Assert.assertEquals(Label.get(), "currentContextExecutor-test-label-C",
+        					"Existing context was altered by a contextual Executor.execute().");
+        			return null;
+    			}
+    	    	finally {
+    	    		// Restore original values
+    	    		Buffer.set(null);
+    	    		Label.set(null);
+    	    	}
+    		});
+
+    		future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+    		// Execute should not have changed the current thread's context
     		Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-A-B-D",
     				"Existing context was altered by a contextual Executor.execute().");
 
     		Assert.assertEquals(Label.get(), "currentContextExecutor-test-label-B",
     				"Existing context was altered by a contextual Executor.execute().");
-            
-            // Run contextSnapshot.execute after the context has changed.
+
+    		// Run contextSnapshot.execute after the context has changed.
     		contextSnapshot.execute(() -> {
     			Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-A-B-D",
     					"Context type was not propagated to contextual action.");
@@ -725,18 +741,18 @@ public class ThreadContextTest extends Arquillian {
     					"Context type that is configured to be cleared was not cleared.");
     			Label.set("currentContextExecutor-test-label-E");
     		});
-            
-            // Execute should not have changed the current thread's context
+
+    		// Execute should not have changed the current thread's context
     		Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-A-B-D-E",
     				"Existing context was altered by a contextual Executor.execute().");
 
     		Assert.assertEquals(Label.get(), "currentContextExecutor-test-label-B",
     				"Existing context was altered by a contextual Executor.execute().");
-        }
-        finally {
-            // Restore original values
-            Buffer.set(null);
-            Label.set(null);
-        }
+    	}
+    	finally {
+    		// Restore original values
+    		Buffer.set(null);
+    		Label.set(null);
+    	}
     }
 }
