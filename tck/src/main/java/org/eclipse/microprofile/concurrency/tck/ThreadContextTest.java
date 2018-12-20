@@ -21,9 +21,11 @@ package org.eclipse.microprofile.concurrency.tck;
 import static org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.ThreadPriorityContextProvider.THREAD_PRIORITY;
 
 import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -576,6 +578,82 @@ public class ThreadContextTest extends Arquillian {
         finally {
             // Restore original values
             Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+    
+    /**
+     * Verify the MicroProfile Concurrency implementation of propagate(), cleared(), and unchanged()
+     * for ThreadContext.Builder.
+     */
+    @Test
+    public void contextControlsForThreadContextBuilder() throws InterruptedException, ExecutionException, TimeoutException {
+    	ThreadContext allContext = ThreadContext.builder()
+    			.propagated(Buffer.CONTEXT_NAME)
+    			.cleared(Label.CONTEXT_NAME)
+    			.unchanged(THREAD_PRIORITY)
+    			.build();
+    	
+    	try {
+        	ThreadContext.builder()
+			.propagated(Buffer.CONTEXT_NAME)
+			.cleared(Label.CONTEXT_NAME, Buffer.CONTEXT_NAME)
+			.unchanged(THREAD_PRIORITY)
+			.build();
+        	Assert.fail("ThreadContext.Builder.build() should throw an IllegalStateException for set overlap between propagated and cleared");
+    	} catch (IllegalStateException ISE) {
+    		//expected.
+    	}
+
+        int originalPriority = Thread.currentThread().getPriority();
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 4 ? 3 : 4;
+            Buffer.get().append("contextControls-test-buffer-A");
+            Label.set("contextControls-test-label-A");
+
+            //Future<Integer> future1 = unmanagedThreads.submit(
+            		
+            Callable<Integer> callable = allContext.contextualCallable(() -> {
+            	Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A-B",
+            			"Context type was not propagated to contextual action.");
+
+            	Buffer.get().append("-C");
+
+            	Assert.assertEquals(Label.get(), "",
+            			"Context type that is configured to be cleared was not cleared.");
+
+            	Label.set("contextControls-test-label-C");
+            	
+            	return Thread.currentThread().getPriority();
+            });
+            
+            Buffer.get().append("-B");
+            Label.set("contextControls-test-label-B");
+
+            Future<Integer> future = unmanagedThreads.submit(() -> {
+            		Buffer.get().append("unpropagated-buffer");
+            		Label.set("unpropagated-label");
+            		Thread.currentThread().setPriority(newPriority);
+            		return callable.call();
+            });
+
+            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(newPriority),
+                    "Callable returned incorrect value.");
+            
+            Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A-B-C",
+            		"Context type was not propagated to contextual action.");
+
+            Assert.assertEquals(Label.get(), "contextControls-test-label-B",
+            		"Context type was not propagated to contextual action.");
+
+            Assert.assertEquals(Thread.currentThread().getPriority(), originalPriority,
+            		"Context type was not left unchanged on contextual action.");
+        }
+        finally {
+        	// Restore original values
+        	Buffer.set(null);
             Label.set(null);
             Thread.currentThread().setPriority(originalPriority);
         }
