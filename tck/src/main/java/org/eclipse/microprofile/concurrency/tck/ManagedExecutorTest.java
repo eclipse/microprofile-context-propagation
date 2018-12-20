@@ -340,32 +340,30 @@ public class ManagedExecutorTest extends Arquillian {
             Label.set("contextControls-test-label-A");
 
             Future<Void> future = executor.submit(() -> {
-                Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A-B",
+                Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A",
                         "Context type was not propagated to contextual action.");
 
-                Buffer.get().append("-C");
+                Buffer.get().append("-B");
 
                 Assert.assertEquals(Label.get(), "",
                         "Context type that is configured to be cleared was not cleared.");
 
-                Label.set("contextControls-test-label-C");
+                Label.set("contextControls-test-label-B");
 
                 return null;
             });
 
-            Buffer.get().append("-B");
-            Label.set("contextControls-test-label-B");
-
             Assert.assertNull(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
                     "Unexpected result of task.");
 
-            Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A-B-C",
+            Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A-B",
                     "Context type was not propagated to contextual action.");
 
-            Assert.assertEquals(Label.get(), "contextControls-test-label-B",
+            Assert.assertEquals(Label.get(), "contextControls-test-label-A",
                     "Context type was not left unchanged by contextual action.");
         }
         finally {
+            executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
             Label.set(null);
