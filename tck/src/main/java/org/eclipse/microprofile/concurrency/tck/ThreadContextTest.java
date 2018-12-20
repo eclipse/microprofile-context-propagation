@@ -583,7 +583,7 @@ public class ThreadContextTest extends Arquillian {
         }
     }
     
-    /**
+     /**
      * Verify the MicroProfile Concurrency implementation of propagate(), cleared(), and unchanged()
      * for ThreadContext.Builder.
      */
@@ -656,6 +656,87 @@ public class ThreadContextTest extends Arquillian {
         	Buffer.set(null);
             Label.set(null);
             Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+    
+    /**
+     * Verify that the MicroProfile Concurrency ThreadContext implementation's currentContextExecutor
+     * method can be used to create an Executor instance with the context that is captured from the
+     * current thread per the configuration of the ThreadContext builder, and that the context is
+     * applied to the thread where the Executor's execute method runs. This test case aligns with use 
+     * case of supplying a contextual Executor to a thread that is otherwise not context-aware.
+     */
+    @Test
+    public void currentContextExecutorRunsWithContext() throws InterruptedException, ExecutionException, TimeoutException {
+        ThreadContext priorityAndBufferContext = ThreadContext.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .build();
+
+        try {
+            // Set non-default values
+            Buffer.get().append("currentContextExecutor-test-buffer-A");
+            Label.set("currentContextExecutor-test-label-A");
+
+            // Reusable contextual Executor
+            Executor contextSnapshot = priorityAndBufferContext.currentContextExecutor();
+            
+            Buffer.get().append("-B");
+            Label.set("currentContextExecutor-test-label-B");
+            
+            // Run contextSnapshot.execute from another thread.
+            Future<Void> future = unmanagedThreads.submit(() -> {
+            	Buffer.get().append("currentContextExecutor-test-buffer-C");
+            	Label.set("currentContextExecutor-test-label-C");
+            	contextSnapshot.execute(() -> {
+            		Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-A-B",
+            				"Context type was not propagated to contextual action.");
+            		Buffer.get().append("-D");
+
+            		Assert.assertEquals(Label.get(), "",
+            				"Context type that is configured to be cleared was not cleared.");
+            		Label.set("currentContextExecutor-test-label-D");
+            	});
+
+            	// Execute should not have changed the current thread's context
+            	Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-C",
+            			"Existing context was altered by a contextual Executor.execute().");
+
+            	Assert.assertEquals(Label.get(), "currentContextExecutor-test-label-C",
+            			"Existing context was altered by a contextual Executor.execute().");
+            	return null;
+            });
+            
+            future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+            
+            // Execute should not have changed the current thread's context
+    		Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-A-B-D",
+    				"Existing context was altered by a contextual Executor.execute().");
+
+    		Assert.assertEquals(Label.get(), "currentContextExecutor-test-label-B",
+    				"Existing context was altered by a contextual Executor.execute().");
+            
+            // Run contextSnapshot.execute after the context has changed.
+    		contextSnapshot.execute(() -> {
+    			Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-A-B-D",
+    					"Context type was not propagated to contextual action.");
+    			Buffer.get().append("-E");
+
+    			Assert.assertEquals(Label.get(), "",
+    					"Context type that is configured to be cleared was not cleared.");
+    			Label.set("currentContextExecutor-test-label-E");
+    		});
+            
+            // Execute should not have changed the current thread's context
+    		Assert.assertEquals(Buffer.get().toString(), "currentContextExecutor-test-buffer-A-B-D-E",
+    				"Existing context was altered by a contextual Executor.execute().");
+
+    		Assert.assertEquals(Label.get(), "currentContextExecutor-test-label-B",
+    				"Existing context was altered by a contextual Executor.execute().");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
         }
     }
 }
