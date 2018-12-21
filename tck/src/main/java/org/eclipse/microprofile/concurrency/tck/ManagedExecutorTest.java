@@ -296,6 +296,79 @@ public class ManagedExecutorTest extends Arquillian {
             Label.set(null);
         }
     }
+    
+    /**
+     * Verify the MicroProfile Concurrency implementation of propagate(), and cleared()
+     * for MangedExecutor.Builder.
+     */
+    @Test
+    public void contextControlsForManagedExecutorBuilder() throws InterruptedException, ExecutionException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .cleared(Label.CONTEXT_NAME)
+                .maxAsync(-1)
+                .maxQueued(-1)
+                .build();
+
+        try {
+            ManagedExecutor.builder()
+            .propagated(Buffer.CONTEXT_NAME)
+            .cleared(Label.CONTEXT_NAME, Buffer.CONTEXT_NAME)
+            .maxAsync(-1)
+            .maxQueued(-1)
+            .build();
+            Assert.fail("ManagedExecutor.Builder.build() should throw an IllegalStateException for set overlap between propagated and cleared");
+        } catch (IllegalStateException ISE) {
+            // test passes
+        }
+
+        try {
+            ManagedExecutor.builder()
+            .propagated(Buffer.CONTEXT_NAME, "BOGUS_CONTEXT")
+            .cleared(Label.CONTEXT_NAME)
+            .maxAsync(-1)
+            .maxQueued(-1)
+            .build();
+            Assert.fail("ManagedExecutor.Builder.build() should throw an IllegalStateException for a nonexistent thread context type");
+        } catch (IllegalStateException ISE) {
+            // test passes
+        }
+
+        try {
+            // Set non-default values
+            Buffer.get().append("contextControls-test-buffer-A");
+            Label.set("contextControls-test-label-A");
+
+            Future<Void> future = executor.submit(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A",
+                        "Context type was not propagated to contextual action.");
+
+                Buffer.get().append("-B");
+
+                Assert.assertEquals(Label.get(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Label.set("contextControls-test-label-B");
+
+                return null;
+            });
+
+            Assert.assertNull(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Unexpected result of task.");
+
+            Assert.assertEquals(Buffer.get().toString(), "contextControls-test-buffer-A-B",
+                    "Context type was not propagated to contextual action.");
+
+            Assert.assertEquals(Label.get(), "contextControls-test-label-A",
+                    "Context type was not left unchanged by contextual action.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
 
     /**
      * Verify that thread context is captured and propagated per the configuration of the
