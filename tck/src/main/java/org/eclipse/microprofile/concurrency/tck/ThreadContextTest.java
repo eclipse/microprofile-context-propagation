@@ -602,7 +602,8 @@ public class ThreadContextTest extends Arquillian {
             .unchanged(THREAD_PRIORITY)
             .build();
             Assert.fail("ThreadContext.Builder.build() should throw an IllegalStateException for set overlap between propagated and cleared");
-        } catch (IllegalStateException ISE) {
+        }
+        catch (IllegalStateException ISE) {
             //expected.
         }
 
