@@ -318,7 +318,8 @@ public class ManagedExecutorTest extends Arquillian {
             .maxQueued(-1)
             .build();
             Assert.fail("ManagedExecutor.Builder.build() should throw an IllegalStateException for set overlap between propagated and cleared");
-        } catch (IllegalStateException ISE) {
+        }
+        catch (IllegalStateException ISE) {
             // test passes
         }
 
@@ -330,7 +331,8 @@ public class ManagedExecutorTest extends Arquillian {
             .maxQueued(-1)
             .build();
             Assert.fail("ManagedExecutor.Builder.build() should throw an IllegalStateException for a nonexistent thread context type");
-        } catch (IllegalStateException ISE) {
+        }
+        catch (IllegalStateException ISE) {
             // test passes
         }
 
