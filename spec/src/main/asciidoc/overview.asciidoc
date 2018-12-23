@@ -64,7 +64,11 @@ Applications should shut down instances of `ManagedExecutor` that they build aft
 
 === Injection
 
-Instances of `ManagedExecutor` and `ThreadContext` can be injected into CDI beans via the `@Inject` annotation, for example:
+Instances of `ManagedExecutor` and `ThreadContext` can be injected into CDI beans via the `@Inject` annotation.
+Injection points with the `@NamedInstance` qualifier have a name that is explicitly declared by the qualifier.
+Injection points that have no CDI qualifier on them have a unique name which is deduced from the injection point itself.
+Container provides, per unique name, an instance of either `ManagedExecutor` and/or `ThreadContext` unless the application specifies a CDI producer with `@NamedInstance` qualifier, given unique name and respective type.
+ for example:
 
 [source, java]
 ----
@@ -79,11 +83,50 @@ Instances of `ManagedExecutor` and `ThreadContext` can be injected into CDI bean
     unmanagedCompletionStage.thenApply(threadContext.contextualFunction(function3));
 ----
 
-The container provides default instances of `ManagedExecutor` and `ThreadContext`, as injected above, which are shared within an application with all other injection points for `ManagedExecutor` and `ThreadContext` that do not specify a qualifier. Their configuration is equivalent to `ManagedExecutor.builder().build()` and `ThreadContext.builder().build()`.
+In the absence of other qualifiers and annotations, the container creates and injects a new default instance of `ManagedExecutor` or `ThreadContext` per injection point, as shown above.
+The configuration of these instances is equivalent to the default values of `@ManagedExecutorConfig` and `ThreadContextConfig`.
 
 === Injection of Configured Instances
 
-TODO write this section after discussion about the Config annotations is resolved.
+The `@ManagedExecutorConfig` and `@ThreadContextConfig` annotations provide the ability to configure the injection points with desired capabilities.
+With just the config annotation in place, every injection point is assigned a new instance.
+
+[source, java]
+----
+    @Inject 
+    @ManagedExecutorConfig(maxAsync = 5, propagated = ThreadContext.SECURITY)
+    ManagedExecutor configuredExecutor;
+    ...
+    CompletableFuture<Long> stage = configuredExecutor
+        .newIncompleteFuture()
+        .thenApply(function)
+        .thenAccept(consumer);
+    stage.completeAsync(supplier);
+----
+
+=== Sharing Configured Instances
+
+Configured instances of `ManagedExecutor` and `ThreadContext` are shared based on their unique name, which is assigned by the CDI qualifier, `@NamedInstance`.
+When one injection point is annotated with both a configuration and a `@NamedInstance` qualifier, the application can inject the same instance elsewhere by annotating other injection points with just the matching qualifier.
+In the example below, the `executor1` injection point defines a configuration and a name `myExec` for a configured `ManagerExecutor` instance.
+The other injection points, `executor2` and `executor3`, share the same `ManagedExecutor` instance by using the `@NamedInstance` qualifier with the name `myExec`.
+
+[source, java]
+----
+    @Inject
+    @NamedInstance("myExec")
+    @ManagedExecutorConfig(propagated = { ThreadContext.SECURITY, ThreadContext.APPLICATION })
+    ManagedExecutor executor1;
+    ... // in some other bean
+    @Inject
+    void setCompletableFuture(@NamedInstance("myExec") ManagedExecutor executor2) {
+        completableFuture = executor2.newIncompleteFuture();
+    }
+    ... // in yet another bean
+    @Inject
+    @NamedInstance("myExec")
+    ManagedExecutor executor3;
+----
 
 === Thread Context Provider SPI
 
