@@ -20,6 +20,8 @@ package org.eclipse.microprofile.concurrency.tck;
 
 import java.io.CharConversionException;
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
@@ -571,7 +573,6 @@ public class ManagedExecutorTest extends Arquillian {
                 .build();
 
         Phaser barrier = new Phaser(2);
-        System.out.println("Unarrived: " + barrier.getUnarrivedParties());
         try {
             // Use up both maxAsync slots on blocking operations and wait for them to start
             Future<Integer> future1 = executor.submit(() -> barrier.awaitAdvance(barrier.arriveAndAwaitAdvance()));
@@ -863,6 +864,248 @@ public class ManagedExecutorTest extends Arquillian {
             // Restore original values
             Buffer.set(null);
             Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that the ManagedExecutor shutdownNow method prevents additional tasks from being submitted
+     * and cancels tasks that are currently in progress or queued.
+     * Also verify that once the tasks and actions terminate, the ManagedExecutor transitions to terminated state.
+     */
+    @Test
+    public void shutdownNowPreventsAdditionalSubmitsAndCancelsTasks() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .maxAsync(1)
+                .maxQueued(4)
+                .build();
+
+        Phaser barrier = new Phaser(1);
+        Future<Integer> future1;
+        CompletableFuture<Void> future2;
+        CompletableFuture<String> future3;
+        Future<String> future4;
+        Future<Boolean> future5 = null;
+        AtomicInteger task2ResultRef = new AtomicInteger(-1);
+        List<Runnable> tasksThatDidNotStart;
+        try {
+            try {
+                // Block the single maxAsync slot
+                future1 = executor.submit(() -> barrier.awaitAdvanceInterruptibly(barrier.arrive() + 1));
+                barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+                // Queue up some tasks
+                future2 = executor.runAsync(() -> task2ResultRef.set(20));
+                future3 = executor.supplyAsync(() -> "Q30");
+                future4 = executor.submit(() -> "Q40");
+
+                Assert.assertFalse(executor.isTerminated(),
+                        "ManagedExecutor should not report being terminated when tasks are still running/queued.");
+
+                // Await termination from a different executor,
+                future5 = unmanagedThreads.submit(() -> executor.awaitTermination(MAX_WAIT_NS, TimeUnit.NANOSECONDS));
+            }
+            finally {
+                tasksThatDidNotStart = executor.shutdownNow();
+            }
+
+            Assert.assertNotNull(tasksThatDidNotStart,
+                    "Null list returned by ManagedExecutor.shutdownNow.");
+
+            Assert.assertEquals(tasksThatDidNotStart.size(), 3,
+                    "List of tasks that did not start should correspond to the tasks/actions that are queued. Observed: " +
+                    tasksThatDidNotStart);
+
+            Assert.assertTrue(executor.isShutdown(),
+                    "ManagedExecutor reported that it has not been shut down after we shut it down.");
+
+            // additional submits of async tasks/actions must be rejected
+            try {
+                Future<Integer> future6 = executor.submit(() -> 60);
+                Assert.fail("Should not be possible to submit new task after shutdownNow. Future: " + future6);
+            }
+            catch (RejectedExecutionException x) {
+                // test passes
+            }
+
+            try {
+                Future<Integer> future7 = executor.supplyAsync(() -> 70);
+                Assert.fail("Should not be possible to create new async action after shutdownNow. Future: " + future7);
+            }
+            catch (RejectedExecutionException x) {
+                // test passes
+            }
+
+            Assert.assertTrue(executor.awaitTermination(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "ManagedExecutor did not reach terminated state within a reasonable amount of time.");
+
+            Assert.assertTrue(executor.isTerminated(),
+                    "ManagedExecutor did not report being terminated after running/queued tasks were canceled and ended.");
+
+            try {
+                Integer result1 = future1.get(1, TimeUnit.SECONDS);
+                Assert.fail("Running task should not complete successfully after shutdownNow. Result: " + result1);
+            }
+            catch (CancellationException x) {
+                System.out.println("Task 1 expected failure");
+                x.printStackTrace(System.out);
+                // test passes
+            }
+            catch (ExecutionException x) {
+                if (!(x.getCause() instanceof InterruptedException)) {
+                    throw x;
+                }
+                // else test passes
+            }
+
+            try {
+                Object result2 = future2.join();
+                Assert.fail("Queued action should not run after shutdownNow. Result: " + result2);
+            }
+            catch (CancellationException x) {
+                // test passes
+            }
+
+            Assert.assertEquals(task2ResultRef.get(), -1,
+                    "Queued action should not start running after shutdownNow.");
+
+            try {
+                String result3 = future3.getNow("333");
+                Assert.fail("Queued action should not run after shutdownNow. Result: " + result3);
+            }
+            catch (CancellationException x) {
+                // test passes
+            }
+
+            try {
+                String result4 = future4.get(1, TimeUnit.SECONDS);
+                Assert.fail("Queued task should not run after shutdownNow. Result: " + result4);
+            }
+            catch (CancellationException x) {
+                // test passes
+            }
+
+            Assert.assertEquals(future5.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Boolean.TRUE,
+                    "Notification of termination was not received in a reasonable amount of time by the " +
+                    "awaitTermination request that was issued before shutdownNow");
+        }
+        finally {
+            barrier.forceTermination();
+
+            if (future5 != null) {
+                future5.cancel(true);
+            }
+        }
+    }
+
+    /**
+     * Verify that the ManagedExecutor shutdown method prevents additional tasks from being submitted
+     * but does not interfere with tasks and actions that are running or queued.
+     * Also verify that once the tasks and actions finish, the ManagedExecutor transitions to terminated state.
+     */
+    @Test
+    public void shutdownPreventsAdditionalSubmits() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .maxAsync(1)
+                .maxQueued(10)
+                .build();
+
+        Phaser barrier = new Phaser(1);
+        CompletableFuture<Integer> future1;
+        CompletableFuture<String> future2;
+        Future<String> future3;
+        Future<Boolean> future4 = null;
+        Future<Boolean> future5 = null;
+        try {
+            try {
+                // Block the single maxAsync slot
+                future1 = executor.supplyAsync(() -> barrier.awaitAdvance(barrier.arrive() + 1));
+                barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+                // Queue up some tasks
+                future2 = executor.supplyAsync(() -> "Q2");
+                future3 = executor.submit(() -> "Q3");
+
+                Assert.assertFalse(executor.isShutdown(),
+                        "ManagedExecutor reportd that it has been shut down even though we did not shut it down yet.");
+
+                // Await termination from a different executor,
+                future4 = unmanagedThreads.submit(() -> executor.awaitTermination(MAX_WAIT_NS, TimeUnit.NANOSECONDS));
+            }
+            finally {
+                executor.shutdown();
+            }
+
+            Assert.assertTrue(executor.isShutdown(),
+                    "ManagedExecutor reported that it has not been shut down after we shut it down.");
+
+            // additional submits of async tasks/actions must be rejected
+            try {
+                Future<Integer> future6 = executor.submit(() -> 60);
+                Assert.fail("Should not be possible to submit new task after shutdown. Future: " + future6);
+            }
+            catch (RejectedExecutionException x) {
+                // test passes
+            }
+
+            try {
+                Future<Integer> future7 = executor.supplyAsync(() -> 70);
+                Assert.fail("Should not be possible to create new async action after shutdown. Future: " + future7);
+            }
+            catch (RejectedExecutionException x) {
+                // test passes
+            }
+
+            Assert.assertFalse(future1.isDone(),
+                    "Task should remain running after shutdown is invoked.");
+
+            Assert.assertFalse(future2.isDone(),
+                    "Action should remain queued after shutdown is invoked.");
+
+            Assert.assertFalse(future3.isDone(),
+                    "Task should remain queued after shutdown is invoked.");
+
+            Assert.assertFalse(executor.isTerminated(),
+                    "ManagedExecutor should not report being terminated when tasks are still running/queued.");
+
+            // Extra invocation of shutdown has no effect per ExecutorService JavaDoc,
+            executor.shutdown();
+
+            // Await termination from a different executor,
+            future5 = unmanagedThreads.submit(() -> executor.awaitTermination(MAX_WAIT_NS, TimeUnit.NANOSECONDS));
+
+            // Let the running task finish and the queued tasks run
+            barrier.arrive();
+
+            Assert.assertEquals(future1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(2),
+                    "Unexpected result for action that was running when shutdown was requested.");
+
+            Assert.assertEquals(future2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "Q2",
+                    "Unexpected result for action that was in the queue when shutdown was requested.");
+
+            Assert.assertEquals(future3.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "Q3",
+                    "Unexpected result for task that was in the queue when shutdown was requested.");
+
+            Assert.assertEquals(future4.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Boolean.TRUE,
+                    "Notification of termination was not received in a reasonable amount of time by the " +
+                    "awaitTermination request that was issued prior to shutdown");
+
+            Assert.assertEquals(future5.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Boolean.TRUE,
+                    "Notification of termination was not received in a reasonable amount of time by the " +
+                    "awaitTermination request that was issued after shutdown");
+
+            Assert.assertTrue(executor.isTerminated(),
+                    "ManagedExecutor did not report being terminated after running/queued tasks completed.");
+        }
+        finally {
+            barrier.forceTermination();
+
+            if (future4 != null) {
+                future4.cancel(true);
+            }
+
+            if (future5 != null) {
+                future5.cancel(true);
+            }
         }
     }
 
