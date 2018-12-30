@@ -20,7 +20,9 @@ package org.eclipse.microprofile.concurrency.tck;
 
 import java.io.CharConversionException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -37,6 +39,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.spi.BufferContextProvider;
@@ -1355,6 +1358,213 @@ public class ManagedExecutorTest extends Arquillian {
             Assert.assertEquals(Buffer.get().toString(), "supplyAsync-test-buffer-D",
                     "Previous context was not restored after context was propagated for managed executor tasks.");
             Assert.assertEquals(Label.get(), "supplyAsync-test-label",
+                    "Previous context was not restored after context was cleared for managed executor tasks.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that thread context is captured and propagated per the configuration of the
+     * ManagedExecutor builder for all tasks that are submitted via the ManagedExecutor's
+     * timed invokeAll operation. Thread context is captured at the point where invokeAll is
+     * invoked, rather than upon creation of the executor or construction of the builder.
+     */
+    @Test
+    public void timedInvokeAllRunsTasksWithContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .build();
+
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("timed-invokeAll-test-buffer-A"));
+            Label.set("timed-invokeAll-test-label-A");
+
+            List<Future<String>> futures = executor.invokeAll(Arrays.<Callable<String>>asList(
+                    () -> {
+                        Assert.assertEquals(Buffer.get().toString(), "timed-invokeAll-test-buffer-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Label.get(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("timed-invokeAll-test-label-B");
+                        Buffer.set(new StringBuffer("timed-invokeAll-test-buffer-B"));
+                        return "B";
+                    },
+                    () -> {
+                        Assert.assertEquals(Buffer.get().toString(), "timed-invokeAll-test-buffer-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Label.get(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("timed-invokeAll-test-label-C");
+                        Buffer.set(new StringBuffer("invokeAll-test-buffer-C"));
+                        return "C";
+                    }),
+                    MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            Assert.assertEquals(futures.size(), 2,
+                    "Number of futures does not match the number of tasks. " + futures);
+
+            Assert.assertTrue(futures.get(0).isDone(),
+                    "Future for first task does not indicate it is done after invokeAll.");
+            Assert.assertEquals(futures.get(0).get(), "B",
+                    "Future for first task returned wrong value.");
+
+            Assert.assertTrue(futures.get(1).isDone(),
+                    "Future for second task does not indicate it is done after invokeAll.");
+            Assert.assertEquals(futures.get(1).get(1, TimeUnit.SECONDS), "C",
+                    "Future for second task returned wrong value.");
+
+            Assert.assertEquals(Label.get(), "timed-invokeAll-test-label-A",
+                    "Previous context was not restored after context was propagated for managed executor tasks.");
+            Assert.assertEquals(Buffer.get().toString(), "timed-invokeAll-test-buffer-A",
+                    "Previous context was not restored after context was cleared for managed executor tasks.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that thread context is captured and propagated per the configuration of the
+     * ManagedExecutor builder for all tasks that are submitted via the ManagedExecutor's
+     * untimed invokeAll operation. Thread context is captured at the point where invokeAll is
+     * invoked, rather than upon creation of the executor or construction of the builder.
+     */
+    @Test
+    public void untimedInvokeAllRunsTasksWithContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .maxAsync(1)
+                .propagated(Label.CONTEXT_NAME)
+                .build();
+
+        // Verify that maxAsync=1 is enforced by recording the thread id upon which
+        // the managed executor runs tasks asynchronous to the requesting thread.
+        // If this value is ever found to be non-zero when set to a new thread id,
+        // this indicates that multiple tasks are running asynchronously to the
+        // requesting thread, which is a violation of maxAsync=1.
+        AtomicLong asyncThreadIdRef = new AtomicLong();
+        long testThreadId = Thread.currentThread().getId();
+
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("untimed-invokeAll-test-buffer-A"));
+            Label.set("untimed-invokeAll-test-label-A");
+
+            List<Future<Integer>> futures = executor.invokeAll(Arrays.<Callable<Integer>>asList(
+                    () -> {
+                        long threadId = Thread.currentThread().getId();
+                        if (threadId != testThreadId) {
+                            Assert.assertEquals(asyncThreadIdRef.getAndSet(threadId), 0L,
+                                    "Thread ID indicates that ManagedExecutor invokeAll operation exceeded maxAsync of 1.");
+                        }
+
+                        Assert.assertEquals(Label.get(), "untimed-invokeAll-test-label-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Buffer.get().toString(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("untimed-invokeAll-test-label-B");
+                        Buffer.set(new StringBuffer("untimed-invokeAll-test-buffer-B"));
+                        asyncThreadIdRef.compareAndSet(threadId, 0L);
+                        return 66;
+                    },
+                    () -> {
+                        long threadId = Thread.currentThread().getId();
+                        if (threadId != testThreadId) {
+                            Assert.assertEquals(asyncThreadIdRef.getAndSet(threadId), 0L,
+                                    "Thread ID indicates that ManagedExecutor invokeAll operation exceeded maxAsync of 1.");
+                        }
+
+                        Assert.assertEquals(Label.get(), "untimed-invokeAll-test-label-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Buffer.get().toString(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("untimed-invokeAll-test-label-C");
+                        Buffer.set(new StringBuffer("uninvokeAll-test-buffer-C"));
+                        asyncThreadIdRef.compareAndSet(threadId, 0L);
+                        return 67;
+                    },
+                    () -> {
+                        long threadId = Thread.currentThread().getId();
+                        if (threadId != testThreadId) {
+                            Assert.assertEquals(asyncThreadIdRef.getAndSet(threadId), 0L,
+                                    "Thread ID indicates that ManagedExecutor invokeAll operation exceeded maxAsync of 1.");
+                        }
+
+                        Assert.assertEquals(Label.get(), "untimed-invokeAll-test-label-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Buffer.get().toString(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("untimed-invokeAll-test-label-D");
+                        Buffer.set(new StringBuffer("untimed-invokeAll-test-buffer-D"));
+                        asyncThreadIdRef.compareAndSet(threadId, 0L);
+                        return 68;
+                    },
+                    () -> {
+                        long threadId = Thread.currentThread().getId();
+                        if (threadId != testThreadId) {
+                            Assert.assertEquals(asyncThreadIdRef.getAndSet(threadId), 0L,
+                                    "Thread ID indicates that ManagedExecutor invokeAll operation exceeded maxAsync of 1.");
+                        }
+
+                        Assert.assertEquals(Label.get(), "untimed-invokeAll-test-label-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Buffer.get().toString(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("untimed-invokeAll-test-label-E");
+                        Buffer.set(new StringBuffer("untimed-invokeAll-test-buffer-E"));
+                        asyncThreadIdRef.compareAndSet(threadId, 0L);
+                        return 69;
+                    }),
+                    MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            Assert.assertEquals(futures.size(), 4,
+                    "Number of futures does not match the number of tasks. " + futures);
+
+            Assert.assertTrue(futures.get(0).isDone(),
+                    "Future for first task does not indicate it is done after invokeAll.");
+            Assert.assertEquals(futures.get(0).get(), Integer.valueOf(66),
+                    "Future for first task returned wrong value.");
+
+            Assert.assertTrue(futures.get(1).isDone(),
+                    "Future for second task does not indicate it is done after invokeAll.");
+            Assert.assertEquals(futures.get(1).get(1, TimeUnit.SECONDS), Integer.valueOf(67),
+                    "Future for second task returned wrong value.");
+
+            Assert.assertTrue(futures.get(2).isDone(),
+                    "Future for third task does not indicate it is done after invokeAll.");
+            Assert.assertEquals(futures.get(2).get(), Integer.valueOf(68),
+                    "Future for third task returned wrong value.");
+
+            Assert.assertTrue(futures.get(3).isDone(),
+                    "Future for fourth task does not indicate it is done after invokeAll.");
+            Assert.assertEquals(futures.get(3).get(), Integer.valueOf(69),
+                    "Future for fourth task returned wrong value.");
+
+            Assert.assertEquals(Label.get(), "untimed-invokeAll-test-label-A",
+                    "Previous context was not restored after context was propagated for managed executor tasks.");
+            Assert.assertEquals(Buffer.get().toString(), "untimed-invokeAll-test-buffer-A",
                     "Previous context was not restored after context was cleared for managed executor tasks.");
         }
         finally {
