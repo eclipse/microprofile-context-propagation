@@ -1439,6 +1439,65 @@ public class ManagedExecutorTest extends Arquillian {
 
     /**
      * Verify that thread context is captured and propagated per the configuration of the
+     * ManagedExecutor builder for one or more tasks that are submitted via the ManagedExecutor's
+     * timed invokeAny operation. Thread context is captured at the point where invokeAny is
+     * invoked, rather than upon creation of the executor or construction of the builder.
+     */
+    @Test
+    public void timedInvokeAnyRunsTaskWithContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .build();
+
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("timed-invokeAny-test-buffer-A"));
+            Label.set("timed-invokeAny-test-label-A");
+
+            Character result = executor.invokeAny(Arrays.<Callable<Character>>asList(
+                    () -> {
+                        Assert.assertEquals(Buffer.get().toString(), "timed-invokeAny-test-buffer-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Label.get(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("timed-invokeAny-test-label-B");
+                        Buffer.set(new StringBuffer("timed-invokeAny-test-buffer-B"));
+                        return 'b';
+                    },
+                    () -> {
+                        Assert.assertEquals(Buffer.get().toString(), "timed-invokeAny-test-buffer-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Label.get(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("timed-invokeAny-test-label-C");
+                        Buffer.set(new StringBuffer("invokeAny-test-buffer-C"));
+                        return 'c';
+                    }),
+                    MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            Assert.assertTrue(Character.valueOf('b').equals(result) || Character.valueOf('c').equals(result),
+                    "Result of invokeAny, " + result + ", does not match the result of either of the tasks.");
+
+            Assert.assertEquals(Label.get(), "timed-invokeAny-test-label-A",
+                    "Previous context was not restored after context was propagated for managed executor tasks.");
+            Assert.assertEquals(Buffer.get().toString(), "timed-invokeAny-test-buffer-A",
+                    "Previous context was not restored after context was cleared for managed executor tasks.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that thread context is captured and propagated per the configuration of the
      * ManagedExecutor builder for all tasks that are submitted via the ManagedExecutor's
      * untimed invokeAll operation. Thread context is captured at the point where invokeAll is
      * invoked, rather than upon creation of the executor or construction of the builder.
@@ -1565,6 +1624,77 @@ public class ManagedExecutorTest extends Arquillian {
             Assert.assertEquals(Label.get(), "untimed-invokeAll-test-label-A",
                     "Previous context was not restored after context was propagated for managed executor tasks.");
             Assert.assertEquals(Buffer.get().toString(), "untimed-invokeAll-test-buffer-A",
+                    "Previous context was not restored after context was cleared for managed executor tasks.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that thread context is captured and propagated per the configuration of the
+     * ManagedExecutor builder for one or more tasks that are submitted via the ManagedExecutor's
+     * untimed invokeAny operation. Thread context is captured at the point where invokeAny is
+     * invoked, rather than upon creation of the executor or construction of the builder.
+     */
+    @Test
+    public void untimedInvokeAnyRunsTasksWithContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .maxAsync(1)
+                .propagated(Label.CONTEXT_NAME)
+                .build();
+
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("untimed-invokeAny-test-buffer-A"));
+            Label.set("untimed-invokeAny-test-label-A");
+
+            String result = executor.invokeAny(Arrays.<Callable<String>>asList(
+                    () -> {
+                        Assert.assertEquals(Label.get(), "untimed-invokeAny-test-label-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Buffer.get().toString(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("untimed-invokeAny-test-label-B");
+                        Buffer.set(new StringBuffer("untimed-invokeAny-test-buffer-B"));
+                        return "Bb";
+                    },
+                    () -> {
+                        Assert.assertEquals(Label.get(), "untimed-invokeAny-test-label-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Buffer.get().toString(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("untimed-invokeAny-test-label-C");
+                        Buffer.set(new StringBuffer("uninvokeAny-test-buffer-C"));
+                        return "Cc";
+                    },
+                    () -> {
+                        Assert.assertEquals(Label.get(), "untimed-invokeAny-test-label-A",
+                                "Context type was not propagated to contextual action.");
+
+                        Assert.assertEquals(Buffer.get().toString(), "",
+                                "Context type that is configured to be cleared was not cleared.");
+
+                        Label.set("untimed-invokeAny-test-label-D");
+                        Buffer.set(new StringBuffer("untimed-invokeAny-test-buffer-D"));
+                        return "Dd";
+                    }),
+                    MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            Assert.assertTrue("Bb".equals(result) || "Cc".equals(result) || "Dd".equals(result),
+                    "Result of invokeAny, " + result + ", does not match the result of any of the tasks.");
+
+            Assert.assertEquals(Label.get(), "untimed-invokeAny-test-label-A",
+                    "Previous context was not restored after context was propagated for managed executor tasks.");
+            Assert.assertEquals(Buffer.get().toString(), "untimed-invokeAny-test-buffer-A",
                     "Previous context was not restored after context was cleared for managed executor tasks.");
         }
         finally {
