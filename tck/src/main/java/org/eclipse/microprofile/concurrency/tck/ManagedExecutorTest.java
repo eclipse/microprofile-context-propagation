@@ -580,7 +580,14 @@ public class ManagedExecutorTest extends Arquillian {
             // Use up both maxAsync slots on blocking operations and wait for them to start
             Future<Integer> future1 = executor.submit(() -> barrier.awaitAdvance(barrier.arriveAndAwaitAdvance()));
             CompletableFuture<Integer> future2 = executor.supplyAsync(() -> barrier.awaitAdvance(barrier.arriveAndAwaitAdvance()));
-            barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+            try {
+                barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+            }
+            catch (TimeoutException x) {
+                // If the ManagedExecutor does not allow both actions run concurrently, then it
+                // overachieves on enforcing maxAsync=2 and must be considered a passing result.
+                return;
+            }
 
             // This data structure holds the results of tasks which shouldn't be able to run yet
             LinkedBlockingQueue<String> results = new LinkedBlockingQueue<String>();
