@@ -680,6 +680,7 @@ public class ThreadContextTest extends Arquillian {
     public void currentContextExecutorRunsWithContext() throws InterruptedException, ExecutionException, TimeoutException {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .cleared(Label.CONTEXT_NAME)
                 .build();
 
         try {
