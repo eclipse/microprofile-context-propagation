@@ -47,6 +47,7 @@ import org.eclipse.microprofile.concurrency.tck.contexts.label.Label;
 import org.eclipse.microprofile.concurrency.tck.contexts.label.spi.LabelContextProvider;
 import org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.ThreadPriorityContextProvider;
 import org.eclipse.microprofile.concurrent.ManagedExecutor;
+import org.eclipse.microprofile.concurrent.ThreadContext;
 import org.eclipse.microprofile.concurrent.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
@@ -368,6 +369,100 @@ public class ManagedExecutorTest extends Arquillian {
 
             Assert.assertEquals(Label.get(), "contextControls-test-label-A",
                     "Context type was not left unchanged by contextual action.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that thread context is cleared per the configuration of the ManagedExecutor builder
+     * for all tasks that are executed via the execute method. This test supplies the ManagedExecutor
+     * to a Java SE CompletableFuture, which invokes the execute method to run tasks asynchronously.
+     */
+    @Test
+    public void executedTaskRunsWithClearedContext() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated()
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        try {
+            Buffer.set(new StringBuffer("executed-task-test-buffer-A"));
+            Label.set("executed-task-test-label-A");
+
+            CompletableFuture<Integer> cf1 = new CompletableFuture<Integer>();
+
+            CompletableFuture<Void> cf2 = cf1.thenAcceptAsync(i -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Label.get(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Label.set("executed-task-test-label-B");
+            }, executor);
+
+            cf1.complete(1000);
+
+            cf2.join();
+
+            Assert.assertEquals(Buffer.get().toString(), "executed-task-test-buffer-A",
+                    "Context unexpectedly changed on thread.");
+            Assert.assertEquals(Label.get(), "executed-task-test-label-A",
+                    "Context unexpectedly changed on thread.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that thread context is propagated per the configuration of the ManagedExecutor builder
+     * for all tasks that are executed via the execute method.
+     */
+    @Test
+    public void executedTaskRunsWithContext() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME, Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        try {
+            Buffer.set(new StringBuffer("executed-task-test-buffer-C"));
+            Label.set("executed-task-test-label-C");
+
+            CompletableFuture<String> result = new CompletableFuture<String>();
+            executor.execute(() -> {
+                try {
+                    Assert.assertEquals(Buffer.get().toString(), "executed-task-test-buffer-C",
+                            "Context type that is configured to be propagated was not propagated.");
+
+                    Assert.assertEquals(Label.get(), "executed-task-test-label-C",
+                            "Context type that is configured to be propagated was not propagated.");
+
+                    Label.set("executed-task-test-label-D");
+
+                    result.complete("successful");
+                }
+                catch (Throwable x) {
+                    result.completeExceptionally(x);
+                }
+            });
+
+            // Force exception to be raised, if any
+            result.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            Assert.assertEquals(Buffer.get().toString(), "executed-task-test-buffer-C",
+                    "Context unexpectedly changed on thread.");
+            Assert.assertEquals(Label.get(), "executed-task-test-label-C",
+                    "Context unexpectedly changed on thread.");
         }
         finally {
             executor.shutdownNow();
@@ -1247,6 +1342,98 @@ public class ManagedExecutorTest extends Arquillian {
             Assert.assertTrue(stage4.isCompletedExceptionally(), "Fourth stage did not report exceptional completion.");
             Assert.assertFalse(stage5.isCompletedExceptionally(), "Fifth stage should not report exceptional completion.");
             Assert.assertFalse(stage6.isCompletedExceptionally(), "Sixth stage should not report exceptional completion.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that thread context is captured and propagated per the configuration of the
+     * ManagedExecutor builder for all tasks that are submitted via the submit(Callable),
+     * submit(Runnable) and submit(Runnable, result) methods.
+     */
+    @Test
+    public void submittedTasksRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        try {
+            Buffer.set(new StringBuffer("submitted-tasks-test-buffer-A"));
+            Label.set("submitted-tasks-test-label-A");
+
+            Future<?> futureA = executor.submit(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Label.get(), "submitted-tasks-test-label-A",
+                        "Context type was not correctly propagated to contextual action.");
+
+                throw new Error("Fake error intentionally raised by test Runnable.");
+            });
+
+            Label.set("submitted-tasks-test-label-B");
+
+            Future<String> futureB = executor.submit(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Label.get(), "submitted-tasks-test-label-B",
+                        "Context type was not correctly propagated to contextual action.");
+            }, "Task-B-Result");
+
+            Label.set("submitted-tasks-test-label-C");
+
+            Future<String> futureC = executor.submit(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Label.get(), "submitted-tasks-test-label-C",
+                        "Context type was not correctly propagated to contextual action.");
+
+                return "Task-C-Result";
+            });
+
+            try {
+                Object result = futureA.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+                Assert.fail("Result of " + result + " returned for Runnable that throws an Error.");
+            }
+            catch (ExecutionException x) {
+                if (x.getCause() == null
+                        || (!(x.getCause() instanceof Error))
+                        || (!"Fake error intentionally raised by test Runnable.".equals(x.getCause().getMessage()))) {
+                    throw x;
+                }
+            }
+
+            Assert.assertEquals("Task-B-Result", futureB.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Result does not match the predetermined result that was specified when submitting the Runnable.");
+
+            Assert.assertEquals("Task-C-Result", futureC.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Result does not match the result returned by the Callable.");
+
+            Assert.assertTrue(futureA.isDone(),
+                    "Future for first Runnable should report being done after test case awaits its completion.");
+
+            Assert.assertTrue(futureB.isDone(),
+                    "Future for second Runnable should report being done after test case awaits its completion.");
+
+            Assert.assertTrue(futureC.isDone(),
+                    "Future for Callable should report being done after test case awaits its completion.");
+
+            Assert.assertFalse(futureA.isCancelled(),
+                    "Future for first Runnable should not be canceled because the test case did not cancel it.");
+
+            Assert.assertFalse(futureB.isCancelled(),
+                    "Future for second Runnable should not be canceled because the test case did not cancel it.");
+
+            Assert.assertFalse(futureC.isCancelled(),
+                    "Future for Callable should not be canceled because the test case did not cancel it.");
         }
         finally {
             executor.shutdownNow();
