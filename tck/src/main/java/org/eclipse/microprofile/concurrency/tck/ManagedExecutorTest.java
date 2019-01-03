@@ -126,6 +126,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void completedFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .cleared(Label.CONTEXT_NAME)
                 .build();
 
         try {
@@ -228,6 +229,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void completedStageDependentStagesRunWithContext() throws InterruptedException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(Buffer.CONTEXT_NAME)
                 .build();
 
         try {
@@ -388,6 +390,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void failedFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .cleared(Label.CONTEXT_NAME)
                 .build();
 
         try {
@@ -785,6 +788,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void newIncompleteFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(Buffer.CONTEXT_NAME)
                 .build();
 
         try {
@@ -1123,6 +1127,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void runAsyncStageAndDependentStagesRunWithContext() throws ExecutionException, InterruptedException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(Buffer.CONTEXT_NAME)
                 .build();
 
         try {
@@ -1267,6 +1272,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void supplyAsyncStageAndDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .cleared(Label.CONTEXT_NAME)
                 .build();
 
         try {
