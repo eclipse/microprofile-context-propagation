@@ -109,7 +109,7 @@ public interface ManagedExecutor extends ExecutorService {
          *
          * <p>All created instances of {@link ManagedExecutor} are destroyed
          * when the application is stopped. The container automatically shuts down these
-         * managed executors and cancels their remaining actions/tasks.</p>
+         * managed executors.</p>
          *
          * @return new instance of {@link ManagedExecutor}.
          * @throws IllegalStateException for any of the following error conditions
