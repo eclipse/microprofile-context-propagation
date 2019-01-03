@@ -117,6 +117,10 @@ public interface ThreadContext {
          * that each action or task is able to independently start and end
          * its own transactional work.</p>
          *
+         * <p>{@link ThreadContext#ALL_REMAINING} is automatically appended to the
+         * set of cleared context if neither the {@link #propagated} set nor the
+         * {@link #unchanged} set include {@link ThreadContext#ALL_REMAINING}.</p>
+         *
          * <p>Constants for specifying some of the core context types are provided
          * on {@link ThreadContext}. Other thread context types must be defined
          * by the specification that defines the context type or by a related
