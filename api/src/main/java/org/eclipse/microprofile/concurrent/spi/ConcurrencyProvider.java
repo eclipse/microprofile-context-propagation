@@ -122,9 +122,9 @@ public interface ConcurrencyProvider {
      * a {@link ConcurrencyManager} registered for the given {@link ClassLoader} or the concurrency provider
      * uses a single fixed set of {@link ThreadContextProvider} regardless of the class loader, the existing
      * instance will be returned. If not, one will be created, either by provider-specific mechanisms
-     * if {@link ConcurrencyManagerBuilder} is not supported, or with a {@link ConcurrencyManagerBuilder}
-     * using the specified {@link ClassLoader} (with {@link ConcurrencyManagerBuilder#forClassLoader(ClassLoader)})
-     * and with {@link ConcurrencyManagerBuilder#addDiscoveredThreadContextProviders()} called in
+     * if {@link ConcurrencyManager.Builder} is not supported, or with a {@link ConcurrencyManager.Builder}
+     * using the specified {@link ClassLoader} (with {@link ConcurrencyManager.Builder#forClassLoader(ClassLoader)})
+     * and with {@link ConcurrencyManager.Builder#addDiscoveredThreadContextProviders()} called in
      * order to load all {@link ThreadContextProvider} discoverable from the given {@link ClassLoader}.
      * If created, the new {@link ConcurrencyManager} will then be registered for the given {@link ClassLoader}
      * with {@link #registerConcurrencyManager(ConcurrencyManager, ClassLoader)}.
@@ -133,24 +133,24 @@ public interface ConcurrencyProvider {
      * @return a {@link ConcurrencyManager} for the given {@link ClassLoader}.
      * @throws IllegalStateException if more than one {@link ThreadContextProvider}
      *         provides the same thread context {@link ThreadContextProvider#getThreadContextType type}
-     * @see ConcurrencyManagerBuilder#addDiscoveredThreadContextProviders()
-     * @see ConcurrencyManagerBuilder#build()
+     * @see ConcurrencyManager.Builder#addDiscoveredThreadContextProviders()
+     * @see ConcurrencyManager.Builder#build()
      * @see #registerConcurrencyManager(ConcurrencyManager, ClassLoader)
      */
     public ConcurrencyManager getConcurrencyManager(ClassLoader classLoader);
 
     /**
-     * Returns a new {@link ConcurrencyManagerBuilder} to create new {@link ConcurrencyManager}
+     * Returns a new {@link ConcurrencyManager.Builder} to create new {@link ConcurrencyManager}
      * instances. Watch out that instances created this way will not be automatically registered
      * here, so you need to call {@link #registerConcurrencyManager(ConcurrencyManager, ClassLoader)}
      * yourself if you need to.
      * 
-     * @return a new {@link ConcurrencyManagerBuilder}
+     * @return a new {@link ConcurrencyManager.Builder}
      * @throws UnsupportedOperationException if the <code>ConcurrencyProvider</code>
      *         always uses the same set of <code>ThreadContextProvider</code>
      *         or is inseparable from the container.
      */
-    public default ConcurrencyManagerBuilder getConcurrencyManagerBuilder() {
+    public default ConcurrencyManager.Builder getConcurrencyManagerBuilder() {
         throw new UnsupportedOperationException();
     }
     
