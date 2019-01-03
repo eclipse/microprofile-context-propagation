@@ -24,11 +24,11 @@ import org.eclipse.microprofile.concurrent.ThreadContext;
 /**
  * {@link ConcurrencyManager} instances can be used to create {@link #newManagedExecutorBuilder()}
  * or {@link #newThreadContextBuilder()}. Each {@link ConcurrencyManager} instance has its own set
- * of {@link ThreadContextProvider} as defined during building with {@link ConcurrencyManagerBuilder#build()}
+ * of {@link ThreadContextProvider} as defined during building with {@link ConcurrencyManager.Builder#build()}
  * or {@link ConcurrencyProvider#getConcurrencyManager()}.
  *
  * @see ConcurrencyProvider#getConcurrencyManager()
- * @see ConcurrencyManagerBuilder
+ * @see ConcurrencyManager.Builder
  */
 public interface ConcurrencyManager {
     /**
@@ -44,5 +44,60 @@ public interface ConcurrencyManager {
      * @return a new {@link org.eclipse.microprofile.concurrent.ThreadContext.Builder ThreadContext.Builder} instance.
      */
     ThreadContext.Builder newThreadContextBuilder();
+
+    /**
+     * Use this class to configure instances of {@link ConcurrencyManager}.
+     */
+    public interface Builder {
+        
+        /**
+         * Use the specified {@link ThreadContextProvider} instances.
+         * @param providers the {@link ThreadContextProvider} instances to use.
+         * @return this builder
+         */
+        public Builder withThreadContextProviders(ThreadContextProvider... providers);
+
+        /**
+         * Load all discoverable {@link ConcurrencyManagerExtension} instances via the {@link ServiceLoader}
+         * mechanism on the current thread-context {@link ClassLoader} (unless overridden by {@link #forClassLoader(ClassLoader)}).
+         * 
+         * @return this builder
+         */
+        public ConcurrencyManager.Builder addDiscoveredConcurrencyManagerExtensions();
+
+        /**
+         * Use the specified {@link ConcurrencyManagerExtension} instances.
+         * @param extensions the {@link ConcurrencyManagerExtension} instances to use.
+         * @return this builder
+         */
+        public Builder withConcurrencyManagerExtensions(ConcurrencyManagerExtension... extensions);
+
+        /**
+         * Load all discoverable {@link ThreadContextProvider} instances via the {@link ServiceLoader}
+         * mechanism on the current thread-context {@link ClassLoader} (unless overridden by {@link #forClassLoader(ClassLoader)}).
+         * 
+         * @return this builder
+         */
+        public Builder addDiscoveredThreadContextProviders();
+
+        /**
+         * Use the given {@link ClassLoader} for {@link #addDiscoveredThreadContextProviders()} instead
+         * of the current thread-context {@link ClassLoader}.
+         * 
+         * @param classLoader the {@link ClassLoader} to use for {@link #addDiscoveredThreadContextProviders()}
+         * @return this builder
+         */
+        public Builder forClassLoader(ClassLoader classLoader);
+        
+        /**
+         * <p>Creates a new {@link ConcurrencyManager} with the specified configuration.</p>
+         * 
+         * <p>Creating a {@link ConcurrencyManager} will load and invoke all related
+         * {@link ConcurrencyManagerExtension} as described in its documentation.</p>
+         * 
+         * @return a new {@link ConcurrencyManager} with the specified configuration.
+         */
+        public ConcurrencyManager build();
+    }
 
 }
