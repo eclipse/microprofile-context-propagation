@@ -1385,6 +1385,7 @@ public class ManagedExecutorTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .cleared(Label.CONTEXT_NAME)
                 .build();
 
         try {
@@ -1514,6 +1515,7 @@ public class ManagedExecutorTest extends Arquillian {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .maxAsync(1)
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(Buffer.CONTEXT_NAME)
                 .build();
 
         // Verify that maxAsync=1 is enforced by recording the thread id upon which
