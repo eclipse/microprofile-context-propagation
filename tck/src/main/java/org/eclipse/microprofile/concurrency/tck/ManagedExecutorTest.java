@@ -949,8 +949,6 @@ public class ManagedExecutorTest extends Arquillian {
                 Assert.fail("Running task should not complete successfully after shutdownNow. Result: " + result1);
             }
             catch (CancellationException x) {
-                System.out.println("Task 1 expected failure");
-                x.printStackTrace(System.out);
                 // test passes
             }
             catch (ExecutionException x) {
@@ -959,32 +957,43 @@ public class ManagedExecutorTest extends Arquillian {
                 }
                 // else test passes
             }
-
-            try {
-                Object result2 = future2.join();
-                Assert.fail("Queued action should not run after shutdownNow. Result: " + result2);
+            catch (TimeoutException x) {
+                // test passes - When not using MicroProfile Concurrency, CompletionStage actions that
+                // run on an ExecutorService can remain incomplete if the ExecutorService shuts down,
+                // so MicroProfile Concurrency must also consider this a valid behavior.
             }
-            catch (CancellationException x) {
-                // test passes
+
+            if (future2.isDone()) {
+                try {
+                    Object result2 = future2.join();
+                    Assert.fail("Queued action should not run after shutdownNow. Result: " + result2);
+                }
+                catch (CancellationException x) {
+                    // test passes
+                }
             }
 
             Assert.assertEquals(task2ResultRef.get(), -1,
                     "Queued action should not start running after shutdownNow.");
 
-            try {
-                String result3 = future3.getNow("333");
-                Assert.fail("Queued action should not run after shutdownNow. Result: " + result3);
-            }
-            catch (CancellationException x) {
-                // test passes
+            if (future3.isDone()) {
+                try {
+                    String result3 = future3.getNow("333");
+                    Assert.fail("Queued action should not run after shutdownNow. Result: " + result3);
+                }
+                catch (CancellationException x) {
+                    // test passes
+                }
             }
 
-            try {
-                String result4 = future4.get(1, TimeUnit.SECONDS);
-                Assert.fail("Queued task should not run after shutdownNow. Result: " + result4);
-            }
-            catch (CancellationException x) {
-                // test passes
+            if (future4.isDone()) {
+                try {
+                    String result4 = future4.get(1, TimeUnit.SECONDS);
+                    Assert.fail("Queued task should not run after shutdownNow. Result: " + result4);
+                }
+                catch (CancellationException x) {
+                    // test passes
+                }
             }
 
             Assert.assertEquals(future5.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Boolean.TRUE,
