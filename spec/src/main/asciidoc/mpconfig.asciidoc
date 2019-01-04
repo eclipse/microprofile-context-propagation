@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Contributors to the Eclipse Foundation
+// Copyright (c) 2019 Contributors to the Eclipse Foundation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,11 +27,9 @@ Applications can use MicroProfile Config in the standard way to enable configura
 ----
 @Produces @ApplicationScoped @NamedInstance("executor1")
 ManagedExecutor createExecutor(
-  @ConfigProperty(name="exec1.maxAsync", defaultValue="5") Integer a,
-  @ConfigProperty(name="exec1.maxQueued", defaultValue="20") Integer q,
-  @ConfigProperty(name="exec1.cleared", defaultValue=ThreadContext.TRANSACTION) String[] c,
-  @ConfigProperty(name="exec1.propagated", defaultValue=ThreadContext.ALL_REMAINING) String[] p) {
-    return ManagedExecutor.builder().maxAsync(a).maxQueued(q).propagated(p).cleared(c).build();
+    @ConfigProperty(name="exec1.maxAsync", defaultValue="5") Integer a,
+    @ConfigProperty(name="exec1.maxQueued", defaultValue="20") Integer q) {
+    return ManagedExecutor.builder().maxAsync(a).maxQueued(q).build();
 }
 ----
 
@@ -80,7 +78,7 @@ org.eclipse.microprofile.example.MyBean.exec4.maxAsync=7
 
 Note that `org.eclipse.microprofile.example.MyBean.exec4.maxAsync` overrides the configuration of the instance that is produced for injection into `exec4`. This same instance is injected into `exec5` per the matching `@NamedInstance("executor4")` qualifier.  It is an error to specify `org.eclipse.microprofile.example.MyBean.exec5.maxAsync`, which will not apply to `exec5`.
 
-To override a configuration attribute of an instance that is produced for injection into a parameter, specify a MicroProfile Config property with the name equal to the fully qualified class name, method name, parameter name, and configuration attribute name, delimited by the `.` character.
+To override a configuration attribute of an instance that is produced for injection into a parameter, specify a MicroProfile Config property with its name equal to the fully qualified class name, method name, parameter number (starting at 1), and configuration attribute name, delimited by the `.` character.
 
 [source, java]
 ----
@@ -99,7 +97,7 @@ public class MyBean {
 
 [source, text]
 ----
-org.eclipse.microprofile.example.MyBean.createExecutor.exec.maxAsync=10
+org.eclipse.microprofile.example.MyBean.createExecutor.1.maxAsync=10
 ----
 
 Again, it would be wrong to specify `org.eclipse.microprofile.example.MyBean.exec6.maxAsync`, because the container does not produce a new instance for the `exec6` injection point. The container produces the new instance for the `exec` injection point, and matches that same instance for injection into `exec6` per the `@NamedInstance("executor6")` qualifier.
