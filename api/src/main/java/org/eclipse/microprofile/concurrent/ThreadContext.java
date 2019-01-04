@@ -82,10 +82,8 @@ public interface ThreadContext {
          *
          * <p>All created instances of {@link ThreadContext} are destroyed
          * when the application is stopped. The container automatically shuts down these
-         * {@link ThreadContext} instances, cancels their remaining
-         * <code>CompletableFuture</code>s and <code>CompletionStage</code>s, and
-         * and raises <code>IllegalStateException</code> to reject subsequent attempts
-         * to apply previously captured thread context.</p>
+         * {@link ThreadContext} instances and raises <code>IllegalStateException</code>
+         * to reject subsequent attempts to apply previously captured thread context.</p>
          *
          * @return new instance of {@link ThreadContext}.
          * @throws IllegalStateException for any of the following error conditions
