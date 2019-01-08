@@ -43,6 +43,8 @@ include::builders.asciidoc[]
 
 include::cdi.asciidoc[]
 
+include::mpconfig.asciidoc[]
+
 include::examples.asciidoc[]
 
 include::contextproviders.asciidoc[]
