@@ -99,6 +99,10 @@ public class BarBean {
 
 If multiple configurations of `ManagedExecutor` are assigned the same name, the container detects it and raises a `javax.enterprise.inject.spi.DefinitionException`.
 
+==== Programmatic CDI lookup
+
+The container will also provide a single unqualified `ManagedExecutor` instance per application for programmatic lookup. This differs from unqualified injection points, where a single `ManagedExecutor` instance is used per injection point.
+
 === Injecting `ThreadContext`
 
 The simplest use case is a new `ThreadContext` instance per injection point, where the configuration is equivalent to the default values of the `@ThreadContextConfig` annotation.
@@ -175,3 +179,7 @@ public class BarBean {
 ----
 
 If multiple configurations of `ThreadContext` are assigned the same name, the container detects it and raises a `javax.enterprise.inject.spi.DefinitionException`.
+
+==== Programmatic CDI lookup
+
+The container will also provide a single unqualified `ThreadContext` instance per application for programmatic lookup. This differs from unqualified injection points, where a single `ThreadContext` instance is used per injection point.
