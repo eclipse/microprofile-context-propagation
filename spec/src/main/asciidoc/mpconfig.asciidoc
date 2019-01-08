@@ -86,7 +86,7 @@ package org.eclipse.microprofile.example;
 ...
 public class MyBean {
     @Produces @ApplicationScoped @NamedInstance("executor6")
-    ManagedExecutor createExecutor(@ManagedExecutorConfig(maxAsync=6) exec) {
+    ManagedExecutor createExecutor(@ManagedExecutorConfig(maxAsync=6) ManagedExecutor exec) {
         return exec;
     }
 
