@@ -23,6 +23,7 @@ import static org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.Thr
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -582,7 +583,232 @@ public class ThreadContextTest extends Arquillian {
             Thread.currentThread().setPriority(originalPriority);
         }
     }
-    
+
+    /**
+     * Verify that the MicroProfile Concurrency ThreadContext implementation's withContextCapture
+     * method can be used to create a dependent CompletableFuture instance that completes when the
+     * original stage completes and runs dependent stage actions with context that is captured
+     * from the thread that creates the dependent stage.
+     */
+    @Test
+    public void withContextCaptureDependentCompletableFuturesRunWithContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ThreadContext labelContext = ThreadContext.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        long testThreadId = Thread.currentThread().getId();
+        try {
+            // Set non-default values
+            Buffer.get().append("withContextCapture-CompletableFuture-test-buffer");
+            Label.set("withContextCapture-CompletableFuture-test-label-A");
+
+            CompletableFuture<Integer> unmanagedStage1 = new CompletableFuture<Integer>();
+
+            CompletableFuture<Integer> stage2 = labelContext.withContextCapture(unmanagedStage1);
+            CompletableFuture<Integer> stage3 = stage2.thenApply(i -> {
+                Assert.assertEquals(i, Integer.valueOf(1010),
+                        "Value supplied to function does not match the value with which the dependent stage was completed.");
+
+                Assert.assertEquals(Label.get(), "withContextCapture-CompletableFuture-test-label-A",
+                        "Context type was not propagated to contextual action.");
+
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Thread.currentThread().getId(), testThreadId,
+                        "Completion stages created via withContextCapture must run on the test case's main thread " +
+                        "because it both completes the original stage and requests the result.");
+
+                Label.set("withContextCapture-CompletableFuture-test-label-B");
+
+                return i * 2;
+            });
+
+            Label.set("withContextCapture-CompletableFuture-test-label-C");
+
+            CompletableFuture<Integer> stage4 = stage3.thenApplyAsync(i -> {
+                Assert.assertEquals(i, Integer.valueOf(2020),
+                        "Incorrect value supplied to function.");
+
+                Assert.assertEquals(Label.get(), "withContextCapture-CompletableFuture-test-label-C",
+                        "Context type was not propagated to contextual action.");
+
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Thread.currentThread().getId(), testThreadId,
+                        "Completion stages created via withContextCapture must run on the test case's main thread " +
+                        "because it both completes the original stage and requests the result. The withContextCapture " +
+                        "method does not allow new async threads to be allocated even when the *Async methods are used.");
+
+                Label.set("withContextCapture-CompletableFuture-test-label-D");
+
+                return i + i;
+            });
+
+            // Original stage remains usable, but not having been created by a ManagedExecutor, does not make any
+            // guarantees about context propagation
+            CompletableFuture<Integer> unmanagedStage5 = unmanagedStage1.thenApply(i -> i / 2);
+
+            Label.set("withContextCapture-CompletableFuture-test-label-E");
+
+            unmanagedStage1.complete(1010);
+
+            Assert.assertEquals(stage2.getNow(9090), Integer.valueOf(1010),
+                    "Completion stage created by withContextCapture did not complete with same value as original stage.");
+
+            Assert.assertEquals(stage3.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(2020),
+                    "Incorrect or missing result of completion stage.");
+
+            Assert.assertEquals(stage4.join(), Integer.valueOf(4040),
+                    "Incorrect or missing result of completion stage.");
+
+            Assert.assertEquals(unmanagedStage5.get(), Integer.valueOf(505),
+                    "Incorrect or missing result of completion stage.");
+
+            // Has context been properly restored after the contextual operation(s)?
+            Assert.assertEquals(Buffer.get().toString(), "withContextCapture-CompletableFuture-test-buffer",
+                    "Previous context was not restored after context was cleared for contextual action.");
+            Assert.assertEquals(Label.get(), "withContextCapture-CompletableFuture-test-label-E",
+                    "Previous context was not restored after context was propagated for contextual action.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that the MicroProfile Concurrency ThreadContext implementation's withContextCapture
+     * method can be used to create a dependent CompletionStage instance that completes when the
+     * original stage completes and runs dependent stage actions with context that is captured
+     * from the thread that creates the dependent stage.
+     */
+    @Test
+    public void withContextCaptureDependentCompletionStagesRunWithContext() throws ExecutionException {
+        ThreadContext bufferContext = ThreadContext.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        long testThreadId = Thread.currentThread().getId();
+        try {
+            // Set non-default values
+            StringBuffer buffer = new StringBuffer("withContextCapture-CompletionStage-test-buffer-A");
+            Buffer.set(buffer);
+            Label.set("withContextCapture-CompletionStage-test-label");
+
+            CompletableFuture<Integer> unmanagedStage1 = new CompletableFuture<Integer>();
+
+            CompletionStage<Integer> stage2 = bufferContext.withContextCapture((CompletionStage<Integer>) unmanagedStage1);
+
+            if (stage2 instanceof CompletableFuture) {
+                try {
+                    ((CompletableFuture<Integer>) stage2).complete(4321);
+                    Assert.fail("Must not be possible to forcibly complete the CompletionStage that is returned by the variant" +
+                                "of withContextCapture that accepts and returns a CompletionStage rather than CompletableFuture.");
+                }
+                catch (UnsupportedOperationException x) {
+                    // test passes - this matches behavior of Java SE minimalCompletionStage, which implements
+                    // CompletableFuture, but rejects methods that perform completion.
+                }
+            }
+
+            CompletionStage<Integer> stage3 = stage2.thenApply(i -> {
+                Assert.assertEquals(i, Integer.valueOf(1234),
+                        "Value supplied to function does not match the value with which the dependent stage was completed.");
+
+                Assert.assertEquals(Buffer.get().toString(), "withContextCapture-CompletionStage-test-buffer-A",
+                        "Context type was not propagated to contextual action.");
+
+                Assert.assertEquals(Label.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Thread.currentThread().getId(), testThreadId,
+                        "Completion stages created via withContextCapture must run on the test case's main thread " +
+                        "because it both completes the original stage and requests the result.");
+
+                Buffer.get().append("-stage3");
+                Buffer.set(new StringBuffer("withContextCapture-CompletionStage-test-buffer-B"));
+
+                return i * 2;
+            });
+
+            CompletionStage<Integer> stage4 = stage3.thenApplyAsync(i -> {
+                Assert.assertEquals(i, Integer.valueOf(2468),
+                        "Incorrect value supplied to function.");
+
+                Assert.assertEquals(Buffer.get().toString(), "withContextCapture-CompletionStage-test-buffer-A-stage3",
+                        "Context type was not propagated to contextual action.");
+
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Assert.assertEquals(Thread.currentThread().getId(), testThreadId,
+                        "Completion stages created via withContextCapture must run on the test case's main thread " +
+                        "because it both completes the original stage and requests the result. The withContextCapture " +
+                        "method does not allow new async threads to be allocated even when the *Async methods are used.");
+
+                Buffer.get().append("-stage4");
+                Buffer.set(new StringBuffer("withContextCapture-CompletionStage-test-buffer-D"));
+
+                return i - 2345;
+            });
+
+            Buffer.set(new StringBuffer("withContextCapture-CompletionStage-test-buffer-E"));
+
+            unmanagedStage1.complete(1234);
+
+            CompletableFuture<Integer> cf4 = stage4.toCompletableFuture();
+
+            Assert.assertEquals(cf4.getNow(987), Integer.valueOf(123),
+                    "Completion stage created by withContextCapture did not complete with same value as original stage.");
+
+            Assert.assertEquals(buffer.toString(), "withContextCapture-CompletionStage-test-buffer-A-stage3-stage4");
+
+            // Has context been properly restored after the contextual operation(s)?
+            Assert.assertEquals(Buffer.get().toString(), "withContextCapture-CompletionStage-test-buffer-E",
+                    "Previous context was not restored after context was propagated for contextual action.");
+            Assert.assertEquals(Label.get(), "withContextCapture-CompletableFuture-test-label",
+                    "Previous context was not restored after context was cleared for contextual action.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that dependent stages created via withContextCapture can be completed independently
+     * of the original stage.
+     */
+    @Test
+    public void withContextCaptureDependentStageForcedCompletion() throws ExecutionException, InterruptedException {
+        ThreadContext contextPropagator = ThreadContext.builder().build();
+
+        CompletableFuture<String> stage1 = new CompletableFuture<String>();
+        CompletableFuture<String> stage2 = contextPropagator.withContextCapture(stage1);
+
+        Assert.assertTrue(stage2.complete("stage_2_done"),
+                "It should be possible to complete a CompletableFuture created via withContextCapture without completing the original stage.");
+
+        Assert.assertFalse(stage1.isDone(),
+                "Completion of the dependent stage must not imply completion of the original stage.");
+
+        Assert.assertTrue(stage1.complete("stage_1_done"),
+                "It should be possible to complete the original stage with a different result after dependent stage was forcibly completed.");
+
+        Assert.assertEquals(stage1.get(), "stage_1_done",
+                "Completion stage result does not match the result with which it was forcibly completed.");
+
+        Assert.assertEquals(stage2.get(), "stage_2_done",
+                "Completion stage result does not match the result with which it was forcibly completed.");
+    }
+
     /**
      * Verify the MicroProfile Concurrency implementation of propagate(), cleared(), and unchanged()
      * for ThreadContext.Builder.
