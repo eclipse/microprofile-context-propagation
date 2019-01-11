@@ -744,7 +744,7 @@ public class ThreadContextTest extends Arquillian {
                 Assert.assertEquals(Buffer.get().toString(), "withContextCapture-CompletionStage-test-buffer-A-stage3",
                         "Context type was not propagated to contextual action.");
 
-                Assert.assertEquals(Buffer.get().toString(), "",
+                Assert.assertEquals(Label.get(), "",
                         "Context type that is configured to be cleared was not cleared.");
 
                 Assert.assertEquals(Thread.currentThread().getId(), testThreadId,
@@ -772,7 +772,7 @@ public class ThreadContextTest extends Arquillian {
             // Has context been properly restored after the contextual operation(s)?
             Assert.assertEquals(Buffer.get().toString(), "withContextCapture-CompletionStage-test-buffer-E",
                     "Previous context was not restored after context was propagated for contextual action.");
-            Assert.assertEquals(Label.get(), "withContextCapture-CompletableFuture-test-label",
+            Assert.assertEquals(Label.get(), "withContextCapture-CompletionStage-test-label",
                     "Previous context was not restored after context was cleared for contextual action.");
         }
         finally {
