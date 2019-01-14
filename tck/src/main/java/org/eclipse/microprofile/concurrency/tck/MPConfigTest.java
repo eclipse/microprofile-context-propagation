@@ -92,24 +92,12 @@ public class MPConfigTest extends Arquillian {
     }
 
     /**
-     * Determine if instances injected properly, which is a prerequisite of running this tests.
+     * Determine if instances injected properly, which is a prerequisite of running these tests.
      */
     @Test
-    public void beansInjected() {
+    public void beanInjected() {
         Assert.assertNotNull(bean,
                 "Unable to inject CDI bean. Expect other tests to fail.");
-
-        Assert.assertNotNull(bean.getExecutorWithConfig(),
-                "Unable to inject ManagedExecutor into CDI bean. Expect other tests to fail.");
-
-        Assert.assertNotNull(namedExecutor,
-                "Unable to inject ManagedExecutor qualified by NamedInstance. Expect other tests to fail.");
-
-        Assert.assertNotNull(producedExecutor,
-                "Unable to inject ManagedExecutor qualified by NamedInstance. Expect other tests to fail.");
-
-        Assert.assertNotNull(bean.getCompletedFuture(),
-                "Unable to inject CompletableFuture (which injects ManagedExecutor) into CDI bean. Expect other tests to fail.");        
     }
 
     /**
@@ -117,9 +105,14 @@ public class MPConfigTest extends Arquillian {
      * of a ManagedExecutor that is produced by the container because the application annotated
      * an injection point with ManagedExecutorConfig and the NamedInstance qualifier.
      */
-    @Test
-    public void overrideManagedExecutorFieldWithConfigAndNameToChangePropagation()
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideContextPropagationForManagedExecutorFieldWithConfigAndName()
             throws ExecutionException, InterruptedException, TimeoutException {
+
+        // Expected config is maxAsync=1, maxQueued=4; cleared=ThreadPriority,Buffer,Transaction; propagated=Remaining
+        Assert.assertNotNull(namedExecutor,
+                "Unable to inject ManagedExecutor qualified by NamedInstance. Cannot run test.");
+
         int originalPriority = Thread.currentThread().getPriority();
         try {
             // Set non-default values
@@ -146,7 +139,7 @@ public class MPConfigTest extends Arquillian {
                         "Context type (ThreadPriority) that MicroProfile config overrides to be cleared was not cleared.");
             });
 
-            Assert.assertNull(stage1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+            Assert.assertNull(stage2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
                     "Non-null value returned by stage that runs Runnable.");
         }
         finally {
@@ -163,9 +156,14 @@ public class MPConfigTest extends Arquillian {
      * container because the application annotated an injection point with ManagedExecutorConfig
      * and the NamedInstance qualifier.
      */
-    @Test
-    public void overrideManagedExecutorFieldWithConfigAndNameToHaveMaxQueued4()
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideMaxQueuedWith4ForManagedExecutorFieldWithConfigAndName()
             throws ExecutionException, InterruptedException, TimeoutException {
+
+        // Expected config is maxAsync=1, maxQueued=4; cleared=ThreadPriority,Buffer,Transaction; propagated=Remaining
+        Assert.assertNotNull(namedExecutor,
+                "Unable to inject ManagedExecutor qualified by NamedInstance. Cannot run test.");
+
         Phaser barrier = new Phaser(1);
         try {
             // First, use up the single maxAsync slot with a blocking task and wait for it to start
