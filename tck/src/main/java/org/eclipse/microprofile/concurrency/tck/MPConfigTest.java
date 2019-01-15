@@ -281,7 +281,7 @@ public class MPConfigTest extends Arquillian {
             Future<String> future4 = producedExecutor.submit(() -> "Q_4");
             Future<String> future5 = producedExecutor.submit(() -> "Q_5");
 
-            // Fifth attempt to queue a task must be rejected
+            // Sixth attempt to queue a task must be rejected
             try {
                 Future<String> future6 = producedExecutor.submit(() -> "Q_6");
                 Assert.fail("Exceeded maxQueued of 5. Future for 6th queued task/action is " + future6);
