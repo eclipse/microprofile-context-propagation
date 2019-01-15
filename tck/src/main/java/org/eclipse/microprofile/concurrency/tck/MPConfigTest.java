@@ -20,7 +20,9 @@ package org.eclipse.microprofile.concurrency.tck;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -103,6 +105,57 @@ public class MPConfigTest extends Arquillian {
     /**
      * Verify that MicroProfile config overrides the cleared and propagated attributes
      * of a ManagedExecutor that is produced by the container because the application annotated
+     * an unqualified injection point with ManagedExecutorConfig.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideContextPropagationForManagedExecutorFieldWithConfig()
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        // Expected config is maxAsync=2; maxQueued=3; propagated=Label; cleared=Remaining
+        ManagedExecutor executor = bean.getExecutorWithConfig();
+        Assert.assertNotNull(executor,
+                "Unable to inject ManagedExecutor with ManagedExecutorConfig. Cannot run test.");
+
+        int originalPriority = Thread.currentThread().getPriority();
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 3 ? 2 : 3;
+            Thread.currentThread().setPriority(newPriority);
+            Buffer.set(new StringBuffer("overrideMangedExecutorConfig-test-buffer"));
+            Label.set("overrideMangedExecutorConfig-test-label");
+
+            // Run on separate thread to test propagated
+            CompletableFuture<Void> stage1 = namedExecutor.runAsync(() ->
+                Assert.assertEquals(Label.get(), "overrideMangedExecutorConfig-test-label",
+                        "Context type that MicroProfile config overrides to be propagated was not correctly propagated.")
+            );
+
+            Assert.assertNull(stage1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Non-null value returned by stage that runs Runnable async.");
+
+            // Run on current thread to test cleared
+            CompletableFuture<Void> stage2 = stage1.thenRun(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type (Buffer) that MicroProfile config overrides to be cleared was not cleared.");
+
+                Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
+                        "Context type (ThreadPriority) that MicroProfile config overrides to be cleared was not cleared.");
+            });
+
+            Assert.assertNull(stage2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Non-null value returned by stage that runs Runnable.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * Verify that MicroProfile config overrides the cleared and propagated attributes
+     * of a ManagedExecutor that is produced by the container because the application annotated
      * an injection point with ManagedExecutorConfig and the NamedInstance qualifier.
      */
     @Test(dependsOnMethods = "beanInjected")
@@ -151,6 +204,236 @@ public class MPConfigTest extends Arquillian {
     }
 
     /**
+     * Verify that MicroProfile config overrides the cleared and propagated attributes
+     * of a ManagedExecutor that is produced by the container when the application defines
+     * a parameter injection point that is neither qualified nor annotated with ManagedExecutorConfig.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideContextPropagationForManagedExecutorParameter()
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        // Expected config is maxAsync=1; maxQueued=2; propagated=Buffer,Label; cleared=Remaining
+        CompletableFuture<Integer> completedFuture = bean.getCompletedFuture();
+        Assert.assertNotNull(completedFuture,
+                "Unable to inject ManagedExecutor into method parameter. Cannot run test.");
+
+        int originalPriority = Thread.currentThread().getPriority();
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 2 ? 1 : 2;
+            Thread.currentThread().setPriority(newPriority);
+            Buffer.set(new StringBuffer("overrideMangedExecutorConfig-test-buffer"));
+            Label.set("overrideMangedExecutorConfig-test-label");
+
+            // Run on current thread to test cleared
+            CompletableFuture<Void> stage1 = completedFuture.thenRun(() ->
+                Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
+                        "Context type that MicroProfile config overrides to be cleared was not cleared.")
+            );
+
+            Assert.assertNull(stage1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Non-null value returned by stage that runs Runnable.");
+
+            // Run on separate thread to test propagated
+            CompletableFuture<Void> stage2 = completedFuture.thenRunAsync(() -> {
+                Assert.assertEquals(Label.get(), "overrideMangedExecutorConfig-test-label",
+                        "Context type (Label) that MicroProfile config overrides to be propagated was not correctly propagated.");
+
+                Assert.assertEquals(Buffer.get().toString(), "overrideMangedExecutorConfig-test-buffer",
+                        "Context type (Buffer) that MicroProfile config overrides to be propagated was not correctly propagated.");
+            });
+
+            Assert.assertNull(stage2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Non-null value returned by stage that runs Runnable async.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * Verify that 5 tasks/actions, and no more, can be queued when MicroProfile Config
+     * overrides the maxAsync value with 1 and leaves the maxAsync of 5 unmodified on a
+     * ManagedExecutor that is produced by the container when the application defines a
+     * parameter injection point that is annotated with ManagedExecutorConfig but not
+     * with any qualifiers.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideMaxAsyncWith1ForManagedExecutorParameter()
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        // Expected config is maxAsync=1; maxQueued=5; cleared=Transaction; propagated=Remaining
+        Assert.assertNotNull(producedExecutor, "Injection failure. Cannot run test.");
+
+        Phaser barrier = new Phaser(1);
+        try {
+            // First, use up the single maxAsync slot with a blocking task and wait for it to start
+            producedExecutor.submit(() -> barrier.awaitAdvanceInterruptibly(barrier.arrive() + 1));
+            barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            // Use up queue positions
+            CompletableFuture<String> future1 = producedExecutor.supplyAsync(() -> "Q_1");
+            CompletableFuture<String> future2 = producedExecutor.supplyAsync(() -> "Q_2");
+            CompletableFuture<String> future3 = producedExecutor.supplyAsync(() -> "Q_3");
+            Future<String> future4 = producedExecutor.submit(() -> "Q_4");
+            Future<String> future5 = producedExecutor.submit(() -> "Q_5");
+
+            // Fifth attempt to queue a task must be rejected
+            try {
+                Future<String> future6 = producedExecutor.submit(() -> "Q_6");
+                Assert.fail("Exceeded maxQueued of 5. Future for 6th queued task/action is " + future6);
+            }
+            catch (RejectedExecutionException x) {
+                // test passes
+            }
+
+            // unblock and allow tasks to finish
+            barrier.arrive();
+
+            Assert.assertEquals(future1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "Q_1",
+                    "Unexpected result of first task.");
+
+            Assert.assertEquals(future2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "Q_2",
+                    "Unexpected result of second task.");
+
+            Assert.assertEquals(future3.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "Q_3",
+                    "Unexpected result of third task.");
+
+            Assert.assertEquals(future4.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "Q_4",
+                    "Unexpected result of fourth task.");
+
+            Assert.assertEquals(future5.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "Q_5",
+                    "Unexpected result of fifth task.");
+        }
+        finally {
+            barrier.forceTermination();
+        } 
+    }
+
+    /**
+     * Verify that 2 tasks/actions, and no more, can be queued when MicroProfile Config
+     * overrides the maxQueued value with 2 on a ManagedExecutor that is produced by the
+     * container when the application defines a parameter injection point that is neither
+     * qualified nor annotated with ManagedExecutorConfig.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideMaxQueuedWith2ForManagedExecutorParameter()
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        // Expected config is maxAsync=1; maxQueued=2; propagated=Buffer,Label; cleared=Remaining
+        CompletableFuture<Integer> completedFuture = bean.getCompletedFuture();
+        Assert.assertNotNull(completedFuture, "Injection failure. Cannot run test.");
+
+        Phaser barrier = new Phaser(1);
+        try {
+            // First, use up the single maxAsync slot with a blocking task and wait for it to start
+            completedFuture.thenRunAsync(() -> {
+                try {
+                    barrier.awaitAdvanceInterruptibly(barrier.arrive() + 1);
+                }
+                catch (InterruptedException x) {
+                    throw new CompletionException(x);
+                }
+            });
+            barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            // Use up queue positions
+            CompletableFuture<String> cf1 = completedFuture.thenApplyAsync(unused -> "first");
+            Assert.assertFalse(cf1.isDone(), "First action should be queued, not completed.");
+
+            CompletableFuture<String> cf2 = completedFuture.thenApplyAsync(unused -> "second");
+            Assert.assertFalse(cf2.isDone(), "Second action should be queued, not completed.");
+
+            // Third attempt to queue a task must be rejected
+            try {
+                CompletableFuture<String> cf3 = completedFuture.thenApplyAsync(unused -> "third");
+                // CompletionStage interface does not provide detail on precisely how to report rejection,
+                // so tolerate both possibilities: exception raised or stage returned with exceptional completion.   
+                Assert.assertTrue(cf3.isDone() && cf3.isCompletedExceptionally(),
+                        "Exceeded maxQueued of 2. Future for 3rd queued task/action is " + cf3);
+            }
+            catch (RejectedExecutionException x) {
+                // test passes
+            }
+
+            // unblock and allow tasks to finish
+            barrier.arrive();
+
+            Assert.assertEquals(cf1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "first",
+                    "Unexpected result of first task.");
+
+            Assert.assertEquals(cf2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "second",
+                    "Unexpected result of second task.");
+        }
+        finally {
+            barrier.forceTermination();
+        }
+    }
+
+    /**
+     * Verify that 3 tasks/actions, and no more, can be queued when MicroProfile Config
+     * overrides the maxQueued value with 3 on a ManagedExecutor that is produced by the
+     * container because the application annotated an unqualified injection point with
+     * the ManagedExecutorConfig annotation.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideMaxQueuedWith3ForManagedExecutorFieldWithConfig()
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        // Expected config is maxAsync=2; maxQueued=3; propagated=Label; cleared=Remaining
+        ManagedExecutor executor = bean.getExecutorWithConfig();
+        Assert.assertNotNull(executor,
+                "Unable to inject ManagedExecutor with ManagedExecutorConfig. Cannot run test.");
+
+        Phaser barrier = new Phaser(2);
+        try {
+            // First, use up both maxAsync slots with blocking tasks and wait for those tasks to start
+            CompletableFuture<Integer> blocker1 = executor.supplyAsync(() -> barrier.awaitAdvance(barrier.arriveAndAwaitAdvance()));
+            CompletableFuture<Integer> blocker2 = executor.supplyAsync(() -> barrier.awaitAdvance(barrier.arriveAndAwaitAdvance()));
+            barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            // Use up queue positions
+            Future<String> future1 = executor.supplyAsync(() -> "q1");
+            Future<String> future2 = executor.supplyAsync(() -> "q2");
+            Future<String> future3 = executor.submit(() -> "q3");
+
+            // Fourth attempt to queue a task must be rejected
+            try {
+                Future<String> cf4 = executor.submit(() -> "q4");
+                Assert.fail("Exceeded maxQueued of 3. Future for 4th queued task/action is " + cf4);
+            }
+            catch (RejectedExecutionException x) {
+                // test passes
+            }
+
+            // unblock and allow tasks to finish
+            barrier.arrive();
+            barrier.arrive(); // there are 2 parties in each phase
+
+            Assert.assertEquals(blocker1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(2),
+                    "Unexpected result of first blocker task.");
+
+            Assert.assertEquals(blocker2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(2),
+                    "Unexpected result of second blocker task.");
+
+            Assert.assertEquals(future1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "q1",
+                    "Unexpected result of first task from queue.");
+
+            Assert.assertEquals(future2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "q2",
+                    "Unexpected result of second task from queue.");
+
+            Assert.assertEquals(future3.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "q3",
+                    "Unexpected result of third task from queue.");
+        }
+        finally {
+            barrier.forceTermination();
+        }
+    }
+
+    /**
      * Verify that 4 tasks/actions, and no more, can be queued when MicroProfile Config
      * overrides the maxQueued value with 4 on a ManagedExecutor that is produced by the
      * container because the application annotated an injection point with ManagedExecutorConfig
@@ -179,7 +462,10 @@ public class MPConfigTest extends Arquillian {
             // Fifth attempt to queue a task must be rejected
             try {
                 CompletableFuture<String> cf5 = namedExecutor.supplyAsync(() -> "Q5");
-                Assert.fail("Exceeded maxQueued of 4. Future for 5th queued task/action is " + cf5);
+                // CompletableFuture interface does not provide detail on precisely how to report rejection,
+                // so tolerate both possibilities: exception raised or stage returned with exceptional completion.   
+                Assert.assertTrue(cf5.isDone() && cf5.isCompletedExceptionally(),
+                        "Exceeded maxQueued of 4. Future for 5th queued task/action is " + cf5);
             }
             catch (RejectedExecutionException x) {
                 // test passes
