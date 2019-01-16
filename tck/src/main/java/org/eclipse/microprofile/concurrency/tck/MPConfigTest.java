@@ -22,11 +22,13 @@ import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.inject.Inject;
 
@@ -37,6 +39,7 @@ import org.eclipse.microprofile.concurrency.tck.contexts.label.spi.LabelContextP
 import org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.ThreadPriorityContextProvider;
 import org.eclipse.microprofile.concurrent.ManagedExecutor;
 import org.eclipse.microprofile.concurrent.NamedInstance;
+import org.eclipse.microprofile.concurrent.ThreadContext;
 import org.eclipse.microprofile.concurrent.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
@@ -44,6 +47,7 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.Assert;
+import org.testng.ITestResult;
 import org.testng.annotations.Test;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -63,17 +67,24 @@ public class MPConfigTest extends Arquillian {
     @Inject @NamedInstance("namedExecutor")
     protected ManagedExecutor namedExecutor;
 
+    @Inject @NamedInstance("namedThreadContext")
+    protected ThreadContext namedThreadContext;
+
     @Inject @NamedInstance("producedExecutor")
     protected ManagedExecutor producedExecutor;
 
     @AfterMethod
-    public void afterMethod(Method m) {
-        System.out.println("<<< END MPConfigTest." + m.getName());
+    public void afterMethod(Method m, ITestResult result) {
+        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName() + (result.isSuccess() ? " SUCCESS" : " FAILED"));
+        Throwable failure = result.getThrowable();
+        if (failure != null) {
+            failure.printStackTrace(System.out);
+        }
     }
 
     @BeforeMethod
     public void beforeMethod(Method m) {
-        System.out.println(">>> BEGIN MPConfigTest." + m.getName());
+        System.out.println(">>> BEGIN " + m.getClass().getSimpleName() + '.' + m.getName());
     }
 
     @Deployment
@@ -245,6 +256,147 @@ public class MPConfigTest extends Arquillian {
 
             Assert.assertNull(stage2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
                     "Non-null value returned by stage that runs Runnable async.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * Verify that MicroProfile config overrides the cleared, propagated, and unchanged attributes
+     * of a ThreadContext that is produced by the container when the application defines
+     * a field injection point that is neither qualified nor annotated with ThreadContextConfig.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideContextPropagationForThreadContextField() {
+
+        // Expected config is propagated={}; cleared=Buffer,ThreadPriority; unchanged=Remaining
+        ThreadContext threadContext = bean.getThreadContext();
+        Assert.assertNotNull(threadContext,
+                "Unable to inject ThreadContext into field parameter. Cannot run test.");
+
+        int originalPriority = Thread.currentThread().getPriority();
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 3 ? 2 : 3;
+            Thread.currentThread().setPriority(newPriority);
+            Buffer.set(new StringBuffer("overrideThreadContext-test-buffer-A"));
+            Label.set("overrideThreadContext-test-label-A");
+
+            Runnable task = threadContext.contextualRunnable(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type (Buffer) that MicroProfile config overrides to be cleared was not cleared.");
+
+                Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
+                        "Context type (ThreadPriority) that MicroProfile config overrides to be cleared was not cleared.");
+
+                Assert.assertEquals(Label.get(), "overrideThreadContext-test-label-A",
+                        "Context type that MicroProfile config overrides to remain unchanged was changed.");
+
+                Label.set("overrideThreadContext-test-label-B");
+            });
+
+            task.run();
+
+            Assert.assertEquals(Label.get(), "overrideThreadContext-test-label-B",
+                    "Context type that MicroProfile config overrides to remain unchanged was changed when task completed.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * Verify that MicroProfile config overrides the propagated attributes
+     * of a ThreadContext that is produced by the container when the application defines
+     * a field injection point that is annotated with ThreadContextConfig and the NamedInstance qualifier.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideContextPropagationForThreadContextFieldWithConfigAndName() {
+
+        // Expected config is propagated=Label,Buffer; cleared={}, unchanged=Remaining
+        Assert.assertNotNull(namedThreadContext,
+                "Unable to inject ThreadContext qualified by NamedInstance. Cannot run test.");
+
+        int originalPriority = Thread.currentThread().getPriority();
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 3 ? 2 : 3;
+            Thread.currentThread().setPriority(newPriority);
+            Buffer.set(new StringBuffer("overrideNamedThreadContextConfig-test-buffer-A"));
+            Label.set("overrideNamedThreadContextConfig-test-label-A");
+
+            Consumer<Integer> task = namedThreadContext.contextualConsumer(expectedPriority -> {
+                Assert.assertEquals(Buffer.get().toString(), "overrideNamedThreadContextConfig-test-buffer-A",
+                        "Context type (Buffer) that MicroProfile config specifies to be propagated was not propagated.");
+
+                Assert.assertEquals(Label.get(), "overrideNamedThreadContextConfig-test-label-A",
+                        "Context type (Label) that MicroProfile config overrides to be propagated was not propagated.");
+
+                Assert.assertEquals(Integer.valueOf(Thread.currentThread().getPriority()), expectedPriority,
+                        "Context type that MicroProfile config overrides to remain unchanged was changed.");
+
+                Thread.currentThread().setPriority(expectedPriority - 1);
+            });
+
+            Buffer.set(new StringBuffer("overrideNamedThreadContextConfig-test-buffer-B"));
+            Label.set("overrideNamedThreadContextConfig-test-label-B");
+
+            task.accept(newPriority);
+
+            Assert.assertEquals(Thread.currentThread().getPriority(), newPriority - 1,
+                    "Context type that MicroProfile config overrides to remain unchanged was changed when task completed.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * Verify that MicroProfile config overrides the cleared, propagated, and unchanged attributes
+     * of a ThreadContext that is produced by the container when the application defines
+     * an unqualified parameter injection point that is annotated with ThreadContextConfig.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideContextPropagationForThreadContextParameterWithConfig() {
+
+        // Expected config is propagated=Label; unchanged=ThreadPriority, cleared=Remaining
+        Executor contextSnapshot = bean.getContextSnapshot();
+        Assert.assertNotNull(contextSnapshot,
+                "Unable to inject ThreadContext into method parameter. Cannot run test.");
+
+        int originalPriority = Thread.currentThread().getPriority();
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("overrideThreadContextConfig-test-buffer"));
+            Label.set("overrideThreadContextConfig-test-label");
+
+            int newPriority = originalPriority == 2 ? 1 : 2;
+
+            contextSnapshot.execute(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that MicroProfile config overrides to be cleared was not cleared.");
+
+                Assert.assertEquals(Label.get(), "setContextSnapshot-test-label",
+                        "Context type that MicroProfile config overrides to be propagated was not correctly propagated from original snapshot.");
+
+                Assert.assertEquals(Thread.currentThread().getPriority(), originalPriority,
+                        "Context type that MicroProfile config overrides to remain unchanged was changed.");
+
+                Thread.currentThread().setPriority(newPriority);
+            });
+
+            Assert.assertEquals(Thread.currentThread().getPriority(), newPriority,
+                    "Context type that MicroProfile config overrides to remain unchanged was changed when task completed.");
         }
         finally {
             // Restore original values
