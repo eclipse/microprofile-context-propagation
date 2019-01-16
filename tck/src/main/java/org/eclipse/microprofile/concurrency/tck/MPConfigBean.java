@@ -36,7 +36,6 @@ import org.eclipse.microprofile.concurrent.ThreadContext;
 public class MPConfigBean {
     protected CompletableFuture<Integer> completedFuture;
 
-    // TODO need to write tests for this managed executor
     // microprofile-config.properties overrides this with maxAsync=2; maxQueued=3; propagated=Label; cleared=Remaining
     @Inject @ManagedExecutorConfig(
             maxAsync = 5,
@@ -52,14 +51,12 @@ public class MPConfigBean {
             cleared = ThreadContext.ALL_REMAINING)
     protected ManagedExecutor namedExecutorWithConfig;
 
-    // TODO need to write tests for this managed executor
     // microprofile-config.properties overrides this with maxAsync=1
     @Produces @ApplicationScoped @NamedInstance("producedExecutor")
     protected ManagedExecutor createExecutor(@ManagedExecutorConfig(maxQueued = 5) ManagedExecutor exec) {
         return exec;
     }
 
-    // TODO need to write tests for this managed executor
     // microprofile-config.properties overrides executor's config with maxAsync=1; maxQueued=2; propagated=Buffer,Label; cleared=Remaining
     @Inject
     protected void setCompletedFuture(ManagedExecutor executor) {
