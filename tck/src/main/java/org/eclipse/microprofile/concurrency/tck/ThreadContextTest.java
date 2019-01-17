@@ -157,7 +157,7 @@ public class ThreadContextTest extends Arquillian {
                     "Context type that remained unspecified was not cleared by default.");
             
             Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-C",
-                    "Context type was not left unchanged by contextual action.");
+                    "Previous context (Buffer) was not restored after context was propagated for contextual action.");
             
             Assert.assertEquals(Label.get(), "clearUnspecifiedContexts-test-label-B",
                     "Context type was not left unchanged by contextual action.");
