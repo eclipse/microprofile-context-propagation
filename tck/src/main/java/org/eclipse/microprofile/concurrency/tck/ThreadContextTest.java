@@ -116,6 +116,75 @@ public class ThreadContextTest extends Arquillian {
         Assert.assertNotNull(ThreadContext.builder(),
                 "MicroProfile Concurrency implementation does not provide a ThreadContext builder.");
     }
+    
+    /**
+     * Verify that the MicroProfile Concurrency ThreadContext implementation clears context
+     * types that are not configured under propagated, unchanged, or cleared.
+     * @throws TimeoutException 
+     * @throws ExecutionException 
+     * @throws InterruptedException 
+     */
+    @Test
+    public void clearUnspecifiedContexts() throws InterruptedException, ExecutionException, TimeoutException {
+        ThreadContext threadContext = ThreadContext.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .unchanged(Label.CONTEXT_NAME)
+                .build();
+        
+        int originalPriority = Thread.currentThread().getPriority();     
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 3 ? 2 : 3;
+            Thread.currentThread().setPriority(newPriority);
+            Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-A"));
+            Label.set("clearUnspecifiedContexts-test-label-A");
+
+            Callable<Integer> callable = threadContext.contextualCallable(() -> {
+                try {
+                    Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
+                            "Context type was not propagated to contextual action.");
+
+                    Assert.assertEquals(Label.get(), "",
+                            "Context type was not left unchanged by contextual action.");
+
+                    Label.set("clearUnspecifiedContexts-test-label-B");
+
+                    return Thread.currentThread().getPriority();
+                }
+                finally {
+                    // Restore original values
+                    Buffer.set(null);
+                    Label.set(null);
+                    Thread.currentThread().setPriority(originalPriority);
+                }
+            });
+            
+            Future<Integer> future = unmanagedThreads.submit(() -> {
+                try {
+                    Thread.currentThread().setPriority(newPriority);
+                    return callable.call();
+                }
+                finally {
+                    // Restore original values
+                    Buffer.set(null);
+                    Label.set(null);
+                    Thread.currentThread().setPriority(originalPriority);
+                }
+            });
+
+            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(Thread.NORM_PRIORITY),
+                    "Context type that remained unspecified was not cleared by default.");
+            
+            Assert.assertEquals(Label.get(), "clearUnspecifiedContexts-test-label-A",
+                    "Context type was not left unchanged by contextual action.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
 
     /**
      * Verify that the MicroProfile Concurrency ThreadContext implementation's contextualConsumer
@@ -470,6 +539,7 @@ public class ThreadContextTest extends Arquillian {
             Label.set(null);
         }
     }
+    
     /**
      * Verify that the MicroProfile Concurrency ThreadContext implementation's contextualSupplier
      * method can be used to wrap a Supplier instance with the context that is captured from the

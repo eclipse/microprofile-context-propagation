@@ -61,6 +61,12 @@ public class MPConfigBean {
             cleared = {},
             unchanged = ThreadContext.ALL_REMAINING)
     protected ThreadContext namedThreadContextWithConfig;
+    
+    // microprofile-config.properties overrides this with propagated=Buffer
+    @Inject @NamedInstance("clearAllRemainingThreadContext") @ThreadContextConfig(
+            propagated = ThreadContext.ALL_REMAINING,
+            unchanged = Label.CONTEXT_NAME)
+    protected ThreadContext clearAllRemainingThreadContext;
 
     // microprofile-config.properties overrides this with propagated=<unconfigured>; cleared=Buffer,ThreadPriority; unchanged=Remaining
     @Inject
