@@ -19,6 +19,7 @@
 package org.eclipse.microprofile.concurrency.tck;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -31,10 +32,13 @@ import org.eclipse.microprofile.concurrent.ManagedExecutor;
 import org.eclipse.microprofile.concurrent.ManagedExecutorConfig;
 import org.eclipse.microprofile.concurrent.NamedInstance;
 import org.eclipse.microprofile.concurrent.ThreadContext;
+import org.eclipse.microprofile.concurrent.ThreadContextConfig;
 
 @ApplicationScoped
 public class MPConfigBean {
     protected CompletableFuture<Integer> completedFuture;
+
+    protected Executor contextSnapshot;
 
     // microprofile-config.properties overrides this with maxAsync=2; maxQueued=3; propagated=Label; cleared=Remaining
     @Inject @ManagedExecutorConfig(
@@ -51,6 +55,17 @@ public class MPConfigBean {
             cleared = ThreadContext.ALL_REMAINING)
     protected ManagedExecutor namedExecutorWithConfig;
 
+    // microprofile-config.properties overrides this with propagated=Label,Buffer
+    @Inject @NamedInstance("namedThreadContext") @ThreadContextConfig(
+            propagated = Buffer.CONTEXT_NAME,
+            cleared = {},
+            unchanged = ThreadContext.ALL_REMAINING)
+    protected ThreadContext namedThreadContextWithConfig;
+
+    // microprofile-config.properties overrides this with propagated=<unconfigured>; cleared=Buffer,ThreadPriority; unchanged=Remaining
+    @Inject
+    protected ThreadContext threadContext;
+
     // microprofile-config.properties overrides this with maxAsync=1
     @Produces @ApplicationScoped @NamedInstance("producedExecutor")
     protected ManagedExecutor createExecutor(@ManagedExecutorConfig(maxQueued = 5) ManagedExecutor exec) {
@@ -63,11 +78,41 @@ public class MPConfigBean {
         completedFuture = executor.completedFuture(100);
     }
 
+    // microprofile-config.properties overrides thread context config with propagated=Label; cleared=Remaining; unchanged=ThreadPriority
+    @Inject
+    protected void setContextSnapshot(@ThreadContextConfig(propagated = { Label.CONTEXT_NAME, Buffer.CONTEXT_NAME },
+                                                           cleared = {},
+                                                           unchanged = ThreadContext.ALL_REMAINING)
+                                      ThreadContext contextPropagator) {
+
+        int originalPriority = Thread.currentThread().getPriority();
+        int newPriority = originalPriority == 4 ? 3 : 4;
+        Thread.currentThread().setPriority(newPriority);
+        Label.set("setContextSnapshot-test-label");
+        Buffer.set(new StringBuffer("setContextSnapshot-test-buffer"));
+        try {
+            contextSnapshot = contextPropagator.currentContextExecutor();
+        }
+        finally {
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
     public CompletableFuture<Integer> getCompletedFuture() {
         return completedFuture;
     }
 
+    public Executor getContextSnapshot() {
+        return contextSnapshot;
+    }
+
     public ManagedExecutor getExecutorWithConfig() {
         return executorWithConfig;
+    }
+
+    public ThreadContext getThreadContext() {
+        return threadContext;
     }
 }

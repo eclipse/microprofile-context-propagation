@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -48,6 +48,7 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.Assert;
+import org.testng.ITestResult;
 import org.testng.annotations.Test;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
@@ -74,8 +75,12 @@ public class ThreadContextTest extends Arquillian {
     }
 
     @AfterMethod
-    public void afterMethod(Method m) {
-        System.out.println("<<< END ThreadContextTest." + m.getName());
+    public void afterMethod(Method m, ITestResult result) {
+        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName() + (result.isSuccess() ? " SUCCESS" : " FAILED"));
+        Throwable failure = result.getThrowable();
+        if (failure != null) {
+            failure.printStackTrace(System.out);
+        }
     }
 
     @BeforeClass
@@ -85,7 +90,7 @@ public class ThreadContextTest extends Arquillian {
 
     @BeforeMethod
     public void beforeMethod(Method m) {
-        System.out.println(">>> BEGIN ThreadContextTest." + m.getName());
+        System.out.println(">>> BEGIN " + m.getClass().getSimpleName() + '.' + m.getName());
     }
 
     @Deployment

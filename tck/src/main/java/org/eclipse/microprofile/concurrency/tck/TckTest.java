@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -18,15 +18,34 @@
  */
 package org.eclipse.microprofile.concurrency.tck;
 
+import java.lang.reflect.Method;
+
 import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.Assert;
+import org.testng.ITestResult;
 import org.testng.annotations.Test;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 
 public class TckTest extends Arquillian {
+
+    @AfterMethod
+    public void afterMethod(Method m, ITestResult result) {
+        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName() + (result.isSuccess() ? " SUCCESS" : " FAILED"));
+        Throwable failure = result.getThrowable();
+        if (failure != null) {
+            failure.printStackTrace(System.out);
+        }
+    }
+
+    @BeforeMethod
+    public void beforeMethod(Method m) {
+        System.out.println(">>> BEGIN " + m.getClass().getSimpleName() + '.' + m.getName());
+    }
 
     @Deployment
     public static WebArchive createDeployment() {
