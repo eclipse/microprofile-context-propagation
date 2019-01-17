@@ -24,8 +24,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.RejectedExecutionException;
@@ -415,15 +413,11 @@ public class MPConfigTest extends Arquillian {
     /**
      * Verify MicroProfile Config overrides the propagated attribute to enabled
      * an implied clear of all remaining.
-     * @throws TimeoutException 
-     * @throws ExecutionException 
-     * @throws InterruptedException 
+     * @throws Exception 
      */
     @Test
-    public void overrideContextPropagationForThreadContextWithImpliedCleared() throws InterruptedException, ExecutionException, TimeoutException {
-        ExecutorService unmanagedThreads = null;
-        
-        // Expected config is propagated=Buffer; cleared=Remaining; unchanged=Label
+    public void overrideContextPropagationForThreadContextWithImpliedCleared() throws Exception {
+        // Expected config is propagated=Buffer; cleared=Transaction(with implied Remaining); unchanged=Label
         Assert.assertNotNull(clearAllRemainingThreadContext,
                 "Unable to inject ThreadContext qualified by NamedInstance. Cannot run test.");
         
@@ -436,50 +430,31 @@ public class MPConfigTest extends Arquillian {
             Label.set("clearUnspecifiedContexts-test-label-A");
 
             Callable<Integer> callable = clearAllRemainingThreadContext.contextualCallable(() -> {
-                try {
                     Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
                             "Context type was not propagated to contextual action.");
 
-                    Assert.assertEquals(Label.get(), "",
+                    Assert.assertEquals(Label.get(), "clearUnspecifiedContexts-test-label-C",
                             "Context type was not left unchanged by contextual action.");
 
+                    Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-B"));
                     Label.set("clearUnspecifiedContexts-test-label-B");
 
                     return Thread.currentThread().getPriority();
-                }
-                finally {
-                    // Restore original values
-                    Buffer.set(null);
-                    Label.set(null);
-                    Thread.currentThread().setPriority(originalPriority);
-                }
             });
 
-            unmanagedThreads = Executors.newFixedThreadPool(5);
-            Future<Integer> future = unmanagedThreads.submit(() -> {
-                try {
-                    Thread.currentThread().setPriority(newPriority);
-                    return callable.call();
-                }
-                finally {
-                    // Restore original values
-                    Buffer.set(null);
-                    Label.set(null);
-                    Thread.currentThread().setPriority(originalPriority);
-                }
-            });
+            Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-C"));
+            Label.set("clearUnspecifiedContexts-test-label-C");
 
-            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(Thread.NORM_PRIORITY),
+            Assert.assertEquals(callable.call(), Integer.valueOf(Thread.NORM_PRIORITY),
                     "Context type that remained unspecified was not cleared by default.");
             
-            Assert.assertEquals(Label.get(), "clearUnspecifiedContexts-test-label-A",
+            Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-C",
+                    "Context type was not left unchanged by contextual action.");
+            
+            Assert.assertEquals(Label.get(), "clearUnspecifiedContexts-test-label-B",
                     "Context type was not left unchanged by contextual action.");
         }
         finally {
-            if(unmanagedThreads != null) {
-                unmanagedThreads.shutdownNow(); 
-            }
-            
             // Restore original values
             Buffer.set(null);
             Label.set(null);

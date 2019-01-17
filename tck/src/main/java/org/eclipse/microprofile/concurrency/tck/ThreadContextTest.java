@@ -120,12 +120,10 @@ public class ThreadContextTest extends Arquillian {
     /**
      * Verify that the MicroProfile Concurrency ThreadContext implementation clears context
      * types that are not configured under propagated, unchanged, or cleared.
-     * @throws TimeoutException 
-     * @throws ExecutionException 
-     * @throws InterruptedException 
+     * @throws Exception 
      */
     @Test
-    public void clearUnspecifiedContexts() throws InterruptedException, ExecutionException, TimeoutException {
+    public void clearUnspecifiedContexts() throws Exception {
         ThreadContext threadContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .unchanged(Label.CONTEXT_NAME)
@@ -140,42 +138,28 @@ public class ThreadContextTest extends Arquillian {
             Label.set("clearUnspecifiedContexts-test-label-A");
 
             Callable<Integer> callable = threadContext.contextualCallable(() -> {
-                try {
                     Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
                             "Context type was not propagated to contextual action.");
 
-                    Assert.assertEquals(Label.get(), "",
+                    Assert.assertEquals(Label.get(), "clearUnspecifiedContexts-test-label-C",
                             "Context type was not left unchanged by contextual action.");
 
+                    Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-B"));
                     Label.set("clearUnspecifiedContexts-test-label-B");
 
                     return Thread.currentThread().getPriority();
-                }
-                finally {
-                    // Restore original values
-                    Buffer.set(null);
-                    Label.set(null);
-                    Thread.currentThread().setPriority(originalPriority);
-                }
-            });
-            
-            Future<Integer> future = unmanagedThreads.submit(() -> {
-                try {
-                    Thread.currentThread().setPriority(newPriority);
-                    return callable.call();
-                }
-                finally {
-                    // Restore original values
-                    Buffer.set(null);
-                    Label.set(null);
-                    Thread.currentThread().setPriority(originalPriority);
-                }
             });
 
-            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(Thread.NORM_PRIORITY),
+            Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-C"));
+            Label.set("clearUnspecifiedContexts-test-label-C");
+
+            Assert.assertEquals(callable.call(), Integer.valueOf(Thread.NORM_PRIORITY),
                     "Context type that remained unspecified was not cleared by default.");
             
-            Assert.assertEquals(Label.get(), "clearUnspecifiedContexts-test-label-A",
+            Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-C",
+                    "Context type was not left unchanged by contextual action.");
+            
+            Assert.assertEquals(Label.get(), "clearUnspecifiedContexts-test-label-B",
                     "Context type was not left unchanged by contextual action.");
         }
         finally {
