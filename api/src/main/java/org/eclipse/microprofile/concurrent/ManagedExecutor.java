@@ -70,9 +70,20 @@ import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
  * <p>This interface is intentionally kept compatible with ManagedExecutorService,
  * with the hope that its methods might one day be contributed to that specification.</p>
  *
- * <p>Managed executors are managed by the container, not be the user. Therefore, all
- * life cycle methods must raise IllegalStateException. This includes:
- * awaitTermination, isShutdown, isTerminated, shutdown, shutdownNow</p>
+ * <p>Managed executors that are created with the {@link Builder} or created for
+ * injection into applications via CDI must support the life cycle methods, including:
+ * awaitTermination, isShutdown, isTerminated, shutdown, shutdownNow.
+ * The application must invoke <code>shutdown</code> or <code>shutdownNow</code> to terminate
+ * the life cycle of each managed executor that it creates, once the managed executor is
+ * no longer needed. When the application stops, the container invokes <code>shutdownNow</code>
+ * for any remaining managed executors that the application did not already shut down.
+ * The shutdown methods signal the managed executor that it does not need to remain active to
+ * service subsequent requests and allow the container to properly clean up associated resources.</p>
+ *
+ * <p>Managed executors which have a life cycle that is scoped to the container,
+ * including those obtained via mechanisms defined by EE Concurrency, must raise
+ * IllegalStateException upon invocation of the aforementioned life cycle methods,
+ * in order to preserve compatibility with that specification.</p>
  */
 public interface ManagedExecutor extends ExecutorService {
     /**
