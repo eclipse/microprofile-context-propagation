@@ -24,6 +24,7 @@ import java.util.concurrent.Executor;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.concurrency.tck.contexts.label.Label;
@@ -66,10 +67,19 @@ public class MPConfigBean {
     @Inject
     protected ThreadContext threadContext;
 
-    // microprofile-config.properties overrides this with maxAsync=1
+    // microprofile-config.properties overrides exec parameter with maxAsync=1
     @Produces @ApplicationScoped @NamedInstance("producedExecutor")
     protected ManagedExecutor createExecutor(@ManagedExecutorConfig(maxQueued = 5) ManagedExecutor exec) {
         return exec;
+    }
+
+    // microprofile-config.properties overrides threadContext parameter with propagated=Label
+    @Produces @ApplicationScoped @Named("producedThreadContext") // it's valid for user-supplied producers to use other qualifiers, such as Named
+    protected ThreadContext createThreadContext(
+            @NamedInstance("producedExecutor") ManagedExecutor unused1, // this is here so that we can force parameter position 3 to be used
+            @NamedInstance("namedExecutor") ManagedExecutor unused2, // this is here so that we can force parameter position 3 to be used
+            @ThreadContextConfig(propagated=Buffer.CONTEXT_NAME, cleared=ThreadContext.ALL_REMAINING) ThreadContext threadContext) {
+        return threadContext;
     }
 
     // microprofile-config.properties overrides executor's config with maxAsync=1; maxQueued=2; propagated=Buffer,Label; cleared=Remaining
