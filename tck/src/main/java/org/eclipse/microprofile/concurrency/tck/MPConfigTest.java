@@ -423,7 +423,7 @@ public class MPConfigTest extends Arquillian {
 
         // Expected config is propagated=Label; unchanged=ThreadPriority, cleared=Remaining
         Assert.assertNotNull(producedThreadContext,
-                "Unable to inject ThreadContext into method parameter 3. Cannot run test.");
+                "Unable to inject ThreadContext. Cannot run test.");
 
         int originalPriority = Thread.currentThread().getPriority();
         try {
