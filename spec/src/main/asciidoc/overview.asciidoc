@@ -84,7 +84,7 @@ Container provides, per unique name, an instance of either `ManagedExecutor` and
 ----
 
 In the absence of other qualifiers and annotations, the container creates and injects a new default instance of `ManagedExecutor` or `ThreadContext` per injection point, as shown above.
-The configuration of these instances is equivalent to the default values of `@ManagedExecutorConfig` and `ThreadContextConfig`.
+The configuration of these instances is equivalent to the default values of `@ManagedExecutorConfig` and `@ThreadContextConfig`.
 
 === Injection of Configured Instances
 

@@ -38,8 +38,7 @@ MicroProfile Config can be used to override configuration attributes from the ab
 [source, text]
 ----
 exec1.maxAsync=10
-exec1.propagated=Application,CDI
-exec1.cleared=Remaining
+exec1.maxQueued=15
 ----
 
 === Container usage of MicroProfile Config
