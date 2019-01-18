@@ -19,6 +19,7 @@
 package org.eclipse.microprofile.concurrency.tck;
 
 import java.lang.reflect.Method;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -71,6 +72,9 @@ public class MPConfigTest extends Arquillian {
 
     @Inject @NamedInstance("namedThreadContext")
     protected ThreadContext namedThreadContext;
+    
+    @Inject @NamedInstance("clearAllRemainingThreadContext")
+    protected ThreadContext clearAllRemainingThreadContext;
 
     @Inject @NamedInstance("producedExecutor")
     protected ManagedExecutor producedExecutor;
@@ -403,6 +407,58 @@ public class MPConfigTest extends Arquillian {
 
             Assert.assertEquals(Thread.currentThread().getPriority(), newPriority,
                     "Context type that MicroProfile config overrides to remain unchanged was changed when task completed.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+    
+    /**
+     * Verify MicroProfile Config overrides the propagated attribute to enabled
+     * an implied clear of all remaining.
+     * @throws Exception 
+     */
+    @Test
+    public void overrideContextPropagationForThreadContextWithImpliedCleared() throws Exception {
+        // Expected config is propagated=Buffer; cleared=Transaction(with implied Remaining); unchanged=Label
+        Assert.assertNotNull(clearAllRemainingThreadContext,
+                "Unable to inject ThreadContext qualified by NamedInstance. Cannot run test.");
+        
+        int originalPriority = Thread.currentThread().getPriority();     
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 3 ? 2 : 3;
+            Thread.currentThread().setPriority(newPriority);
+            Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-A"));
+            Label.set("clearUnspecifiedContexts-test-label-A");
+
+            Callable<Integer> callable = clearAllRemainingThreadContext.contextualCallable(() -> {
+                    Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
+                            "Context type was not propagated to contextual action.");
+
+                    Assert.assertEquals(Label.get(), "clearUnspecifiedContexts-test-label-C",
+                            "Context type was not left unchanged by contextual action.");
+
+                    Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-B"));
+                    Label.set("clearUnspecifiedContexts-test-label-B");
+
+                    return Thread.currentThread().getPriority();
+            });
+
+            Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-C"));
+            Label.set("clearUnspecifiedContexts-test-label-C");
+
+            Assert.assertEquals(callable.call(), Integer.valueOf(Thread.NORM_PRIORITY),
+                    "Context type that remained unspecified was not cleared by default.");
+            
+            Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-C",
+                    "Previous context (Buffer) was not restored after context was propagated for contextual action.");
+            
+            Assert.assertEquals(Label.get(), "clearUnspecifiedContexts-test-label-B",
+                    "Context type was not left unchanged by contextual action.");
         }
         finally {
             // Restore original values
