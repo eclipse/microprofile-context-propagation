@@ -626,6 +626,7 @@ public class ThreadContextTest extends Arquillian {
             });
             
             Buffer.set(new StringBuffer("reuseBuilder-test-buffer-D"));
+            Thread.currentThread().setPriority(newPriority - 1);
             
             Assert.assertEquals(propagatedCallable.call(), Integer.valueOf(newPriority),
                     "Context type was not propagated to contextual action.");
