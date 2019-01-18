@@ -1265,7 +1265,7 @@ public class ManagedExecutorTest extends Arquillian {
                 Buffer.set(new StringBuffer("reuseBuilder-test-buffer-B"));
             });
 
-            Future<Void> propagatedFuture = propagatingExecutor.completedFuture(1).thenRun(() -> {
+            Future<Void> propagatedFuture = propagatingExecutor.completedFuture(1).thenRunAsync(() -> {
                 Assert.assertEquals(Buffer.get().toString(), "reuseBuilder-test-buffer-A",
                         "Context type was not propagated to contextual action.");
 
