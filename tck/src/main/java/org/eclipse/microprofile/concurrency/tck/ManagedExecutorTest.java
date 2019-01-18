@@ -18,6 +18,7 @@
  */
 package org.eclipse.microprofile.concurrency.tck;
 
+import static org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.ThreadPriorityContextProvider.THREAD_PRIORITY;
 import java.io.CharConversionException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -121,6 +122,48 @@ public class ManagedExecutorTest extends Arquillian {
                 "MicroProfile Concurrency implementation does not provide a ManagedExecutor builder.");
     }
 
+    /**
+     * Verify that the MicroProfile Concurrency ManagedExecutor implementation clears context
+     * types that are not configured under propagated, or cleared.
+     * @throws TimeoutException 
+     * @throws ExecutionException 
+     * @throws InterruptedException 
+     */
+    @Test
+    public void clearUnspecifiedContexts() throws InterruptedException, ExecutionException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .build();
+        
+        int originalPriority = Thread.currentThread().getPriority();     
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 3 ? 2 : 3;
+            Thread.currentThread().setPriority(newPriority);
+            Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-A"));
+
+            Future<Integer> future = executor.submit(() -> {
+                    Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
+                            "Context type was not propagated to contextual action.");
+
+                    Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-B"));
+
+                    return Thread.currentThread().getPriority();
+            });
+
+            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(Thread.NORM_PRIORITY),
+                    "Context type that remained unspecified was not cleared by default.");
+            
+            Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
+                    "Previous context (Buffer) was not restored after context was propagated for contextual action.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+    
     /**
      * Verify that thread context is captured and propagated per the configuration of the
      * ManagedExecutor builder for all dependent stages of the completed future that is created
