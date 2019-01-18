@@ -29,8 +29,10 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.spi.BufferContextProvider;
@@ -72,6 +74,9 @@ public class MPConfigTest extends Arquillian {
 
     @Inject @NamedInstance("producedExecutor")
     protected ManagedExecutor producedExecutor;
+
+    @Inject @Named("producedThreadContext") // other qualifiers such as @Named remain valid for app-defined producers
+    protected ThreadContext producedThreadContext;
 
     @AfterMethod
     public void afterMethod(Method m, ITestResult result) {
@@ -364,15 +369,16 @@ public class MPConfigTest extends Arquillian {
     /**
      * Verify that MicroProfile config overrides the cleared, propagated, and unchanged attributes
      * of a ThreadContext that is produced by the container when the application defines
-     * an unqualified parameter injection point that is annotated with ThreadContextConfig.
+     * an unqualified parameter injection point that is annotated with ThreadContextConfig,
+     * where the ThreadContext parameter is the first parameter of the method.
      */
     @Test(dependsOnMethods = "beanInjected")
-    public void overrideContextPropagationForThreadContextParameterWithConfig() {
+    public void overrideContextPropagationForThreadContextParameter1WithConfig() {
 
         // Expected config is propagated=Label; unchanged=ThreadPriority, cleared=Remaining
         Executor contextSnapshot = bean.getContextSnapshot();
         Assert.assertNotNull(contextSnapshot,
-                "Unable to inject ThreadContext into method parameter. Cannot run test.");
+                "Unable to inject ThreadContext into method parameter 1. Cannot run test.");
 
         int originalPriority = Thread.currentThread().getPriority();
         try {
@@ -403,6 +409,40 @@ public class MPConfigTest extends Arquillian {
             Buffer.set(null);
             Label.set(null);
             Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * Verify that MicroProfile config overrides the cleared, propagated, and unchanged attributes
+     * of a ThreadContext that is produced by the container when the application defines
+     * an unqualified parameter injection point that is annotated with ThreadContextConfig,
+     * where the ThreadContext parameter is the third parameter of the method.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void overrideContextPropagationForThreadContextParameter3WithConfig() {
+
+        // Expected config is propagated=Label; unchanged=ThreadPriority, cleared=Remaining
+        Assert.assertNotNull(producedThreadContext,
+                "Unable to inject ThreadContext. Cannot run test.");
+
+        int originalPriority = Thread.currentThread().getPriority();
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("overrideThreadContextConfig3-test-buffer"));
+            Label.set("overrideThreadContextConfig3-test-label-A");
+
+            Supplier<String> appendLabelToBuffer = producedThreadContext.contextualSupplier(() ->
+                Buffer.get().append(Label.get()).toString());
+
+            Label.set("overrideThreadContextConfig3-test-label-B");
+
+            Assert.assertEquals(appendLabelToBuffer.get(), "overrideThreadContextConfig3-test-label-A",
+                    "Context type(s) not correctly propagated and/or cleared per MicroProfile Config overrides.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
         }
     }
 
