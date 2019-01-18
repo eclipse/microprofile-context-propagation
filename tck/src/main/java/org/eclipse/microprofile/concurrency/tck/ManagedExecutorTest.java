@@ -158,6 +158,7 @@ public class ManagedExecutorTest extends Arquillian {
                     "Previous context (Buffer) was not restored after context was propagated for contextual action.");
         }
         finally {
+            executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
             Thread.currentThread().setPriority(originalPriority);
