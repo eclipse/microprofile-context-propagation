@@ -18,7 +18,6 @@
  */
 package org.eclipse.microprofile.concurrency.tck;
 
-import static org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.ThreadPriorityContextProvider.THREAD_PRIORITY;
 import java.io.CharConversionException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -142,17 +141,18 @@ public class ManagedExecutorTest extends Arquillian {
             Thread.currentThread().setPriority(newPriority);
             Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-A"));
 
-            Future<Integer> future = executor.submit(() -> {
+            Future<Void> future = executor.completedFuture(1).thenRun(() -> {
                     Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
                             "Context type was not propagated to contextual action.");
 
                     Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-B"));
 
-                    return Thread.currentThread().getPriority();
+                    Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
+                            "Context type that remained unspecified was not cleared by default.");
             });
 
-            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(Thread.NORM_PRIORITY),
-                    "Context type that remained unspecified was not cleared by default.");
+            Assert.assertNull(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Non-null value returned by stage that runs Runnable.");
             
             Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
                     "Previous context (Buffer) was not restored after context was propagated for contextual action.");
