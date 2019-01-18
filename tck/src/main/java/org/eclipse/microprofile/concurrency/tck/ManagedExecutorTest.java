@@ -1242,17 +1242,9 @@ public class ManagedExecutorTest extends Arquillian {
         
         ManagedExecutor clearingExecutor = builder.build();
 
-        builder.propagated(Buffer.CONTEXT_NAME);
-        try {
-            builder.build();
-            Assert.fail("ManagedExecutor.Builder.build() should throw an IllegalStateException for set overlap between propagated and cleared");
-        }
-        catch (IllegalStateException ISE) {
-            // test passes
-        }
-
-        builder.cleared();
-        ManagedExecutor propagatingExecutor = builder.build();
+        ManagedExecutor propagatingExecutor = builder.propagated(Buffer.CONTEXT_NAME)
+                .cleared()
+                .build();
 
         try {
             // Set non-default value
