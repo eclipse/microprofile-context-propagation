@@ -1231,6 +1231,57 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
+     * Verify that the ManagedExecutor.Builder can be used to create multiple ManagedExecutors with 
+     * different configured contexts.
+     */
+    @Test
+    public void reuseManagedExecutorBuilder() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor.Builder builder = ManagedExecutor.builder()
+                .propagated()
+                .cleared(Buffer.CONTEXT_NAME);
+        
+        ManagedExecutor clearingExecutor = builder.build();
+
+        ManagedExecutor propagatingExecutor = builder.propagated(Buffer.CONTEXT_NAME)
+                .cleared()
+                .build();
+
+        try {
+            // Set non-default value
+            Buffer.set(new StringBuffer("reuseBuilder-test-buffer-A"));
+
+            Future<Void> clearedFuture = clearingExecutor.completedFuture(1).thenRun(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+
+                Buffer.set(new StringBuffer("reuseBuilder-test-buffer-B"));
+            });
+
+            Future<Void> propagatedFuture = propagatingExecutor.completedFuture(1).thenRunAsync(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "reuseBuilder-test-buffer-A",
+                        "Context type was not propagated to contextual action.");
+
+                Buffer.set(new StringBuffer("reuseBuilder-test-buffer-C"));
+            });
+
+            Assert.assertNull(propagatedFuture.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Non-null value returned by stage that runs Runnable.");
+
+            Assert.assertNull(clearedFuture.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Non-null value returned by stage that runs Runnable.");
+
+            Assert.assertEquals(Buffer.get().toString(), "reuseBuilder-test-buffer-A",
+                    "Previous context (Buffer) was not restored after context was propagated for contextual action.");
+        }
+        finally {
+            clearingExecutor.shutdownNow();
+            propagatingExecutor.shutdownNow();
+            // Restore original value
+            Buffer.set(null);
+        }
+    }
+    
+    /**
      * Verify that thread context is captured and propagated per the configuration of the
      * ManagedExecutor builder for all dependent stages as well as the initial stage created
      * by the ManagedExecutor's runAsync implementation. Thread context is captured
