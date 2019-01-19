@@ -581,6 +581,68 @@ public class ThreadContextTest extends Arquillian {
             Label.set(null);
         }
     }
+    
+    /**
+     * Verify that the ThreadContext.Builder can be used to create multiple ThreadContexts with 
+     * different configured contexts.
+     * @throws Exception 
+     */
+    @Test
+    public void reuseThreadContextBuilder() throws Exception {
+        ThreadContext.Builder builder = ThreadContext.builder()
+                .propagated()
+                .cleared(Buffer.CONTEXT_NAME, THREAD_PRIORITY);
+        
+        ThreadContext clearingContext = builder.build();
+        
+        ThreadContext propagatingContext = builder.propagated(Buffer.CONTEXT_NAME, THREAD_PRIORITY)
+                .cleared()
+                .build();
+
+        int originalPriority = Thread.currentThread().getPriority();     
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 3 ? 2 : 3;
+            Thread.currentThread().setPriority(newPriority);
+            Buffer.set(new StringBuffer("reuseBuilder-test-buffer-A"));
+
+            Callable<Integer> clearedCallable = clearingContext.contextualCallable(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that is configured to be cleared was not cleared.");
+                
+                Buffer.set(new StringBuffer("reuseBuilder-test-buffer-B"));
+                
+                return Thread.currentThread().getPriority();
+            });
+
+            Callable<Integer> propagatedCallable = propagatingContext.contextualCallable(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "reuseBuilder-test-buffer-A",
+                        "Context type was not propagated to contextual action.");
+
+                Buffer.set(new StringBuffer("reuseBuilder-test-buffer-C"));
+                
+                return Thread.currentThread().getPriority();
+                
+            });
+            
+            Buffer.set(new StringBuffer("reuseBuilder-test-buffer-D"));
+            Thread.currentThread().setPriority(newPriority - 1);
+            
+            Assert.assertEquals(propagatedCallable.call(), Integer.valueOf(newPriority),
+                    "Context type was not propagated to contextual action.");
+            
+            Assert.assertEquals(clearedCallable.call(), Integer.valueOf(Thread.NORM_PRIORITY),
+                    "Context type that is configured to be cleared was not cleared.");
+
+            Assert.assertEquals(Buffer.get().toString(), "reuseBuilder-test-buffer-D",
+                    "Previous context (Buffer) was not restored after context was propagated for contextual action.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
 
     /**
      * Verify that the MicroProfile Concurrency implementation finds third-party thread context providers
