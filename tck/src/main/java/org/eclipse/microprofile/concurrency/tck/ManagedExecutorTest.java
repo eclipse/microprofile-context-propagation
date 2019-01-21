@@ -122,6 +122,50 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
+     * Verify that the MicroProfile Concurrency ManagedExecutor implementation clears context
+     * types that are not configured under propagated, or cleared.
+     * @throws TimeoutException 
+     * @throws ExecutionException 
+     * @throws InterruptedException 
+     */
+    @Test
+    public void clearUnspecifiedContexts() throws InterruptedException, ExecutionException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .build();
+        
+        int originalPriority = Thread.currentThread().getPriority();     
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 3 ? 2 : 3;
+            Thread.currentThread().setPriority(newPriority);
+            Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-A"));
+
+            Future<Void> future = executor.completedFuture(1).thenRun(() -> {
+                    Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
+                            "Context type was not propagated to contextual action.");
+
+                    Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-B"));
+
+                    Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
+                            "Context type that remained unspecified was not cleared by default.");
+            });
+
+            Assert.assertNull(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Non-null value returned by stage that runs Runnable.");
+            
+            Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
+                    "Previous context (Buffer) was not restored after context was propagated for contextual action.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+    
+    /**
      * Verify that thread context is captured and propagated per the configuration of the
      * ManagedExecutor builder for all dependent stages of the completed future that is created
      * by the ManagedExecutor's completedFuture implementation. Thread context is captured
