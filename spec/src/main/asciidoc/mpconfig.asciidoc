@@ -100,3 +100,40 @@ org.eclipse.microprofile.example.MyBean.createExecutor.1.maxAsync=10
 ----
 
 Again, it would be wrong to specify `org.eclipse.microprofile.example.MyBean.exec6.maxAsync`, because the container does not produce a new instance for the `exec6` injection point. The container produces the new instance for the `exec` injection point, and matches that same instance for injection into `exec6` per the `@NamedInstance("executor6")` qualifier.
+
+=== Overriding Array Properties in MicroProfile Config
+
+MicroProfile Config can be used to override array type properties (`propagated`, `cleared`, and `unchanged`) on injection points for which the container creates `ManagedExecutor` or `ThreadContext` instances. The following rules apply for config property values:
+
+- The value can be a single array element, multiple elements (delimited by `,`), or empty.
+- Array elements can be any value returned by a ``ThreadContextProvider``'s `getThreadContextType()` method.
+- Array elements can be any thread context type constant value from ThreadContext (such as `Security`, `Application`, or `Remaining`).
+- The usual rules from the MicroProfile Config specification apply, such as escaping special characters.
+
+For example, we can start with the following injection point, which has the default configuration for `ThreadContext`. This means clearing the `Transaction` context, leaving no context type unchanged, and propagating all `Remaining` context types,
+
+[source, java]
+----
+package org.eclipse.microprofile.example;
+...
+public class MyBean {
+    @Inject
+    ThreadContext contextPropagator;
+}
+----
+
+If the user wishes to override the above to propagate exactly 2 context types (`Application` and `CDI`), clear nothing, and leave all `Remaining` types unchanged, then they could configure the following MicroProfile Config properties,
+
+[source, text]
+----
+org.eclipse.microprofile.example.MyBean.contextPropagator.propagated=Application,CDI
+org.eclipse.microprofile.example.MyBean.contextPropagator.cleared=
+org.eclipse.microprofile.example.MyBean.contextPropagator.unchanged=Remaining
+----
+
+In order to guarantee that empty string config values are interpreted properly, the MicroProfile Concurrency implementation must interpret both of the following as indicating empty:
+
+* empty array
+* array containing the empty String as its singular element
+
+This is necessary due to a lack of clarity in the first several versions of the MicroProfile Config specification about how the empty string value is to be interpreted for arrays of String.
