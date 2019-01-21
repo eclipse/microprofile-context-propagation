@@ -119,7 +119,7 @@ package org.eclipse.microprofile.example;
 ...
 public class MyBean {
     @Inject
-    ThreadContext appAndCDIContextPropagator;
+    ThreadContext contextPropagator;
 }
 ----
 
@@ -127,9 +127,14 @@ If the user wishes to override the above to propagate exactly 2 context types (`
 
 [source, text]
 ----
-org.eclipse.microprofile.example.MyBean.appAndCDIContextPropagator.propagated=Application,CDI
-org.eclipse.microprofile.example.MyBean.appAndCDIContextPropagator.cleared=
-org.eclipse.microprofile.example.MyBean.appAndCDIContextPropagator.unchanged=Remaining
+org.eclipse.microprofile.example.MyBean.contextPropagator.propagated=Application,CDI
+org.eclipse.microprofile.example.MyBean.contextPropagator.cleared=
+org.eclipse.microprofile.example.MyBean.contextPropagator.unchanged=Remaining
 ----
 
-In order to guarantee that empty string config values are interpreted properly, the MicroProfile Concurrency implementation must accept both an empty array or collection as well as a size 1 array or collection containing the empty string as meaning empty.  This is necessary due to a lack of clarity in the first several versions of the MicroProfile Config specification about how the empty string value is to be interpreted for arrays and collections of String.
+In order to guarantee that empty string config values are interpreted properly, the MicroProfile Concurrency implementation must interpret both of the following as indicating empty:
+
+* empty array
+* array containing the empty String as its singular element
+
+This is necessary due to a lack of clarity in the first several versions of the MicroProfile Config specification about how the empty string value is to be interpreted for arrays of String.
