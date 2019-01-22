@@ -62,32 +62,54 @@ public class ConcurrencyManagerTest extends Arquillian {
      */
     @Test
     public void builderForConcurrencyManagerIsProvided() {
+        ConcurrencyProvider provider = ConcurrencyProvider.instance();
+        ClassLoader classLoader = ConcurrencyManagerTest.class.getClassLoader();
+        Builder concurrencyManagerBuilder = null;
+
         try {
-            ConcurrencyProvider provider = ConcurrencyProvider.instance();
-            ClassLoader classLoader = ConcurrencyManagerTest.class.getClassLoader();
-            
             //obtain the ConcurrencyManagerBuilder
-            Builder concurrencyManagerBuilder = provider.getConcurrencyManagerBuilder();
+            concurrencyManagerBuilder = provider.getConcurrencyManagerBuilder();
             Assert.assertNotNull(concurrencyManagerBuilder,
                     "MicroProfile Concurrency implementation does not provide a ConcurrencyManager builder.");
-            
-            //build and register a ConcurrencyManager
-            ConcurrencyManager builtManager = concurrencyManagerBuilder.build();
-            provider.registerConcurrencyManager(builtManager, classLoader);
-            ConcurrencyManager registeredManager = provider.getConcurrencyManager(classLoader);
-            Assert.assertEquals(builtManager, registeredManager,
-                    "ConcurrencyManager.getConcurrencyManager(classLoader) did not return the same manager that was registered.");
-            
-            //release the ConcurrencyManager
-            provider.releaseConcurrencyManager(registeredManager);
-            Assert.assertNotEquals(builtManager, provider.getConcurrencyManager(classLoader),
-                    "ConcurrencyManager was not released from the ConcurencyProvider.");
-            
         } 
-        catch (UnsupportedOperationException ex) {
-            // Support is optional, allow test to pass.
-            System.out.println("Skipping test builderForConcurrencyManagerIsProvided. "
-                    + "ConcurrencyProvider.getConcurrencyManagerBuilder is not supported.");
-        }        
+        catch (UnsupportedOperationException ex1) {
+            //ConcurrencyProvider.getConcurrencyManagerBuilder() support is optional.
+            System.out.println("ConcurrencyProvider.getConcurrencyManagerBuilder is not supported.");
+
+            //Verify ConcurrencyProvider.registerConcurrencyManager() is also unsupported.
+            try {
+                provider.registerConcurrencyManager(provider.getConcurrencyManager(), classLoader);
+                Assert.fail("ConcurrencyProvider.registerConcurrencyManager should not be supported, "
+                        + "if ConcurrencyProvider.getConcurrencyManagerBuilder is not supported.");
+            }
+            catch (UnsupportedOperationException ex2) {
+                System.out.println("ConcurrencyProvider.registerConcurrencyManager is not supported.");
+            }
+
+            //Verify ConcurrencyProvider.releaseConcurrencyManager() is also unsupported.
+            try {
+                provider.releaseConcurrencyManager(provider.getConcurrencyManager());
+                Assert.fail("ConcurrencyProvider.releaseConcurrencyManager should not be supported, "
+                        + "if ConcurrencyProvider.getConcurrencyManagerBuilder is not supported.");
+            }
+            catch (UnsupportedOperationException ex3) {
+                System.out.println("ConcurrencyProvider.releaseConcurrencyManager is not supported.");
+            }
+
+            //Unsupported path of test has passed.
+            return;
+        }   
+
+        //build and register a ConcurrencyManager
+        ConcurrencyManager builtManager = concurrencyManagerBuilder.build();
+        provider.registerConcurrencyManager(builtManager, classLoader);
+        ConcurrencyManager registeredManager = provider.getConcurrencyManager(classLoader);
+        Assert.assertEquals(builtManager, registeredManager,
+                "ConcurrencyManager.getConcurrencyManager(classLoader) did not return the same manager that was registered.");
+
+        //release the ConcurrencyManager
+        provider.releaseConcurrencyManager(registeredManager);
+        Assert.assertNotEquals(builtManager, provider.getConcurrencyManager(classLoader),
+                "ConcurrencyManager was not released from the ConcurencyProvider.");
     }
 }
