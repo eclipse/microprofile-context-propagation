@@ -20,6 +20,8 @@ package org.eclipse.microprofile.concurrency.tck;
 
 import static org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.ThreadPriorityContextProvider.THREAD_PRIORITY;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -34,6 +36,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.spi.BufferContextProvider;
@@ -116,7 +121,84 @@ public class ThreadContextTest extends Arquillian {
         Assert.assertNotNull(ThreadContext.builder(),
                 "MicroProfile Concurrency implementation does not provide a ThreadContext builder.");
     }
-    
+
+    /**
+     * Verify that if JTA transactions are supported, then configuring cleared=TRANSACTION
+     * results in the active transaction being suspended before running a task and resumed afterward,
+     * such that a task can use its own transactions if so desired.
+     */
+    @Test
+    public void clearTransactionContextJTA() throws Exception {
+        Class<?> userTransaction;
+        try {
+            userTransaction = Class.forName("javax.transaction.UserTransaction");
+        }
+        catch (ClassNotFoundException x) {
+            System.out.println("Skipping test clearTransactionContextJTA. javax.transaction.UserTransaction class not available to applications.");
+            return;            
+        }
+
+        Object txFromJNDI = null;
+        try {
+            txFromJNDI = InitialContext.doLookup("java:comp/UserTransaction");
+            System.out.println("JTA UserTransaction is available in JNDI.");
+        }
+        catch (NamingException x) {
+            System.out.println("JTA UserTransaction not available in JNDI: " + x);
+        }
+
+        Object txFromCDI = null;
+        try {
+            // txFromCDI = CDI.current().select(UserTransaction.class).get();
+            Class<?> cdi = Class.forName("javax.enterprise.inject.spi.CDI");
+            Object current = cdi.getMethod("current").invoke(null);
+            Object instance = cdi.getMethod("select", Class.class, Annotation[].class).invoke(current, userTransaction, new Annotation[] {});
+            txFromCDI = instance.getClass().getMethod("get").invoke(instance);
+            System.out.println("JTA UserTransaction is available via CDI.");
+        }
+        catch (RuntimeException | InvocationTargetException x) {
+            System.out.println("JTA UserTransaction not available via CDI: " +
+                    (x instanceof InvocationTargetException ? x.getCause() : x));
+        }
+
+        Object tx = txFromJNDI == null ? txFromCDI : txFromJNDI;
+        if (tx == null) {
+            System.out.println("Skipping test clearTransactionContextJTA. JTA transactions are not supported.");
+            return;
+        }
+
+        System.out.println("Using JTA UserTransaction: " + tx);
+
+        Method begin = userTransaction.getMethod("begin");
+        Method commit = userTransaction.getMethod("commit");
+        Method getStatus = userTransaction.getMethod("getStatus");
+
+        ThreadContext threadContext = ThreadContext.builder()
+                .cleared(ThreadContext.TRANSACTION)
+                .build();
+
+        Callable<String> taskWithNewTransaction = threadContext.contextualCallable(() -> {
+            Assert.assertEquals(getStatus.invoke(tx), 6, // javax.transaction.Status.STATUS_NO_TRANSACTION
+                    "Transaction status should indicate no transaction is active on thread.");
+
+            begin.invoke(tx);
+            commit.invoke(tx);
+
+            return "SUCCESS";
+        });
+
+        begin.invoke(tx);
+        try {
+            Assert.assertEquals(taskWithNewTransaction.call(), "SUCCESS");
+
+            Assert.assertEquals(getStatus.invoke(tx), 0, // javax.transaction.Status.STATUS_ACTIVE
+                    "Transaction status should indicate active transaction on thread.");
+        }
+        finally {
+            commit.invoke(tx);
+        }
+    }
+
     /**
      * Verify that the MicroProfile Concurrency ThreadContext implementation clears context
      * types that are not configured under propagated, unchanged, or cleared.
