@@ -40,7 +40,7 @@ public class BasicCDITest extends Arquillian {
                 .addPackage("org.eclipse.microprofile.concurrency.tck.cdi")
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml");
     }
-
+    
     @Test
     public void testVerifyInjection() {
         bean.testVerifyInjection();
@@ -52,8 +52,18 @@ public class BasicCDITest extends Arquillian {
     }
 
     @Test
-    public void testMaxAsync2() throws Exception {
-        bean.testMaxAsync2();
+    public void testConfigAnno() throws Exception {
+        bean.testConfigAnno();
+    }
+    
+    @Test
+    public void testConfigAnnoOnParameter() throws Exception {
+        bean.testConfigAnnoOnParameter();
+    }
+    
+    @Test
+    public void shutdownContainerInstance() throws Exception {
+        bean.shutdownContainerInstance();
     }
 
 }

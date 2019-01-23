@@ -22,14 +22,14 @@ import static org.testng.Assert.*;
 
 import java.util.Arrays;
 
-import javax.enterprise.context.RequestScoped;
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.concurrent.ManagedExecutor;
 import org.eclipse.microprofile.concurrent.ManagedExecutorConfig;
 import org.eclipse.microprofile.concurrent.NamedInstance;
 
-@RequestScoped
+@ApplicationScoped
 public class ManagedExecutorSharingBean {
 
     @Inject
@@ -68,7 +68,7 @@ public class ManagedExecutorSharingBean {
      * Verify the container creates a ManagedExecutor instance per unqualified ManagedExecutor injection point
      */
     public void testDefaultMEsDifferent() {
-        assertNotSame(defaultME, defaultME2,
+        assertNotSame(defaultME.toString(), defaultME2.toString(),
                 "Default injection points \"@Inject ManagedExecutor exec;\" should get different instances");
     }
 
@@ -76,7 +76,7 @@ public class ManagedExecutorSharingBean {
      * Verify the container creates a ManagedExecutor instance per unqualified injection point w/ config
      */
     public void testUnnamedConfigDifferent() {
-        assertNotSame(defaultAnno1, defaultAnno2,
+        assertNotSame(defaultAnno1.toString(), defaultAnno2.toString(),
                 "Default injection points with matching @ManagedExecutorConfig should get different instances");
     }
 
@@ -84,25 +84,25 @@ public class ManagedExecutorSharingBean {
      * Verify injection points with matching @NamedInstance qualifiers share an ME instance
      */
     public void testNamedExecsSame() {
-        assertEquals(namedExecA1, namedExecA2,
+        assertEquals(namedExecA1.toString(), namedExecA2.toString(),
                 "Two injection points with @NamedInstance(\"A\") should share the same ManagedExecutor");
-        assertEquals(namedExecB1, namedExecB2,
+        assertEquals(namedExecB1.toString(), namedExecB2.toString(),
                 "Two injection points with @NamedInstance(\"B\") should share the same ManagedExecutor");
     }
 
     /**
      * Verify injection points with different @NamedInstance qualifiers do NOT share an ME instance
      */
-    public void differentNamedMEDifferent() {
-        assertNotSame(namedExecA1, namedExecB1,
+    public void testDifferentNamedMEDifferent() {
+        assertNotSame(namedExecA1.toString(), namedExecB1.toString(),
                 "Two injection points with different @NamedInstance values should get separate ManagedExecutor instances");
     }
 
     public void testAllDefaultInjectionUnique() {
-        assertUnique(defaultME, defaultME2, defaultAnno1, defaultAnno2);
+        assertUnique(defaultME.toString(), defaultME2.toString(), defaultAnno1.toString(), defaultAnno2.toString());
     }
 
-    private void assertUnique(ManagedExecutor... executors) {
+    private void assertUnique(String... executors) {
         for (int i = 0; i < executors.length; i++) {
             for (int j = i + 1; j < executors.length; j++) {
                 assertNotSame(executors[i], executors[j], "Expected all instances to be unique, but index " + i

@@ -25,7 +25,7 @@ import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 /**
@@ -36,7 +36,7 @@ public class ManagedExecutorSharingTest extends Arquillian {
     // Delegate all CDI tests off to a proper CDI bean
     // Injection in this class is mocked by the Arquillian test enricher
     @Inject
-    ManagedExecutorSharingBean testBean;
+    ManagedExecutorSharingBean bean;
 
     @Deployment
     public static WebArchive createDeployment() {
@@ -44,25 +44,31 @@ public class ManagedExecutorSharingTest extends Arquillian {
                 .addPackage("org.eclipse.microprofile.concurrency.tck.cdi")
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml");
     }
-
+    
     @Test
     public void testDefaultMEsDifferent() {
-        testBean.testDefaultMEsDifferent();
+        Assert.assertNotNull(bean, "The CDIBean was not injected into this test");
+        bean.testDefaultMEsDifferent();
     }
 
     @Test
     public void testUnnamedConfigDifferent() {
-        testBean.testUnnamedConfigDifferent();
+        bean.testUnnamedConfigDifferent();
     }
 
     @Test
     public void testAllDefaultInjectionUnique() {
-        testBean.testAllDefaultInjectionUnique();
+        bean.testAllDefaultInjectionUnique();
     }
 
     @Test
     public void testNamedExecsSame() {
-        testBean.testNamedExecsSame();
+        bean.testNamedExecsSame();
+    }
+    
+    @Test
+    public void testDifferentNamedMEDifferent() {
+        bean.testDifferentNamedMEDifferent();
     }
 
 }
