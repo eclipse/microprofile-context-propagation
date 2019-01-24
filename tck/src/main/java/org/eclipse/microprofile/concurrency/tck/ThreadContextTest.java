@@ -45,6 +45,7 @@ import org.eclipse.microprofile.concurrency.tck.contexts.buffer.spi.BufferContex
 import org.eclipse.microprofile.concurrency.tck.contexts.label.Label;
 import org.eclipse.microprofile.concurrency.tck.contexts.label.spi.LabelContextProvider;
 import org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.ThreadPriorityContextProvider;
+import org.eclipse.microprofile.concurrent.ManagedExecutor;
 import org.eclipse.microprofile.concurrent.ThreadContext;
 import org.eclipse.microprofile.concurrent.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -800,6 +801,10 @@ public class ThreadContextTest extends Arquillian {
                 .propagated(Label.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
+        ManagedExecutor labelContextExecutor = ManagedExecutor.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
 
         long testThreadId = Thread.currentThread().getId();
         try {
@@ -841,19 +846,22 @@ public class ThreadContextTest extends Arquillian {
                 Assert.assertEquals(Buffer.get().toString(), "",
                         "Context type that is configured to be cleared was not cleared.");
 
-                Assert.assertEquals(Thread.currentThread().getId(), testThreadId,
-                        "Completion stages created via withContextCapture must run on the test case's main thread " +
-                        "because it both completes the original stage and requests the result. The withContextCapture " +
-                        "method does not allow new async threads to be allocated even when the *Async methods are used.");
-
                 Label.set("withContextCapture-CompletableFuture-test-label-D");
 
                 return i + i;
-            });
+            }, labelContextExecutor);
 
             // Original stage remains usable, but not having been created by a ManagedExecutor, does not make any
             // guarantees about context propagation
             CompletableFuture<Integer> unmanagedStage5 = unmanagedStage1.thenApply(i -> i / 2);
+
+            try {
+                CompletableFuture<Integer> stage6 = stage4.thenApplyAsync(i -> i / 5);
+                Assert.fail("Should not be able to create async completion stage because withContextCapture provides no executor. " + stage6);
+            }
+            catch (UnsupportedOperationException x) {
+                // test passes, CompletableFutures from withContextCapture are not backed by an executor
+            }
 
             Label.set("withContextCapture-CompletableFuture-test-label-E");
 
@@ -878,6 +886,7 @@ public class ThreadContextTest extends Arquillian {
                     "Previous context was not restored after context was propagated for contextual action.");
         }
         finally {
+            labelContextExecutor.shutdownNow();
             // Restore original values
             Buffer.set(null);
             Label.set(null);
@@ -891,8 +900,12 @@ public class ThreadContextTest extends Arquillian {
      * from the thread that creates the dependent stage.
      */
     @Test
-    public void withContextCaptureDependentCompletionStagesRunWithContext() throws ExecutionException {
+    public void withContextCaptureDependentCompletionStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext bufferContext = ThreadContext.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        ManagedExecutor bufferContextExecutor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
@@ -950,16 +963,19 @@ public class ThreadContextTest extends Arquillian {
                 Assert.assertEquals(Label.get(), "",
                         "Context type that is configured to be cleared was not cleared.");
 
-                Assert.assertEquals(Thread.currentThread().getId(), testThreadId,
-                        "Completion stages created via withContextCapture must run on the test case's main thread " +
-                        "because it both completes the original stage and requests the result. The withContextCapture " +
-                        "method does not allow new async threads to be allocated even when the *Async methods are used.");
-
                 Buffer.get().append("-stage4");
                 Buffer.set(new StringBuffer("withContextCapture-CompletionStage-test-buffer-D"));
 
                 return i - 2345;
-            });
+            }, bufferContextExecutor);
+
+            try {
+                CompletionStage<Void> stage5 = stage4.thenAcceptAsync(i -> System.out.println("This should not ever run."));
+                Assert.fail("Should not be able to create async completion stage because withContextCapture provides no executor. " + stage5);
+            }
+            catch (UnsupportedOperationException x) {
+                // test passes, CompletableFutures from withContextCapture are not backed by an executor
+            }
 
             Buffer.set(new StringBuffer("withContextCapture-CompletionStage-test-buffer-E"));
 
@@ -967,7 +983,7 @@ public class ThreadContextTest extends Arquillian {
 
             CompletableFuture<Integer> cf4 = stage4.toCompletableFuture();
 
-            Assert.assertEquals(cf4.getNow(987), Integer.valueOf(123),
+            Assert.assertEquals(cf4.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(123),
                     "Completion stage created by withContextCapture did not complete with same value as original stage.");
 
             Assert.assertEquals(buffer.toString(), "withContextCapture-CompletionStage-test-buffer-A-stage3-stage4");
@@ -979,6 +995,7 @@ public class ThreadContextTest extends Arquillian {
                     "Previous context was not restored after context was cleared for contextual action.");
         }
         finally {
+            bufferContextExecutor.shutdownNow();
             // Restore original values
             Buffer.set(null);
             Label.set(null);
