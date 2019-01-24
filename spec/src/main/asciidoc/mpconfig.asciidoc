@@ -17,7 +17,7 @@
 [[concurrencympconfig]]
 == Integration with MicroProfile Config
 
-If a MicroProfile Config implementation is available, MicroProfile Config can be used to override configuration attributes of `ManagedExecutor` and `ThreadContext`.  This is true of instances that are built by the application as well as those produced by the container for injection as CDI beans.  The former involves standard usage of MicroProfile Config.  The latter relies upon the convention of defining MicroProfile Config property names that correspond to the fully qualified name of the injection point for which the instance is produced.  For ManagedExecutor and ThreadContext instances produced by the container, MicroProfie Config is applied statically. These instances will not dynamically respond to MicroProfile Config changes made after they are produced.
+If a MicroProfile Config implementation is available, MicroProfile Config can be used to override configuration attributes of `ManagedExecutor` and `ThreadContext`.  This is true of instances that are built by the application as well as those produced by the container for injection as CDI beans.  The former involves standard usage of MicroProfile Config.  The latter relies upon the convention of defining MicroProfile Config property names that correspond to the fully qualified name of the injection point for which the instance is produced.  For `ManagedExecutor` and `ThreadContext` instances produced by the container, MicroProfie Config is applied statically. These instances will not dynamically respond to MicroProfile Config changes made after they are produced.
 
 === Application usage of MicroProfile Config
 
