@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -313,4 +313,14 @@ public interface ManagedExecutor extends ExecutorService {
      * @return the new completion stage.
      */
     <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier);
+
+    /**
+     * <p>Returns a textual representation of this executor. For managed executors
+     * that are produced by the container for CDI injection, the textual representation must include
+     * the fully qualified name of the injection point from which the container produces the
+     * managed executor.</p>
+     *
+     * @return a textual representation of the executor.
+     */
+    String toString();
 }
