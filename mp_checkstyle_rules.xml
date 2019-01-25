@@ -36,7 +36,9 @@
             <property name="format" value="^_?[a-z][a-zA-Z0-9]*$"/>
         </module>
         <module name="PackageName"/>
-        <module name="LocalFinalVariableName"/>
+        <module name="LocalFinalVariableName">
+            <property name="format" value="^(([A-Z][A-Z0-9]*(_[A-Z0-9]+)*))$"/>
+        </module>
         <module name="ParameterName"/>
         <module name="StaticVariableName"/>
 
@@ -45,7 +47,7 @@
         </module>
         <module name="AvoidStarImport">
             <property name="excludes"
-                      value="java.io,java.net,java.util,javax.enterprise.inject.spi,javax.enterprise.context"/>
+                      value="java.io,java.net,java.util,javax.enterprise.inject.spi,javax.enterprise.context,org.testng.Assert"/>
         </module>
         <module name="IllegalImport"/>
         <module name="RedundantImport"/>
@@ -83,7 +85,7 @@
         <module name="HideUtilityClassConstructor"/>
         <module
             name="com.puppycrawl.tools.checkstyle.checks.design.VisibilityModifierCheck">
-            <property name="packageAllowed" value="false"/>
+            <property name="packageAllowed" value="true"/>
             <property name="protectedAllowed" value="true"/>
             <property name="publicMemberPattern" value="^serialVersionUID"/>
             <property name="severity" value="warning"/>
