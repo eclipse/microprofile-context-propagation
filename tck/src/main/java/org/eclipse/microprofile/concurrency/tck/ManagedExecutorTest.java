@@ -1015,6 +1015,43 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
+     * Verify that Application context makes the application's thread context class loader available to the task.
+     */
+    @Test
+    public void propagateApplicationContext() throws ExecutionException, InterruptedException, TimeoutException {
+        ManagedExecutor.Builder builder = ManagedExecutor.builder()
+                .propagated(ThreadContext.APPLICATION)
+                .cleared(ThreadContext.ALL_REMAINING);
+
+        ManagedExecutor executor;
+        try {
+            executor = builder.build();
+        }
+        catch (IllegalStateException x) {
+            return; // Skip test if Application context is not supported.
+        }
+
+        try {
+            CompletableFuture<Class<?>> cf = executor.supplyAsync(() -> {
+                try {
+                    // load a class from the application
+                    ClassLoader loader = Thread.currentThread().getContextClassLoader();
+                    return loader.loadClass("org.eclipse.microprofile.concurrency.tck.contexts.label.Label");
+                }
+                catch (ClassNotFoundException x) {
+                    throw new CompletionException(x);
+                }
+            });
+
+            Assert.assertEquals(cf.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Label.class,
+                    "Could not load class from application's class loader.");
+        }
+        finally {
+            executor.shutdownNow();
+        }
+    }
+
+    /**
      * Verify that the ManagedExecutor shutdownNow method prevents additional tasks from being submitted
      * and cancels tasks that are currently in progress or queued.
      * Also verify that once the tasks and actions terminate, the ManagedExecutor transitions to terminated state.
