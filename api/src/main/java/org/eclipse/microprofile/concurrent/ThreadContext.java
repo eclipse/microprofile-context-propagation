@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -415,6 +415,16 @@ public interface ThreadContext {
      * @return contextualized proxy instance that wraps execution of the <code>supply</code> method with context.
      */
     <R> Supplier<R> contextualSupplier(Supplier<R> supplier);
+
+    /**
+     * <p>Returns a textual representation of this instance. For <code>ThreadContext</code> instances
+     * that are produced by the container for CDI injection, the textual representation must include
+     * the fully qualified name of the injection point from which the container produces the instance.
+     * </p>
+     *
+     * @return a textual representation of this instance.
+     */
+    String toString();
 
     /**
      * <p>Returns a new <code>CompletableFuture</code> that is completed by the completion of the
