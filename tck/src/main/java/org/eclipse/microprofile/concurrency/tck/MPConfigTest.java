@@ -32,6 +32,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.literal.NamedLiteral;
+import javax.enterprise.inject.spi.CDI;
 import javax.inject.Inject;
 import javax.inject.Named;
 
@@ -41,8 +44,10 @@ import org.eclipse.microprofile.concurrency.tck.contexts.label.Label;
 import org.eclipse.microprofile.concurrency.tck.contexts.label.spi.LabelContextProvider;
 import org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.ThreadPriorityContextProvider;
 import org.eclipse.microprofile.concurrent.ManagedExecutor;
+import org.eclipse.microprofile.concurrent.ManagedExecutorConfig;
 import org.eclipse.microprofile.concurrent.NamedInstance;
 import org.eclipse.microprofile.concurrent.ThreadContext;
+import org.eclipse.microprofile.concurrent.ThreadContextConfig;
 import org.eclipse.microprofile.concurrent.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
@@ -736,6 +741,123 @@ public class MPConfigTest extends Arquillian {
         }
         finally {
             barrier.forceTermination();
+        }
+    }
+
+    /**
+     * CDI programmatic lookup of ManagedExecutor without any qualifiers must not find anything.
+     * This test is possible for ManagedExecutor because the test application does not provide any
+     * producers of ManagedExecutor without qualifiers.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void programmaticLookupManagedExecutorWithoutQualifiers() {
+        CDI cdi = CDI.current();
+
+        Instance<ManagedExecutor> instance = cdi.select(ManagedExecutor.class);
+        Assert.assertTrue(instance.isUnsatisfied(),
+                "Looked up instance of ManagedExecutor without qualifiers: " + instance);
+    }
+
+    /**
+     * CDI programmatic lookup of ManagedExecutor must be possible based on NamedInstance qualifier,
+     * but not by using ManagedExecutorConfig, because ManagedExecutorConfig is not a qualifier.
+     * This test uses literals for ManagedExecutorConfig that match the values directly from the
+     * annotation as well as those that are overridden by MicroProfile Config in order to test
+     * that in neither circumstance do they allow an instance to be looked up programmatically.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void programmaticLookupManagedExecutorWithQualifier() {
+        CDI cdi = CDI.current();
+
+        NamedInstance.Literal namedInstance = NamedInstance.Literal.of("namedExecutor");
+        Instance<ManagedExecutor> instance = cdi.select(ManagedExecutor.class, namedInstance);
+        ManagedExecutor executor = instance.get();
+        Assert.assertEquals(executor.toString(), namedExecutor.toString(),
+                "Programmatic CDI lookup of ManagedExecutor with " + namedInstance.toString() + " qualifier returned wrong instance.");
+
+        // Try matching annotation values before MP Config is applied,
+        ManagedExecutorConfig.Literal managedExecutorConfig = ManagedExecutorConfig.Literal.of(
+                1,
+                -1,
+                new String[] { ThreadContext.ALL_REMAINING }, // cleared 
+                new String[] { Buffer.CONTEXT_NAME, Label.CONTEXT_NAME }); // propagated 
+        try {
+            instance = cdi.select(ManagedExecutor.class, managedExecutorConfig);
+            Assert.fail("Should not resolve an instance because " + managedExecutorConfig.toString() + " is not a qualifier.");
+        }
+        catch (IllegalArgumentException x) {
+            // test passes
+        }
+
+        // Try matching annotation values after MP Config is applied,
+        managedExecutorConfig = ManagedExecutorConfig.Literal.of(
+                1,
+                4,
+                new String[] { ThreadPriorityContextProvider.THREAD_PRIORITY, Buffer.CONTEXT_NAME, ThreadContext.TRANSACTION }, // cleared 
+                new String[] { ThreadContext.ALL_REMAINING }); // propagated 
+        try {
+            instance = cdi.select(ManagedExecutor.class, namedInstance, managedExecutorConfig);
+            Assert.fail("Should not resolve an instance because " + managedExecutorConfig.toString() + " is not a qualifier.");
+        }
+        catch (IllegalArgumentException x) {
+            // test passes
+        }
+    }
+
+    /**
+     * CDI programmatic lookup of ThreadContext must be possible based on NamedInstance qualifier,
+     * but not by using ThreadContextConfig, because ThreadContextConfig is not a qualifier.
+     * This test uses literals for ThreadContextConfig that match the values directly from the
+     * annotation as well as those that are overridden by MicroProfile Config in order to test
+     * that in neither circumstance do they allow an instance to be looked up programmatically. 
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void programmaticLookupThreadContextWithQualifier() {
+        CDI cdi = CDI.current();
+
+        NamedInstance.Literal namedInstance = NamedInstance.Literal.of("namedThreadContext");
+        Instance<ThreadContext> instance = cdi.select(ThreadContext.class, namedInstance);
+        ThreadContext threadContext = instance.get();
+        Assert.assertEquals(threadContext.toString(), namedThreadContext.toString(),
+                "Programmatic CDI lookup of ThreadContext with " + namedInstance.toString() + " qualifier returned wrong instance.");
+
+        namedInstance = NamedInstance.Literal.of("clearAllRemainingThreadContext");
+        instance = cdi.select(ThreadContext.class, namedInstance);
+        threadContext = instance.get();
+        Assert.assertEquals(threadContext.toString(), clearAllRemainingThreadContext.toString(),
+                "Programmatic CDI lookup of ThreadContext with " + namedInstance.toString() + " qualifier returned wrong instance.");
+
+        // Verify that existing qualifiers such as Named aren't broken by the MP Concurrency implementation,
+        NamedLiteral named = NamedLiteral.of("producedThreadContext");
+        instance = cdi.select(ThreadContext.class, named);
+        threadContext = instance.get();
+        Assert.assertEquals(threadContext.toString(), producedThreadContext.toString(),
+                "Programmatic CDI lookup of ThreadContext with " + named.toString() + " qualifier returned wrong instance.");
+
+        // Try matching annotation values before MP Config is applied,
+        ThreadContextConfig.Literal threadContextConfig = ThreadContextConfig.Literal.of(
+                new String[] { ThreadContext.TRANSACTION }, // cleared 
+                new String[] { ThreadContext.ALL_REMAINING }, // propagated
+                new String[] { Label.CONTEXT_NAME }); // unchanged
+        try {
+            instance = cdi.select(ThreadContext.class, threadContextConfig);
+            Assert.fail("Should not resolve an instance because " + threadContextConfig.toString() + " is not a qualifier.");
+        }
+        catch (IllegalArgumentException x) {
+            // test passes
+        }
+
+        // Try matching annotation values after MP Config is applied,
+        threadContextConfig = ThreadContextConfig.Literal.of(
+                new String[] { ThreadContext.TRANSACTION }, // cleared 
+                new String[] { Buffer.CONTEXT_NAME }, // propagated
+                new String[] { Label.CONTEXT_NAME }); // unchanged
+        try {
+            instance = cdi.select(ThreadContext.class, namedInstance, threadContextConfig);
+            Assert.fail("Should not resolve an instance because " + threadContextConfig.toString() + " is not a qualifier.");
+        }
+        catch (IllegalArgumentException x) {
+            // test passes
         }
     }
 }
