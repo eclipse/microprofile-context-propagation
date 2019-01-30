@@ -18,24 +18,32 @@
  */
 package org.eclipse.microprofile.concurrency.tck.cdi;
 
+import static org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.ThreadPriorityContextProvider.THREAD_PRIORITY;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.*;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 
+import org.eclipse.microprofile.concurrency.tck.contexts.buffer.Buffer;
+import org.eclipse.microprofile.concurrency.tck.contexts.label.Label;
 import org.eclipse.microprofile.concurrent.ManagedExecutor;
 import org.eclipse.microprofile.concurrent.ManagedExecutorConfig;
 import org.eclipse.microprofile.concurrent.NamedInstance;
+import org.eclipse.microprofile.concurrent.ThreadContext;
+import org.eclipse.microprofile.concurrent.ThreadContextConfig;
 import org.testng.Assert;
 
 @ApplicationScoped
@@ -78,6 +86,45 @@ public class CDIBean {
     public ManagedExecutor createExecInjected(@ManagedExecutorConfig(maxAsync = 1, maxQueued = 3) ManagedExecutor exec) {
         return exec;
     }
+
+    @Inject
+    ThreadContext defaultContext;
+   
+    @Inject
+    @ThreadContextConfig
+    ThreadContext defaultContextWithEmptyAnno;
+
+    @Inject
+    @ThreadContextConfig(propagated = Buffer.CONTEXT_NAME, cleared = Label.CONTEXT_NAME, unchanged = ThreadContext.ALL_REMAINING)
+    ThreadContext bufferContext;
+
+    @Inject
+    @ThreadContextConfig(propagated = Label.CONTEXT_NAME, cleared = ThreadContext.ALL_REMAINING, unchanged = Buffer.CONTEXT_NAME)
+    ThreadContext labelContext;
+
+    @Produces
+    @ApplicationScoped
+    @NamedInstance("priority3Executor")
+    public Executor createPriority3Executor(@NamedInstance("priorityContext") @ThreadContextConfig(propagated = THREAD_PRIORITY) ThreadContext ctx) {
+        int originalPriority = Thread.currentThread().getPriority();
+        try {
+            Thread.currentThread().setPriority(3);
+            Label.set("do-not-propagate-this-label");
+            Buffer.set(new StringBuffer("do-not-propagate-this-buffer"));
+
+            return ctx.currentContextExecutor();
+        }
+        finally {
+            // restore previous values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    @Inject
+    @NamedInstance("priorityContext")
+    ThreadContext threadPriorityContext;
 
     /**
      * Verify that injected ME instances injected by the container can be shutdown
@@ -188,6 +235,112 @@ public class CDIBean {
         }
         finally {
             barrier.forceTermination();
+        }
+    }
+
+    /**
+     * The container creates a ThreadContext instance per unqualified ThreadContext injection point.
+     * This test relies on the spec requirement for ThreadContext.toString to include the
+     * name of the injection point from which the container produces the instance.
+     */
+    public void testInstancePerUnqualifiedThreadContextInjectionPoint() {
+        Assert.assertNotEquals(defaultContext.toString(), defaultContextWithEmptyAnno.toString(),
+                "ThreadContext injection points without qualifiers did not receive unique instances.");
+
+        Assert.assertNotEquals(defaultContext.toString(), bufferContext.toString(),
+                "ThreadContext injection points without qualifiers did not receive unique instances.");
+
+        Assert.assertNotEquals(defaultContext.toString(), labelContext.toString(),
+                "ThreadContext injection points without qualifiers did not receive unique instances.");
+
+        Assert.assertNotEquals(defaultContextWithEmptyAnno.toString(), bufferContext.toString(),
+                "ThreadContext injection points without qualifiers did not receive unique instances.");
+
+        Assert.assertNotEquals(defaultContextWithEmptyAnno.toString(), labelContext.toString(),
+                "ThreadContext injection points without qualifiers did not receive unique instances.");
+
+        Assert.assertNotEquals(bufferContext.toString(), labelContext.toString(),
+                "ThreadContext injection points without qualifiers did not receive unique instances.");
+    }
+
+    /**
+     * A ThreadContext instance that is injected by the container can be configured via ThreadContextConfig.
+     * Test the values configured for bufferContext and labelContext.
+     */
+    public void testThreadContextConfig() {
+        int originalPriority = Thread.currentThread().getPriority();
+        int newPriority = originalPriority == 2 ? 1 : 2;
+        try {
+            Thread.currentThread().setPriority(newPriority);
+            Label.set("testThreadContextConfig-label");
+            Buffer.set(new StringBuffer("testThreadContextConfig-buffer"));
+
+            Consumer<Integer> testBufferContext = bufferContext.contextualConsumer(expectedPriority -> {
+                Assert.assertEquals(Buffer.get().toString(), "testThreadContextConfig-buffer",
+                        "Thread context type was not propagated.");
+                Assert.assertEquals(Label.get(), "",
+                        "Thread context type was not cleared.");
+                Assert.assertEquals(Integer.valueOf(Thread.currentThread().getPriority()), expectedPriority,
+                        "Thread context type was not left unchanged.");
+            });
+
+            Runnable testLabelContext = labelContext.contextualRunnable(() -> {
+                Assert.assertEquals(Label.get(), "testThreadContextConfig-label",
+                        "Thread context type was not propagated.");
+                Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
+                        "Thread context type was not cleared.");
+                Assert.assertEquals(Buffer.get().toString(), "testThreadContextConfig-new-buffer",
+                        "Thread context type was not left unchanged.");
+            });
+
+            Thread.currentThread().setPriority(4);
+            Label.set("testThreadContextConfig-new-label");
+            Buffer.set(new StringBuffer("testThreadContextConfig-new-buffer"));
+
+            testBufferContext.accept(4);
+            testLabelContext.run();
+        }
+        finally {
+            // restore previous values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * If the NamedInstance qualifier is present on a ThreadContext injection point that is annotated with ThreadContextConfig,
+     * the container creates a ThreadContext instance that is qualified by the name value.
+     */
+    public void testThreadContextConfigNamedInstance() {
+        Assert.assertNotNull(threadPriorityContext);
+
+        int originalPriority = Thread.currentThread().getPriority();
+        int newPriority = originalPriority == 2 ? 1 : 2;
+        try {
+            Thread.currentThread().setPriority(newPriority);
+            Label.set("testThreadContextConfigNamedInstance-label");
+            Buffer.set(new StringBuffer("testThreadContextConfigNamedInstance-buffer"));
+
+            Supplier<Boolean> testPriorityContext = threadPriorityContext.contextualSupplier(() -> {
+                Assert.assertEquals(Thread.currentThread().getPriority(), newPriority,
+                        "Thread context type was not propagated.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Thread context type (buffer) was not cleared.");
+                Assert.assertEquals(Label.get(), "",
+                        "Thread context type (label) was not cleared.");
+                return true;
+            });
+
+            Thread.currentThread().setPriority(4);
+
+            testPriorityContext.get();
+        }
+        finally {
+            // restore previous values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
         }
     }
 }

@@ -18,6 +18,8 @@
  */
 package org.eclipse.microprofile.concurrency.tck.cdi;
 
+import java.lang.reflect.Method;
+
 import javax.inject.Inject;
 
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -26,7 +28,10 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.Assert;
+import org.testng.ITestResult;
 import org.testng.annotations.Test;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
 
 /**
  * Tests sharing rules of ManagedExecutors injected via CDI
@@ -38,10 +43,25 @@ public class ManagedExecutorSharingTest extends Arquillian {
     @Inject
     ManagedExecutorSharingBean bean;
 
+    @AfterMethod
+    public void afterMethod(Method m, ITestResult result) {
+        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName() + (result.isSuccess() ? " SUCCESS" : " FAILED"));
+        Throwable failure = result.getThrowable();
+        if (failure != null) {
+            failure.printStackTrace(System.out);
+        }
+    }
+
+    @BeforeMethod
+    public void beforeMethod(Method m) {
+        System.out.println(">>> BEGIN " + m.getClass().getSimpleName() + '.' + m.getName());
+    }
+
     @Deployment
     public static WebArchive createDeployment() {
         return ShrinkWrap.create(WebArchive.class, ManagedExecutorSharingTest.class.getSimpleName() + ".war")
-                .addPackage("org.eclipse.microprofile.concurrency.tck.cdi")
+                .addClass(ManagedExecutorSharingBean.class)
+                .addClass(ManagedExecutorSharingTest.class)
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml");
     }
     
