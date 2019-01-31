@@ -22,6 +22,7 @@ import static org.eclipse.microprofile.concurrency.tck.contexts.priority.spi.Thr
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.*;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -31,6 +32,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -101,6 +103,19 @@ public class CDIBean {
     @Inject
     @ThreadContextConfig(propagated = Label.CONTEXT_NAME, cleared = ThreadContext.ALL_REMAINING, unchanged = Buffer.CONTEXT_NAME)
     ThreadContext labelContext;
+
+    @Produces
+    @ApplicationScoped
+    @NamedInstance("labelContextPropagator")
+    ThreadContext labelContextPropagator1 = ThreadContext.builder().propagated(Label.CONTEXT_NAME).cleared(ThreadContext.ALL_REMAINING).build();
+
+    @Inject
+    @NamedInstance("labelContextPropagator")
+    ThreadContext labelContextPropagator2;
+
+    @Inject
+    @NamedInstance("priority3Executor")
+    Executor priority3Executor;
 
     @Produces
     @ApplicationScoped
@@ -335,6 +350,147 @@ public class CDIBean {
             Thread.currentThread().setPriority(4);
 
             testPriorityContext.get();
+        }
+        finally {
+            // restore previous values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * Application can provide producers of ThreadContext that are qualified by NamedInstance.
+     */
+    public void testAppDefinedProducerOfThreadContext() {
+        Assert.assertNotNull(labelContextPropagator1,
+                "Application should be able to use NamedInstance/Produces to define its own producer of ThreadContext.");
+        Assert.assertNotNull(labelContextPropagator2,
+                "Application should be able to use NamedInstance qualifier to obtain produced instance of ThreadContext.");
+
+        int originalPriority = Thread.currentThread().getPriority();
+        int newPriority = originalPriority == 2 ? 1 : 2;
+        try {
+            Thread.currentThread().setPriority(newPriority);
+            Label.set("testAppDefinedProducerOfThreadContext-label");
+            Buffer.set(new StringBuffer("testAppDefinedProducerOfThreadContext-buffer"));
+
+            Runnable testLabelContext = labelContextPropagator2.contextualRunnable(() -> {
+                Assert.assertEquals(Label.get(), "testAppDefinedProducerOfThreadContext-label",
+                        "Thread context type was not propagated.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Thread context type (Buffer) was not cleared.");
+                Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
+                        "Thread context type (ThreadPriority) was not cleared.");
+            });
+
+            Label.set("testAppDefinedProducerOfThreadContext-new-label");
+
+            testLabelContext.run();
+        }
+        finally {
+            // restore previous values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * Application-defined producer methods can have injection points of ThreadContext that are provided by the container.
+     */
+    public void testAppDefinedProducerUsingInjectedThreadContext() {
+        int originalPriority = Thread.currentThread().getPriority();
+        int newPriority = originalPriority == 2 ? 1 : 2;
+        try {
+            Thread.currentThread().setPriority(newPriority);
+            Label.set("testAppDefinedProducerUsingInjectedThreadContext-label");
+            Buffer.set(new StringBuffer("testAppDefinedProducerUsingInjectedThreadContext-buffer"));
+
+            // priority3Executor is an application-produced instance, where its producer method injects a ThreadContext
+            // instance that is provided by the container. The following verifies thread context propagation of that instance,
+            priority3Executor.execute(() -> {
+                Assert.assertEquals(Thread.currentThread().getPriority(), 3,
+                        "Thread context type was not propagated.");
+                Assert.assertEquals(Label.get(), "",
+                        "Thread context type (Label) was not cleared.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Thread context type (Buffer) was not cleared.");
+            });
+        }
+        finally {
+            // restore previous values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * When the container creates a ThreadContext for an injection point that lacks a ThreadContextConfig annotation,
+     * its configuration is equivalent to ThreadContext.builder().build(), which is that all available thread context
+     * types are propagated, except for Transaction context, which is cleared.
+     */
+    public void testInjectThreadContextNoConfig() {
+        int originalPriority = Thread.currentThread().getPriority();
+        int newPriority = originalPriority == 2 ? 1 : 2;
+        try {
+            Thread.currentThread().setPriority(newPriority);
+            Label.set("testInjectThreadContextNoConfig-label");
+            Buffer.set(new StringBuffer("testInjectThreadContextNoConfig-buffer"));
+
+            Function<Integer, String> testAllContextPropagated = defaultContext.contextualFunction(i -> {
+                Assert.assertEquals(Buffer.get().toString(), "testInjectThreadContextNoConfig-buffer",
+                        "Thread context type (Buffer) was not propagated.");
+                Assert.assertEquals(Label.get(), "testInjectThreadContextNoConfig-label",
+                        "Thread context type (Lable) was not propagated.");
+                Assert.assertEquals(Thread.currentThread().getPriority(), newPriority,
+                        "Thread context type (ThreadPriority) was not propagated.");
+                return "done";
+            });
+
+            Thread.currentThread().setPriority(4);
+            Label.set("testInjectThreadContextNoConfig-new-label");
+            Buffer.set(new StringBuffer("testInjectThreadContextNoConfig-new-buffer"));
+
+            testAllContextPropagated.apply(100);
+        }
+        finally {
+            // restore previous values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * When the container creates a ThreadContext for an injection point with an empty ThreadContextConfig annotation,
+     * its configuration is equivalent to ThreadContext.builder().build(), which is that all available thread context
+     * types are propagated, except for Transaction context, which is cleared.
+     */
+    public void testInjectThreadContextEmptyConfig() throws Exception {
+        int originalPriority = Thread.currentThread().getPriority();
+        int newPriority = originalPriority == 2 ? 1 : 2;
+        try {
+            Thread.currentThread().setPriority(newPriority);
+            Label.set("testInjectThreadContextEmptyConfig-label");
+            Buffer.set(new StringBuffer("testInjectThreadContextEmptyConfig-buffer"));
+
+            Callable<Boolean> testAllContextPropagated = defaultContext.contextualCallable(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "testInjectThreadContextEmptyConfig-buffer",
+                        "Thread context type (Buffer) was not propagated.");
+                Assert.assertEquals(Label.get(), "testInjectThreadContextEmptyConfig-label",
+                        "Thread context type (Lable) was not propagated.");
+                Assert.assertEquals(Thread.currentThread().getPriority(), newPriority,
+                        "Thread context type (ThreadPriority) was not propagated.");
+                return true;
+            });
+
+            Thread.currentThread().setPriority(4);
+            Label.set("testInjectThreadContextNoConfig-new-label");
+            Buffer.set(new StringBuffer("testInjectThreadContextNoConfig-new-buffer"));
+
+            testAllContextPropagated.call();
         }
         finally {
             // restore previous values

@@ -114,4 +114,24 @@ public class BasicCDITest extends Arquillian {
     public void threadContextConfigNamedInstanceAutomaticallyProducesInstance() {
         bean.testThreadContextConfigNamedInstance();
     }
+
+    @Test
+    public void applicationDefinesProducerOfThreadContext() {
+        bean.testAppDefinedProducerOfThreadContext();
+    }
+
+    @Test
+    public void applicationDefinesProducerUsingInjectedThreadContext() {
+        bean.testAppDefinedProducerUsingInjectedThreadContext();
+    }
+
+    @Test
+    public void injectThreadContextWithoutConfig() {
+        bean.testInjectThreadContextNoConfig();
+    }
+
+    @Test
+    public void injectThreadContextWithEmptyConfig() throws Exception {
+        bean.testInjectThreadContextEmptyConfig();
+    }
 }
