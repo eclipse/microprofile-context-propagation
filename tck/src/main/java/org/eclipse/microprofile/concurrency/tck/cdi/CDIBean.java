@@ -400,6 +400,9 @@ public class CDIBean {
      * Application-defined producer methods can have injection points of ThreadContext that are provided by the container.
      */
     public void testAppDefinedProducerUsingInjectedThreadContext() {
+        Assert.assertNotNull(priority3Executor,
+                "Application should be able to create its own CDI producer that injects a ThreadContext that is provided by the container.");
+
         int originalPriority = Thread.currentThread().getPriority();
         int newPriority = originalPriority == 2 ? 1 : 2;
         try {
@@ -432,6 +435,9 @@ public class CDIBean {
      * types are propagated, except for Transaction context, which is cleared.
      */
     public void testInjectThreadContextNoConfig() {
+        Assert.assertNotNull(defaultContext,
+                "Container must produce ThreadContext instance for unqualified injection point that lacks ThreadContextConfig.");
+
         int originalPriority = Thread.currentThread().getPriority();
         int newPriority = originalPriority == 2 ? 1 : 2;
         try {
@@ -469,6 +475,9 @@ public class CDIBean {
      * types are propagated, except for Transaction context, which is cleared.
      */
     public void testInjectThreadContextEmptyConfig() throws Exception {
+        Assert.assertNotNull(defaultContextWithEmptyAnno,
+                "Container must produce ThreadContext instance for injection point that is annotated with ThreadContextConfig.");
+
         int originalPriority = Thread.currentThread().getPriority();
         int newPriority = originalPriority == 2 ? 1 : 2;
         try {
@@ -476,19 +485,19 @@ public class CDIBean {
             Label.set("testInjectThreadContextEmptyConfig-label");
             Buffer.set(new StringBuffer("testInjectThreadContextEmptyConfig-buffer"));
 
-            Callable<Boolean> testAllContextPropagated = defaultContext.contextualCallable(() -> {
+            Callable<Boolean> testAllContextPropagated = defaultContextWithEmptyAnno.contextualCallable(() -> {
                 Assert.assertEquals(Buffer.get().toString(), "testInjectThreadContextEmptyConfig-buffer",
                         "Thread context type (Buffer) was not propagated.");
                 Assert.assertEquals(Label.get(), "testInjectThreadContextEmptyConfig-label",
-                        "Thread context type (Lable) was not propagated.");
+                        "Thread context type (Label) was not propagated.");
                 Assert.assertEquals(Thread.currentThread().getPriority(), newPriority,
                         "Thread context type (ThreadPriority) was not propagated.");
                 return true;
             });
 
             Thread.currentThread().setPriority(4);
-            Label.set("testInjectThreadContextNoConfig-new-label");
-            Buffer.set(new StringBuffer("testInjectThreadContextNoConfig-new-buffer"));
+            Label.set("testInjectThreadContextEmptyConfig-new-label");
+            Buffer.set(new StringBuffer("testInjectThreadContextEmptyConfig-new-buffer"));
 
             testAllContextPropagated.call();
         }
