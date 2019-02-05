@@ -40,6 +40,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.spi.BufferContextProvider;
@@ -418,6 +423,435 @@ public class ManagedExecutorTest extends Arquillian {
 
             Assert.assertEquals(Label.get(), "contextControls-test-label-A",
                     "Context type was not left unchanged by contextual action.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * When an already-contextualized Callable is specified as the action/task,
+     * the action/task runs with its already-captured context rather than
+     * capturing and applying context per the configuration of the managed executor.
+     */
+    @Test
+    public void contextOfContextualCallableOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
+        ThreadContext bufferContext = ThreadContext.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        try {
+            Callable<String> getBuffer = () -> {
+                Assert.assertEquals(Label.get(), "",
+                        "Context type not cleared from thread.");
+                return Buffer.get().toString();
+            };
+
+            Callable<String> getLabel = () -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+                return Label.get();
+            };
+
+            Buffer.set(new StringBuffer("contextualCallableOverride-buffer-1"));
+            Label.set("contextualCallableOverride-label-1");
+
+            Callable<String> precontextualizedTask1 = bufferContext.contextualCallable(getBuffer);
+
+            Buffer.set(new StringBuffer("contextualCallableOverride-buffer-2"));
+            Label.set("contextualCallableOverride-label-2");
+
+            Callable<String> precontextualizedTask2 = bufferContext.contextualCallable(getBuffer);
+
+            Buffer.set(new StringBuffer("contextualCallableOverride-buffer-3"));
+            Label.set("contextualCallableOverride-label-3");
+
+            Future<String> future = executor.submit(precontextualizedTask1);
+            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "contextualCallableOverride-buffer-1",
+                    "Previously captured context type not found on thread.");
+
+            List<Future<String>> futures = executor.invokeAll(
+                    Arrays.asList(precontextualizedTask2, getLabel, precontextualizedTask1, precontextualizedTask2),
+                    MAX_WAIT_NS,
+                    TimeUnit.NANOSECONDS);
+
+            future = futures.get(0);
+            Assert.assertEquals(future.get(), "contextualCallableOverride-buffer-2",
+                    "Previously captured context type not found on thread.");
+
+            future = futures.get(1);
+            Assert.assertEquals(future.get(), "contextualCallableOverride-label-3",
+                    "Context type captured by managed executor not found on thread.");
+
+            future = futures.get(2);
+            Assert.assertEquals(future.get(), "contextualCallableOverride-buffer-1",
+                    "Previously captured context type not found on thread.");
+
+            future = futures.get(3);
+            Assert.assertEquals(future.get(), "contextualCallableOverride-buffer-2",
+                    "Previously captured context type not found on thread.");
+
+            String result = executor.invokeAny(
+                    Arrays.asList(precontextualizedTask1, precontextualizedTask1),
+                    MAX_WAIT_NS,
+                    TimeUnit.NANOSECONDS);
+            Assert.assertEquals(result, "contextualCallableOverride-buffer-1",
+                    "Previously captured context type not found on thread.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * When an already-contextualized Consumer or BiFunction is specified as the action/task,
+     * the action/task runs with its already-captured context rather than
+     * capturing and applying context per the configuration of the managed executor.
+     */
+    @Test
+    public void contextOfContextualConsumerAndBiFunctionOverrideContextOfManagedExecutor()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ThreadContext labelContext = ThreadContext.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        try {
+            Buffer.set(new StringBuffer("contextualBiFunctionOverride-buffer-1"));
+            Label.set("contextualBiFunctionOverride-label-1");
+
+            BiFunction<Integer, Throwable, Integer> precontextualizedFunction1 = labelContext.contextualFunction((result, failure) -> {
+                Assert.assertEquals(Label.get(), "contextualBiFunctionOverride-label-1",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+                return failure == null ? result : 100;
+            });
+
+            Buffer.set(new StringBuffer("contextualBiFunctionOverride-buffer-2"));
+            Label.set("contextualBiFunctionOverride-label-2");
+
+            BiFunction<Integer, Integer, Integer> precontextualizedFunction2 = labelContext.contextualFunction((i, j) -> {
+                Assert.assertEquals(Label.get(), "contextualBiFunctionOverride-label-2",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+                return i - j;
+            });
+
+            Buffer.set(new StringBuffer("contextualConsumerOverride-buffer-3"));
+            Label.set("contextualConsumerOverride-label-3");
+
+            Consumer<Integer> precontextualizedConsumer3 = labelContext.contextualConsumer(i -> {
+                Assert.assertEquals(Label.get(), "contextualConsumerOverride-label-3",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+            });
+
+            Buffer.set(new StringBuffer("contextualConsuemrOverride-buffer-4"));
+            Label.set("contextualConsumerOverride-label-4");
+
+            Consumer<Integer> precontextualizedConsumer4 = labelContext.contextualConsumer(i -> {
+                Assert.assertEquals(Label.get(), "contextualConsumerOverride-label-4",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+            });
+
+            BiFunction<Void, Void, String> normalFunction5 = (unused1, unused2) -> {
+                Assert.assertEquals(Buffer.get().toString(), "contextualConsumerAndBiFunctionOverride-buffer-5",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Label.get(), "",
+                        "Context type not cleared from thread.");
+                return "done";
+            };
+
+            Buffer.set(new StringBuffer("contextualConsumerAndBiFunctionOverride-buffer-5"));
+            Label.set("contextualConsumerAndBiFunctionOverride-label-5");
+
+            CompletableFuture<Integer> stage0 = executor.failedFuture(new ArrayIndexOutOfBoundsException("Expected error."));
+            CompletableFuture<Integer> stage1 = stage0.handleAsync(precontextualizedFunction1);
+            CompletableFuture<Integer> stage2 = executor.completedFuture(200).thenCombineAsync(stage1, precontextualizedFunction2);
+            CompletableFuture<Void> stage3 = stage2.thenAccept(precontextualizedConsumer3);
+            CompletableFuture<Void> stage4 = stage2.acceptEitherAsync(stage1, precontextualizedConsumer4);
+            CompletableFuture<String> stage5 = stage4.thenCombine(stage3, normalFunction5);
+
+            Assert.assertEquals(stage5.join(), "done",
+                    "Unexpected result for completion stage.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * When an already-contextualized Function is specified as the action/task,
+     * the action/task runs with its already-captured context rather than
+     * capturing and applying context per the configuration of the managed executor.
+     */
+    @Test
+    public void contextOfContextualFunctionOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
+        ThreadContext labelContext = ThreadContext.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        try {
+            Buffer.set(new StringBuffer("contextualFunctionOverride-buffer-1"));
+            Label.set("contextualFunctionOverride-label-1");
+
+            Function<Integer, Integer> precontextualizedFunction1 = labelContext.contextualFunction(i -> {
+                Assert.assertEquals(Label.get(), "contextualFunctionOverride-label-1",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+                return i + 1;
+            });
+
+            Buffer.set(new StringBuffer("contextualFunctionOverride-buffer-2"));
+            Label.set("contextualFunctionOverride-label-2");
+
+            Function<Integer, Integer> precontextualizedFunction2 = labelContext.contextualFunction(i -> {
+                Assert.assertEquals(Label.get(), "contextualFunctionOverride-label-2",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+                return i + 20;
+            });
+
+            Function<Throwable, Integer> precontextualizedErrorHandler = labelContext.contextualFunction(failure -> {
+                Assert.assertEquals(Label.get(), "contextualFunctionOverride-label-2",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+                return -1;
+            });
+
+            Buffer.set(new StringBuffer("contextualFunctionOverride-buffer-3"));
+            Label.set("contextualFunctionOverride-label-3");
+
+            Function<Integer, Integer> normalFunction = i -> {
+                Assert.assertEquals(Buffer.get().toString(), "contextualFunctionOverride-buffer-3",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Label.get(), "",
+                        "Context type not cleared from thread.");
+                return i + 300;
+            };
+
+            CompletableFuture<Integer> stage0 = executor.newIncompleteFuture();
+            CompletableFuture<Integer> stage1 = stage0.thenApplyAsync(precontextualizedFunction1);
+
+            Buffer.set(new StringBuffer("contextualFunctionOverride-buffer-4"));
+            Label.set("contextualFunctionOverride-label-4");
+
+            Function<Integer, CompletableFuture<Integer>> precontextualizedFunction4 = labelContext.contextualFunction(i -> {
+                Assert.assertEquals(Label.get(), "contextualFunctionOverride-label-4",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+                return stage1;
+            });
+
+            Buffer.set(new StringBuffer("contextualFunctionOverride-buffer-3"));
+            Label.set("contextualFunctionOverride-label-3");
+
+            CompletableFuture<Integer> stage2 = stage0.thenComposeAsync(precontextualizedFunction4);
+            CompletableFuture<Integer> stage3 = stage2.applyToEither(stage1, precontextualizedFunction2);
+            CompletableFuture<Integer> stage4 = stage3.thenApply(normalFunction);
+            CompletableFuture<Integer> stage5 = stage4.thenApply(i -> i / (i - 321)) // intentional ArithmeticException for division by 0
+                    .exceptionally(precontextualizedErrorHandler);
+
+            stage0.complete(0);
+
+            Assert.assertEquals(stage2.join(), Integer.valueOf(1),
+                    "Unexpected result for completion stage.");
+
+            Assert.assertEquals(stage5.join(), Integer.valueOf(-1),
+                    "Unexpected result for completion stage.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * When an already-contextualized Runnable is specified as the action/task,
+     * the action/task runs with its already-captured context rather than
+     * capturing and applying context per the configuration of the managed executor.
+     */
+    @Test
+    public void contextOfContextualRunnableOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
+        ThreadContext labelContext = ThreadContext.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        try {
+            Buffer.set(new StringBuffer("contextualRunnableOverride-buffer-1"));
+            Label.set("contextualRunnableOverride-label-1");
+
+            Runnable precontextualizedTask1 = labelContext.contextualRunnable(() -> {
+                Assert.assertEquals(Label.get(), "contextualRunnableOverride-label-1",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+            });
+
+            Buffer.set(new StringBuffer("contextualRunnableOverride-buffer-2"));
+            Label.set("contextualRunnableOverride-label-2");
+
+            Runnable precontextualizedTask2 = labelContext.contextualRunnable(() -> {
+                Assert.assertEquals(Label.get(), "contextualRunnableOverride-label-2",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+            });
+
+            Buffer.set(new StringBuffer("contextualRunnableOverride-buffer-3"));
+            Label.set("contextualRunnableOverride-label-3");
+
+            Runnable normalTask = () -> {
+                Assert.assertEquals(Buffer.get().toString(), "contextualRunnableOverride-buffer-3",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Label.get(), "",
+                        "Context type not cleared from thread.");
+            };
+
+            Future<Integer> future = executor.submit(precontextualizedTask1, 1);
+            Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(1),
+                    "Unexpected result of task.");
+
+            CompletableFuture<Void> stage0 = executor.runAsync(precontextualizedTask1);
+            CompletableFuture<Void> stage1 = stage0.thenRunAsync(precontextualizedTask1);
+            CompletableFuture<Void> stage2 = stage0.thenRun(precontextualizedTask2);
+            CompletableFuture<Void> stage3 = stage1.runAfterEither(stage2, precontextualizedTask2);
+            CompletableFuture<Void> stage4 = stage1.runAfterBothAsync(stage2, precontextualizedTask1);
+            CompletableFuture<Void> stage5 = stage4.runAfterBoth(stage3, normalTask);
+            stage5.join();
+
+            LinkedBlockingQueue<String> results = new LinkedBlockingQueue<String>();
+            Runnable precontextualizedTask3 = labelContext.contextualRunnable(() -> results.add(Label.get()));
+
+            Buffer.set(new StringBuffer("contextualRunnableOverride-buffer-3"));
+            Label.set("contextualRunnableOverride-label-3");
+
+            executor.execute(precontextualizedTask3);
+            Assert.assertEquals(results.poll(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "contextualRunnableOverride-label-3",
+                    "Previously captured context type not found on thread.");
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * When an already-contextualized Supplier or BiFunction is specified as the action/task,
+     * the action/task runs with its already-captured context rather than
+     * capturing and applying context per the configuration of the managed executor.
+     */
+    @Test
+    public void contextOfContextualSuppplierAndBiConsumerOverrideContextOfManagedExecutor()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ThreadContext bufferContext = ThreadContext.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        try {
+            Supplier<String> getBuffer = () -> {
+                Assert.assertEquals(Label.get(), "",
+                        "Context type not cleared from thread.");
+                return Buffer.get().toString();
+            };
+
+            Buffer.set(new StringBuffer("contextualSupplierOverride-buffer-1"));
+            Label.set("contextualSupplierOverride-label-1");
+
+            Supplier<String> precontextualizedSupplier1 = bufferContext.contextualSupplier(getBuffer);
+
+            Buffer.set(new StringBuffer("contextualSupplierOverride-buffer-2"));
+            Label.set("contextualSupplierOverride-label-2");
+
+            Supplier<String> precontextualizedSupplier2 = bufferContext.contextualSupplier(getBuffer);
+
+            Buffer.set(new StringBuffer("contextualBiConsumerOverride-buffer-3"));
+            Label.set("contextualBiConsumerOverride-label-3");
+
+            BiConsumer<String, String> precontextualizedConsumer3 = bufferContext.contextualConsumer((b1, b2) -> {
+                Assert.assertEquals(Buffer.get().toString(), "contextualBiConsumerOverride-buffer-3",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Label.get(), "",
+                        "Context type not cleared from thread.");
+
+                Assert.assertEquals(b1, "contextualSupplierOverride-buffer-1",
+                        "Previously captured context type not found on Supplier's thread.");
+
+                Assert.assertEquals(b2, "contextualSupplierOverride-buffer-2",
+                        "Previously captured context type not found on Supplier's thread.");
+            });
+
+            Buffer.set(new StringBuffer("contextualBiConsumerOverride-buffer-4"));
+            Label.set("contextualBiConsumerOverride-label-4");
+
+            BiConsumer<Void, Throwable> precontextualizedConsumer4 = bufferContext.contextualConsumer((unused, failure) -> {
+                Assert.assertEquals(Buffer.get().toString(), "contextualBiConsumerOverride-buffer-4",
+                        "Previously captured context type not found on thread.");
+                Assert.assertEquals(Label.get(), "",
+                        "Context type not cleared from thread.");
+            });
+
+            Buffer.set(new StringBuffer("contextualSupplierAndBiConsumerOverride-buffer-5"));
+            Label.set("contextualSupplierAndBiConsumerOverride-label-5");
+
+            CompletableFuture<String> stage1 = executor.supplyAsync(precontextualizedSupplier1);
+            CompletableFuture<String> stage2 = executor.supplyAsync(precontextualizedSupplier2);
+            CompletableFuture<Void> stage3 = stage1.thenAcceptBoth(stage2, precontextualizedConsumer3);
+            CompletableFuture<Void> stage4 = stage3.whenCompleteAsync(precontextualizedConsumer4);
+            CompletableFuture<Void> stage5 = stage4.whenComplete((unused, failure) -> {
+                Assert.assertEquals(Label.get(), "contextualSupplierAndBiConsumerOverride-label-5",
+                        "Context type captured by managed executor not found on thread.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type not cleared from thread.");
+            });
+
+            stage5.join();
         }
         finally {
             executor.shutdownNow();
