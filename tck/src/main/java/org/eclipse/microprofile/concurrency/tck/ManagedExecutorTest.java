@@ -762,8 +762,8 @@ public class ManagedExecutorTest extends Arquillian {
             LinkedBlockingQueue<String> results = new LinkedBlockingQueue<String>();
             Runnable precontextualizedTask3 = labelContext.contextualRunnable(() -> results.add(Label.get()));
 
-            Buffer.set(new StringBuffer("contextualRunnableOverride-buffer-3"));
-            Label.set("contextualRunnableOverride-label-3");
+            Buffer.set(new StringBuffer("contextualRunnableOverride-buffer-4"));
+            Label.set("contextualRunnableOverride-label-4");
 
             executor.execute(precontextualizedTask3);
             Assert.assertEquals(results.poll(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "contextualRunnableOverride-label-3",
