@@ -42,10 +42,11 @@ import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
  *    ...
  * </pre>
  *
- * <p>This specification allows for managed executors that do not capture and propagate thread context,
- * which can offer better performance. If thread context propagation is desired only for specific stages,
- * the <code>ThreadContext.contextual*</code> API methods can be used to propagate thread context to
- * individual actions.</p>
+ * <p>This specification allows for managed executors that propagate thread context as well as for
+ * those that do not, which might offer better performance. If thread context propagation is
+ * desired only for specific stages, or if you wish to override thread context propagation for
+ * specific stages, the <code>ThreadContext.contextual*</code> API methods can be used to
+ * propagate thread context to individual actions.</p>
  *
  * <p>Example of single action with context propagation:</p>
  * <pre>
@@ -56,16 +57,40 @@ import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
  *    ...
  * </pre>
  *
- * <p>For managed executors that are defined as capturing and propagating thread context,
- * it must be done in a consistent manner. Thread context is captured from the thread that creates
- * a completion stage and is applied to the thread that runs the action, being removed afterward.
- * When dependent stages are created from the completion stage, and likewise from any dependent stages
- * created from those, and so on, thread context is captured from the thread that creates the dependent
- * stage. This guarantees that the action performed by each stage always runs under the thread context
- * of the code that creates the stage. When applied to the ExecutorService methods,
- * <code>execute</code>, <code>invokeAll</code>, <code>invokeAny</code>, <code>submit</code>,
- * thread context is captured from the thread invoking the request and propagated to thread that runs
- * the task, being removed afterward.</p>
+ * <p>Managed executors that capture and propagate thread context must do so in a consistent
+ * and predictable manner, which is defined as follows,</p>
+ *
+ * <ul>
+ * <li>
+ * If the supplied action is already contextual (for example,
+ * <code>threadContext.contextualFunction(function1))</code>,
+ * then the action runs with the already-captured context.
+ * </li>
+ * <li>
+ * Otherwise, each type of thread context is either {@link #propagated} from the thread
+ * that creates the completion stage or marked to be {@link #cleared}, according to the
+ * configuration of the managed executor that is the default asynchronous execution facility
+ * for the new stage and its parent stage. In the case that a managed executor is supplied
+ * as the <code>executor</code> argument to a <code>*Async</code> method, the supplied
+ * managed executor is used to run the action, but not to determine thread context
+ * propagation and clearing.
+ * </li>
+ * </ul>
+ *
+ * <p>Each type of thread context is applied (either as cleared or as previously captured)
+ * to the thread that runs the action. The applied thread context is removed after the action
+ * completes, whether successfully or exceptionally, restoring the thread's prior context.</p>
+ *
+ * <p>When dependent stages are created from the completion stage, and likewise from any dependent stages
+ * created from those, and so on, thread context is captured or cleared in the same manner.
+ * This guarantees that the action performed by each stage always runs under the thread context
+ * of the code that creates the stage, unless the user explicitly overrides this by supplying a
+ * pre-contextualized action.</p>
+ *
+ * <p>Thread context is similarly captured, cleared, applied, and afterward restored for the
+ * ExecutorService methods:
+ * <code>execute</code>, <code>invokeAll</code>, <code>invokeAny</code>, <code>submit</code>
+ * </p>
  *
  * <p>This interface is intentionally kept compatible with ManagedExecutorService,
  * with the hope that its methods might one day be contributed to that specification.</p>
