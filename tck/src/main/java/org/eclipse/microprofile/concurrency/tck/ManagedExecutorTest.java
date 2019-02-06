@@ -139,7 +139,7 @@ public class ManagedExecutorTest extends Arquillian {
                 .propagated(Buffer.CONTEXT_NAME)
                 .build();
         
-        int originalPriority = Thread.currentThread().getPriority();     
+        int originalPriority = Thread.currentThread().getPriority();
         try {
             // Set non-default values
             int newPriority = originalPriority == 3 ? 2 : 3;
@@ -359,7 +359,7 @@ public class ManagedExecutorTest extends Arquillian {
     
     /**
      * Verify the MicroProfile Concurrency implementation of propagate(), and cleared()
-     * for MangedExecutor.Builder.
+     * for ManagedExecutor.Builder.
      */
     @Test
     public void contextControlsForManagedExecutorBuilder() throws InterruptedException, ExecutionException, TimeoutException {
@@ -1819,7 +1819,7 @@ public class ManagedExecutorTest extends Arquillian {
                         "Context type that is configured to be cleared was not cleared.");
 
                 Assert.assertEquals(Label.get(), "runAsync-test-label-A",
-                        "Context type was not correctly propagated to contextual action.");                
+                        "Context type was not correctly propagated to contextual action.");
             });
 
             Label.set("runAsync-test-label-B");
@@ -1829,18 +1829,18 @@ public class ManagedExecutorTest extends Arquillian {
                         "Context type that is configured to be cleared was not cleared.");
 
                 Assert.assertEquals(Label.get(), "runAsync-test-label-B",
-                        "Context type was not correctly propagated to contextual action.");                
+                        "Context type was not correctly propagated to contextual action.");
             });
 
             Label.set("runAsync-test-label-C");
 
             CompletableFuture<Void> stage3 = stage2.thenRunAsync(() -> {
                 Assert.assertEquals(Buffer.get().toString(), "",
-                        "Context type (Buffer) should not be propagated when specifying a non-managed executor.");
+                        "Context type that is configured to be cleared was not cleared.");
 
-                Assert.assertEquals(Label.get(), "",
-                        "Context type (Label) should not be propagated when specifying a non-managed executor.");                
-            }, unmanagedThreads);
+                Assert.assertEquals(Label.get(), "runAsync-test-label-C",
+                        "Context type was not correctly propagated to contextual action.");
+            }, unmanagedThreads); // supplied executor runs the action, but does not determine context propagation
 
             Label.set("runAsync-test-label-D");
 

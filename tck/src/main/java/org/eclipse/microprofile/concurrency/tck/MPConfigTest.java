@@ -146,12 +146,12 @@ public class MPConfigTest extends Arquillian {
             // Set non-default values
             int newPriority = originalPriority == 3 ? 2 : 3;
             Thread.currentThread().setPriority(newPriority);
-            Buffer.set(new StringBuffer("overrideMangedExecutorConfig-test-buffer"));
-            Label.set("overrideMangedExecutorConfig-test-label");
+            Buffer.set(new StringBuffer("overrideManagedExecutorConfig-test-buffer"));
+            Label.set("overrideManagedExecutorConfig-test-label");
 
             // Run on separate thread to test propagated
             CompletableFuture<Void> stage1 = namedExecutor.runAsync(() ->
-                Assert.assertEquals(Label.get(), "overrideMangedExecutorConfig-test-label",
+                Assert.assertEquals(Label.get(), "overrideManagedExecutorConfig-test-label",
                         "Context type that MicroProfile config overrides to be propagated was not correctly propagated.")
             );
 
@@ -247,8 +247,8 @@ public class MPConfigTest extends Arquillian {
             // Set non-default values
             int newPriority = originalPriority == 2 ? 1 : 2;
             Thread.currentThread().setPriority(newPriority);
-            Buffer.set(new StringBuffer("overrideMangedExecutorConfig-test-buffer"));
-            Label.set("overrideMangedExecutorConfig-test-label");
+            Buffer.set(new StringBuffer("overrideManagedExecutorConfig-test-buffer"));
+            Label.set("overrideManagedExecutorConfig-test-label");
 
             // Run on current thread to test cleared
             CompletableFuture<Void> stage1 = completedFuture.thenRun(() ->
@@ -261,10 +261,10 @@ public class MPConfigTest extends Arquillian {
 
             // Run on separate thread to test propagated
             CompletableFuture<Void> stage2 = completedFuture.thenRunAsync(() -> {
-                Assert.assertEquals(Label.get(), "overrideMangedExecutorConfig-test-label",
+                Assert.assertEquals(Label.get(), "overrideManagedExecutorConfig-test-label",
                         "Context type (Label) that MicroProfile config overrides to be propagated was not correctly propagated.");
 
-                Assert.assertEquals(Buffer.get().toString(), "overrideMangedExecutorConfig-test-buffer",
+                Assert.assertEquals(Buffer.get().toString(), "overrideManagedExecutorConfig-test-buffer",
                         "Context type (Buffer) that MicroProfile config overrides to be propagated was not correctly propagated.");
             });
 
