@@ -317,6 +317,7 @@ public interface ThreadContext {
      * @param <R> callable result type.
      * @param callable instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>call</code> method with context.
+     * @throws IllegalArgumentException if an already-contextualized <code>Callable</code> is supplied to this method.
      */
     <R> Callable<R> contextualCallable(Callable<R> callable);
 
@@ -333,6 +334,7 @@ public interface ThreadContext {
      * @param <U> type of second parameter to consumer.
      * @param consumer instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>accept</code> method with context.
+     * @throws IllegalArgumentException if an already-contextualized <code>BiConsumer</code> is supplied to this method.
      */
     <T, U> BiConsumer<T, U> contextualConsumer(BiConsumer<T, U> consumer);
 
@@ -348,6 +350,7 @@ public interface ThreadContext {
      * @param <T> type of parameter to consumer.
      * @param consumer instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>accept</code> method with context.
+     * @throws IllegalArgumentException if an already-contextualized <code>Consumer</code> is supplied to this method.
      */
     <T> Consumer<T> contextualConsumer(Consumer<T> consumer);
 
@@ -366,6 +369,7 @@ public interface ThreadContext {
      * @param <R> function result type.
      * @param function instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>apply</code> method with context.
+     * @throws IllegalArgumentException if an already-contextualized <code>BiFunction</code> is supplied to this method.
      */
     <T, U, R> BiFunction<T, U, R> contextualFunction(BiFunction<T, U, R> function);
 
@@ -383,6 +387,7 @@ public interface ThreadContext {
      * @param <R> function result type.
      * @param function instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>apply</code> method with context.
+     * @throws IllegalArgumentException if an already-contextualized <code>Function</code> is supplied to this method.
      */
     <T, R> Function<T, R> contextualFunction(Function<T, R> function);
 
@@ -397,6 +402,7 @@ public interface ThreadContext {
      * 
      * @param runnable instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>run</code> method with context.
+     * @throws IllegalArgumentException if an already-contextualized <code>Runnable</code> is supplied to this method.
      */
     Runnable contextualRunnable(Runnable runnable);
 
@@ -413,6 +419,7 @@ public interface ThreadContext {
      * @param <R> supplier result type.
      * @param supplier instance to contextualize.
      * @return contextualized proxy instance that wraps execution of the <code>supply</code> method with context.
+     * @throws IllegalArgumentException if an already-contextualized <code>Supplier</code> is supplied to this method.
      */
     <R> Supplier<R> contextualSupplier(Supplier<R> supplier);
 
