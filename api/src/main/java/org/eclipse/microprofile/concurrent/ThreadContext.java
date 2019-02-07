@@ -437,12 +437,11 @@ public interface ThreadContext {
      * {@link java.util.concurrent.CompletionStage#thenRunAsync(Runnable) thenRunAsync(Runnable)}.</p>
      *
      * <p>When dependent stages are created from the new completable future, thread context is captured
-     * from the thread that creates the dependent stage and is applied to the thread that runs the
-     * action, being removed afterward. When dependent stages are created from these dependent stages,
-     * and likewise from any dependent stages created from those, and so on, thread context is captured
-     * from the respective thread that creates each dependent stage. This guarantees that the action
-     * performed by each stage always runs under the thread context of the code that creates the stage.
-     * </p>
+     * and/or cleared as described in the documentation of the {@link ManagedExecutor} class, except that
+     * this ThreadContext instance takes the place of the default asynchronous execution facility in
+     * supplying the configuration of cleared/propagated context types. This guarantees that the action
+     * performed by each stage always runs under the thread context of the code that creates the stage,
+     * unless the user explicitly overrides by supplying a pre-contextualized action.</p>
      *
      * <p>Invocation of this method does not impact thread context propagation for the supplied
      * completable future or any dependent stages created from it, other than the new dependent
@@ -465,12 +464,11 @@ public interface ThreadContext {
      * {@link java.util.concurrent.CompletionStage#thenRunAsync(Runnable) thenRunAsync(Runnable)}.</p>
      *
      * <p>When dependent stages are created from the new completion stage, thread context is captured
-     * from the thread that creates the dependent stage and is applied to the thread that runs the
-     * action, being removed afterward. When dependent stages are created from these dependent stages,
-     * and likewise from any dependent stages created from those, and so on, thread context is captured
-     * from the respective thread that creates each dependent stage. This guarantees that the action
-     * performed by each stage always runs under the thread context of the code that creates the stage.
-     * </p>
+     * and/or cleared as described in the documentation of the {@link ManagedExecutor} class, except that
+     * this ThreadContext instance takes the place of the default asynchronous execution facility in
+     * supplying the configuration of cleared/propagated context types. This guarantees that the action
+     * performed by each stage always runs under the thread context of the code that creates the stage,
+     * unless the user explicitly overrides by supplying a pre-contextualized action.</p>
      *
      * <p>Invocation of this method does not impact thread context propagation for the supplied
      * stage or any dependent stages created from it, other than the new dependent
