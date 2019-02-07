@@ -801,8 +801,8 @@ public class ThreadContextTest extends Arquillian {
                 .propagated(Label.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
-        ManagedExecutor labelContextExecutor = ManagedExecutor.builder()
-                .propagated(Label.CONTEXT_NAME)
+        ManagedExecutor bufferContextExecutor = ManagedExecutor.builder()
+                .propagated(Buffer.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
@@ -849,7 +849,7 @@ public class ThreadContextTest extends Arquillian {
                 Label.set("withContextCapture-CompletableFuture-test-label-D");
 
                 return i + i;
-            }, labelContextExecutor);
+            }, bufferContextExecutor); // supplied executor runs the action, but does not determine context propagation
 
             // Original stage remains usable, but not having been created by a ManagedExecutor, does not make any
             // guarantees about context propagation
@@ -886,7 +886,7 @@ public class ThreadContextTest extends Arquillian {
                     "Previous context was not restored after context was propagated for contextual action.");
         }
         finally {
-            labelContextExecutor.shutdownNow();
+            bufferContextExecutor.shutdownNow();
             // Restore original values
             Buffer.set(null);
             Label.set(null);
@@ -905,8 +905,8 @@ public class ThreadContextTest extends Arquillian {
                 .propagated(Buffer.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
-        ManagedExecutor bufferContextExecutor = ManagedExecutor.builder()
-                .propagated(Buffer.CONTEXT_NAME)
+        ManagedExecutor labelContextExecutor = ManagedExecutor.builder()
+                .propagated(Label.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
@@ -967,7 +967,7 @@ public class ThreadContextTest extends Arquillian {
                 Buffer.set(new StringBuffer("withContextCapture-CompletionStage-test-buffer-D"));
 
                 return i - 2345;
-            }, bufferContextExecutor);
+            }, labelContextExecutor); // supplied executor runs the action, but does not determine context propagation
 
             try {
                 CompletionStage<Void> stage5 = stage4.thenAcceptAsync(i -> System.out.println("This should not ever run."));
@@ -995,7 +995,7 @@ public class ThreadContextTest extends Arquillian {
                     "Previous context was not restored after context was cleared for contextual action.");
         }
         finally {
-            bufferContextExecutor.shutdownNow();
+            labelContextExecutor.shutdownNow();
             // Restore original values
             Buffer.set(null);
             Label.set(null);
