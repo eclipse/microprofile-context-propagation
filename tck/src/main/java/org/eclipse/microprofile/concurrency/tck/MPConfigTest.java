@@ -52,6 +52,7 @@ import org.eclipse.microprofile.concurrent.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
+import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.Assert;
@@ -115,6 +116,7 @@ public class MPConfigTest extends Arquillian {
                 .addClass(MPConfigBean.class)
                 .addClass(MPConfigTest.class)
                 .addAsManifestResource("META-INF/microprofile-config.properties", "microprofile-config.properties")
+                .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml")
                 .addAsLibraries(fakeContextProviders);
     }
 
