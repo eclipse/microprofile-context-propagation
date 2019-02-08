@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -32,8 +32,9 @@ import javax.enterprise.util.AnnotationLiteral;
 /**
  * <p>Annotates a CDI injection point for a {@link ManagedExecutor} such that the container
  * creates a new instance, which is identified within an application by its unique name.
- * The unique name is generated as the fully qualified class and field name of the
- * injection point separated by <code>.</code>, unless annotated with the {@link NamedInstance} qualifier,
+ * The unique name is generated as the fully qualified class name (with each component delimited by <code>.</code>)
+ * and the injection point's field name or method name and parameter position, all delimited by <code>/</code>,
+ * unless annotated with the {@link NamedInstance} qualifier,
  * in which case the unique name is specified by the {@link NamedInstance#value value} attribute of that qualifier.</p>
  *
  * <p>For example, the following injection points share a single
