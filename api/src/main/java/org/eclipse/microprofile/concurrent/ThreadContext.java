@@ -300,6 +300,10 @@ public interface ThreadContext {
      * contextSnapshot.execute(() -> doSomethingElseThatNeedsContext(x, y));
      * </code></pre>
      *
+     * <p>The returned <code>Executor</code> must raise <code>IllegalArgumentException</code>
+     * if an already-contextualized <code>Runnable</code> is supplied to its
+     * <code>execute</code> method.</p>
+     *
      * @return an executor that wraps the <code>execute</code> method with context.
      */
     Executor currentContextExecutor();
