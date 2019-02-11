@@ -1046,7 +1046,6 @@ public class ThreadContextTest extends Arquillian {
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
-        long testThreadId = Thread.currentThread().getId();
         try {
             Function<Character, String> getContext = c -> Buffer.get().append(c).append(Label.get()).toString();
 
@@ -1098,10 +1097,7 @@ public class ThreadContextTest extends Arquillian {
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
-        long testThreadId = Thread.currentThread().getId();
         try {
-            Function<Character, String> getContext = s -> Buffer.get().append(s).append(Label.get()).toString();
-
             // Set non-default values
             Buffer.set(new StringBuffer("withContextCaptureSwitchThreadContext-test-buffer-A"));
             Label.set("withContextCaptureSwitchThreadContext-test-label-A");
