@@ -47,7 +47,7 @@ The container produces an instance per unqualified `ManagedExecutor` injection p
 
 In each of these cases, MicroProfile Config can be used to override the configuration of the instance that is produced by the container.
 
-To override a configuration attribute of an instance that is produced for injection into a field, specify a MicroProfile Config property with the name equal to the fully qualified class name, field name, and configuration attribute name, delimited by the `.` character.
+To override a configuration attribute of an instance that is produced for injection into a field, specify a MicroProfile Config property with the name equal to the fully qualified class name, field name, annotation name, and annotation attribute name, delimited by the `/` character.
 
 [source, java]
 ----
@@ -70,14 +70,16 @@ public class MyBean {
 
 [source, text]
 ----
-org.eclipse.microprofile.example.MyBean.exec2.maxAsync=5
-org.eclipse.microprofile.example.MyBean.exec3.maxAsync=6
-org.eclipse.microprofile.example.MyBean.exec4.maxAsync=7
+org.eclipse.microprofile.example.MyBean/exec2/ManagedExecutorConfig/maxAsync=5
+org.eclipse.microprofile.example.MyBean/exec3/ManagedExecutorConfig/maxAsync=6
+org.eclipse.microprofile.example.MyBean/exec4/ManagedExecutorConfig/maxAsync=7
 ----
 
-Note that `org.eclipse.microprofile.example.MyBean.exec4.maxAsync` overrides the configuration of the instance that is produced for injection into `exec4`. This same instance is injected into `exec5` per the matching `@NamedInstance("executor4")` qualifier.  It is an error to specify `org.eclipse.microprofile.example.MyBean.exec5.maxAsync`, which will not apply to `exec5`.
+Note that `exec2` can be overridden with `ManagedExecutorConfig` attributes even though it does not explicitly declare a `ManagedExecutorConfig` annotation.
 
-To override a configuration attribute of an instance that is produced for injection into a parameter, specify a MicroProfile Config property with its name equal to the fully qualified class name, method name, parameter number (starting at 1), and configuration attribute name, delimited by the `.` character.
+Note that `org.eclipse.microprofile.example.MyBean/exec4/ManagedExecutorConfig/maxAsync` overrides the configuration of the instance that is produced for injection into `exec4`. This same instance is injected into `exec5` per the matching `@NamedInstance("executor4")` qualifier.  It is incorrect to specify `org.eclipse.microprofile.example.MyBean/exec5/ManagedExecutorConfig/maxAsync`, which will not apply to `exec5`.
+
+To override a configuration attribute of an instance that is produced for injection into a parameter, specify a MicroProfile Config property with its name equal to the fully qualified class name, method name, parameter number (starting at 1), annotation name, and annotation attribute name, delimited by the `/` character.
 
 [source, java]
 ----
@@ -96,10 +98,10 @@ public class MyBean {
 
 [source, text]
 ----
-org.eclipse.microprofile.example.MyBean.createExecutor.1.maxAsync=10
+org.eclipse.microprofile.example.MyBean/createExecutor/1/ManagedExecutorConfig/maxAsync=10
 ----
 
-Again, it would be wrong to specify `org.eclipse.microprofile.example.MyBean.exec6.maxAsync`, because the container does not produce a new instance for the `exec6` injection point. The container produces the new instance for the `exec` injection point, and matches that same instance for injection into `exec6` per the `@NamedInstance("executor6")` qualifier.
+Again, it would be wrong to specify `org.eclipse.microprofile.example.MyBean/exec6/ManagedExecutorConfig/maxAsync`, because the container does not produce a new instance for the `exec6` injection point. The container produces the new instance for the `exec` injection point, and matches that same instance for injection into `exec6` per the `@NamedInstance("executor6")` qualifier.
 
 === Overriding Array Properties in MicroProfile Config
 
@@ -126,9 +128,9 @@ If the user wishes to override the above to propagate exactly 2 context types (`
 
 [source, text]
 ----
-org.eclipse.microprofile.example.MyBean.contextPropagator.propagated=Application,CDI
-org.eclipse.microprofile.example.MyBean.contextPropagator.cleared=
-org.eclipse.microprofile.example.MyBean.contextPropagator.unchanged=Remaining
+org.eclipse.microprofile.example.MyBean/contextPropagator/ThreadContextConfig/propagated=Application,CDI
+org.eclipse.microprofile.example.MyBean/contextPropagator/ThreadContextConfig/cleared=
+org.eclipse.microprofile.example.MyBean/contextPropagator/ThreadContextConfig/unchanged=Remaining
 ----
 
 In order to guarantee that empty string config values are interpreted properly, the MicroProfile Concurrency implementation must interpret both of the following as indicating empty:

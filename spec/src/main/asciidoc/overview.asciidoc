@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -130,9 +130,9 @@ The other injection points, `executor2` and `executor3`, share the same `Managed
 
 === Integration with MicroProfile Config
 
-This specification defines a convention for defining properties in MicroProfile Config that override configuration attributes of `ManagedExecutor` and `ThreadContext` instances that are produced by the container. The convention for the property name is the fully qualified name of the injection point, with the `.` character as delimiter.
+This specification defines a convention for defining properties in MicroProfile Config that override configuration attributes of `ManagedExecutor` and `ThreadContext` instances that are produced by the container. The convention for the property name is the fully qualified class name of the injection point, combined with the injection point field name or method name with parameter position, annotation name, and annotation attribute, with the `/` character as delimiter.
 
-The following example shows one injection point for `ManagedExecutor`, which is the first parameter of the `setCompletableFuture` method, and another injection point for `ThreadContext`, which is the `appContextPropagator` field.
+The following example shows one injection point for `ManagedExecutor`, which is the first parameter of the `setCompletableFuture` method, and another injection point for `ThreadContext`, which is the `appContext` field.
 
 [source, java]
 ----
@@ -157,7 +157,7 @@ public class ExampleBean {
     @Inject @ThreadContextConfig(propagated = ThreadContext.APPLICATION,
                                  cleared = ThreadContext.TRANSACTION,
                                  unchanged = ThreadContext.ALL_REMAINING)
-    ThreadContext appContextPropagator;
+    ThreadContext appContext;
 }
 ----
 
@@ -165,9 +165,9 @@ The following MicroProfile config properties could be used to override specific 
 
 [source, text]
 ----
-org.eclipse.microprofile.example.ExampleBean.setCompletableFuture.1.maxAsync=5
-org.eclipse.microprofile.example.ExampleBean.setCompletableFuture.1.maxQueued=20
-org.eclipse.microprofile.example.ExampleBean.appContextPropagator.cleared=Security,Transaction
+org.eclipse.microprofile.example.ExampleBean/setCompletableFuture/1/ManagedExecutorConfig/maxAsync=5
+org.eclipse.microprofile.example.ExampleBean/setCompletableFuture/1/ManagedExecutorConfig/maxQueued=20
+org.eclipse.microprofile.example.ExampleBean/appContext/ThreadContextConfig/cleared=Security,Transaction
 ----
 
 === Thread Context Provider SPI
