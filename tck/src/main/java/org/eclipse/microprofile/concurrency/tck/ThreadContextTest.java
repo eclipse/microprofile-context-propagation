@@ -1030,6 +1030,108 @@ public class ThreadContextTest extends Arquillian {
     }
 
     /**
+     * The withContextCapture method should be able to create multiple dependent stages
+     * having a single parent stage, where each of the dependent stages propagates a
+     * different set of thread context.
+     */
+    @Test
+    public void withContextCaptureMultipleThreadContexts()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ThreadContext bufferContext = ThreadContext.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        ThreadContext labelContext = ThreadContext.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        try {
+            Function<Character, String> getContext = c -> Buffer.get().append(c).append(Label.get()).toString();
+
+            // Set non-default values
+            Buffer.set(new StringBuffer("withContextCaptureMultipleThreadContexts-test-buffer-A"));
+            Label.set("withContextCaptureMultipleThreadContexts-test-label-A");
+
+            CompletableFuture<Character> unmanagedStage1 = new CompletableFuture<Character>();
+
+            CompletableFuture<Character> stage2 = bufferContext.withContextCapture(unmanagedStage1);
+            CompletableFuture<Character> stage3 = labelContext.withContextCapture(unmanagedStage1);
+
+            CompletableFuture<String> stage4 = stage2.thenApply(getContext);
+            CompletableFuture<String> stage5 = stage3.thenApply(getContext);
+
+            // change context
+            Buffer.set(new StringBuffer("withContextCaptureMultipleThreadContexts-test-buffer-B"));
+            Label.set("withContextCaptureMultipleThreadContexts-test-label-B");
+
+            unmanagedStage1.complete(';');
+
+            Assert.assertEquals(stage4.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "withContextCaptureMultipleThreadContexts-test-buffer-A;",
+                    "Context was incorrectly established on contextual function.");
+
+            Assert.assertEquals(stage5.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), ";withContextCaptureMultipleThreadContexts-test-label-A",
+                    "Context was incorrectly established on contextual function.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * The withContextCapture method should be able to create a dependent stage that is
+     * associated with a thread context even if its parent stage is already associated with
+     * a different thread context. Both stages must honor their respective thread context.
+     */
+    @Test
+    public void withContextCaptureSwitchThreadContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ThreadContext bufferContext = ThreadContext.builder()
+                .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        ThreadContext labelContext = ThreadContext.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("withContextCaptureSwitchThreadContext-test-buffer-A"));
+            Label.set("withContextCaptureSwitchThreadContext-test-label-A");
+
+            CompletableFuture<Character> unmanagedStage1 = new CompletableFuture<Character>();
+
+            CompletableFuture<Character> stage2 = bufferContext.withContextCapture(unmanagedStage1);
+            CompletableFuture<String> stage3 = stage2.thenApply(c -> Buffer.get().append(c).append(Label.get()).toString());
+
+            // change context
+            Buffer.set(new StringBuffer("withContextCaptureSwitchThreadContext-test-buffer-B"));
+            Label.set("withContextCaptureSwitchThreadContext-test-label-B");
+
+            CompletableFuture<String> stage4 = labelContext.withContextCapture(stage3);
+            CompletableFuture<String> stage5 = stage4.thenApply(s -> s + ';' + Buffer.get().toString() + ';' + Label.get());
+
+            // change context again
+            Buffer.set(new StringBuffer("withContextCaptureSwitchThreadContext-test-buffer-C"));
+            Label.set("withContextCaptureSwitchThreadContext-test-label-C");
+
+            unmanagedStage1.complete(';');
+
+            Assert.assertEquals(stage5.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "withContextCaptureSwitchThreadContext-test-buffer-A;;;withContextCaptureSwitchThreadContext-test-label-B",
+                    "Context was incorrectly established on contextual function.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
      * Verify the MicroProfile Concurrency implementation of propagate(), cleared(), and unchanged()
      * for ThreadContext.Builder.
      */
