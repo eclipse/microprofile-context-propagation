@@ -18,7 +18,9 @@
  */
 package org.eclipse.microprofile.concurrency.tck;
 
+import java.lang.annotation.Annotation;
 import java.io.CharConversionException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -45,6 +47,9 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
 
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.spi.BufferContextProvider;
@@ -1482,6 +1487,127 @@ public class ManagedExecutorTest extends Arquillian {
         }
         finally {
             executor.shutdownNow();
+        }
+    }
+
+    /**
+     * Verify that when JTA transactions are supported and configuration of propagated=TRANSACTION
+     * is permitted, it is at least possible to propagate the absence of a transaction,
+     * and if context is allowed to be captured while a transaction is active, then the task or action
+     * runs with a transaction on the thread. It would be nice to test participation in the same
+     * transaction, but that isn't possible without the TCK having a dependency on a particular
+     * type of transactional resource.
+     */
+    @Test
+    public void propagateTransactionContextJTA() throws Exception {
+        ManagedExecutor executor;
+        try {
+            executor = ManagedExecutor.builder()
+                    .propagated(ThreadContext.TRANSACTION)
+                    .cleared(ThreadContext.ALL_REMAINING)
+                    .build();
+        }
+        catch (IllegalStateException x) {
+            System.out.println("Skipping test propagateTransactionContextJTA. Transaction context propagation is not supported.");
+            return;
+        }
+
+        Class<?> userTransaction;
+        try {
+            userTransaction = Class.forName("javax.transaction.UserTransaction");
+        }
+        catch (ClassNotFoundException x) {
+            System.out.println("Skipping test propagateTransactionContextJTA. javax.transaction.UserTransaction not available to applications.");
+            return;
+        }
+
+        Object txFromJNDI = null;
+        try {
+            txFromJNDI = InitialContext.doLookup("java:comp/UserTransaction");
+            System.out.println("JTA UserTransaction is available in JNDI.");
+        }
+        catch (NamingException x) {
+            System.out.println("JTA UserTransaction not available in JNDI: " + x);
+        }
+
+        Object txFromCDI = null;
+        try {
+            // txFromCDI = CDI.current().select(UserTransaction.class).get();
+            Class<?> cdi = Class.forName("javax.enterprise.inject.spi.CDI");
+            Object current = cdi.getMethod("current").invoke(null);
+            Object instance = cdi.getMethod("select", Class.class, Annotation[].class).invoke(current, userTransaction, new Annotation[] {});
+            txFromCDI = instance.getClass().getMethod("get").invoke(instance);
+            System.out.println("JTA UserTransaction is available via CDI.");
+        }
+        catch (RuntimeException | InvocationTargetException x) {
+            System.out.println("JTA UserTransaction not available via CDI: " +
+                    (x instanceof InvocationTargetException ? x.getCause() : x));
+        }
+
+        Object tx = txFromJNDI == null ? txFromCDI : txFromJNDI;
+        if (tx == null) {
+            System.out.println("Skipping test propagateTransactionContextJTA. JTA transactions are not supported.");
+            return;
+        }
+
+        System.out.println("Using JTA UserTransaction: " + tx);
+
+        Method begin = userTransaction.getMethod("begin");
+        Method commit = userTransaction.getMethod("commit");
+        Method getStatus = userTransaction.getMethod("getStatus");
+
+        // Propagate context from thread where no transaction is active
+        CompletableFuture<String> stage0 = executor.newIncompleteFuture();
+
+        CompletableFuture<String> stage1 = stage0.thenApply(s -> {
+            try {
+                Assert.assertEquals(getStatus.invoke(tx), 6, // javax.transaction.Status.STATUS_NO_TRANSACTION
+                        "Transaction status should indicate no transaction is active on thread.");
+
+                begin.invoke(tx);
+                commit.invoke(tx);
+
+                return "SUCCESS1";
+            }
+            catch (Exception x) {
+                throw new CompletionException(x);
+            }
+        });
+
+        CompletableFuture<String> stage2;
+
+        begin.invoke(tx);
+        try {
+            // Force stage1 to run on thread where transaction context is already present
+            Assert.assertTrue(stage0.complete("READY"));
+            Assert.assertEquals(stage1.join(), "SUCCESS1");
+
+            Assert.assertEquals(getStatus.invoke(tx), 0, // javax.transaction.Status.STATUS_ACTIVE
+                    "Transaction no longer active after running task.");
+
+            // Attempt to propagate this transaction to another thread.
+            try {
+                stage2 = stage1.thenApplyAsync(s -> {
+                    try {
+                        Assert.assertEquals(getStatus.invoke(tx), 0, // javax.transaction.Status.STATUS_ACTIVE
+                                "Transaction context not propagated.");
+
+                        return "SUCCESS2";
+                    }
+                    catch (Exception x) {
+                        throw new CompletionException(x);
+                    }
+                });
+            }
+            catch (UnsupportedOperationException x) {
+                System.out.println("Skipping portion of test propagateTransactionContextJTA. Propagation of active transaction is not supported.");
+                return;
+            }
+
+            Assert.assertEquals(stage2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "SUCCESS2");
+        }
+        finally {
+            commit.invoke(tx);
         }
     }
 
