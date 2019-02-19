@@ -345,6 +345,17 @@ public interface ManagedExecutor extends ExecutorService {
      * the fully qualified name of the injection point from which the container produces the
      * managed executor.</p>
      *
+     * <p>The injection point name must be formatted with the same pattern as MicroProfile Config overrides,
+     * which is the fully qualified class name of the injection point (delimited by <code>.</code>),
+     * followed by the <code>/</code> character, followed by the injection point field name
+     * or the injection point method name followed by <code>/</code> and the parameter position.
+     * For example,</p>
+     *
+     * <pre><code>
+     * org.eclipse.microprofile.examples.MyBean/myExecutor
+     * org.eclipse.microprofile.examples.MyBean/setCompletableFuture/1
+     * </code></pre>
+     *
      * @return a textual representation of the executor.
      */
     String toString();
