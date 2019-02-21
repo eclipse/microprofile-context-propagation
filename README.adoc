@@ -178,3 +178,8 @@ interface and packages it in a way that makes it available to the
 ServiceLoader. ThreadContextProvider identifies the thread context
 type and provides a way to capture snapshots of thread context
 as well as for applying empty/cleared context to threads.
+
+[[contributing]]
+Contributing
+~~~~~~~~~~~~
+Do you want to contribute to this project? link:CONTRIBUTING.adoc[Find out how you can help here].
