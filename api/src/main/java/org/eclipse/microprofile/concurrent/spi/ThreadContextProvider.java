@@ -61,7 +61,9 @@ public interface ThreadContextProvider {
      * @return immutable snapshot of the provided type of context, captured from the
      *         current thread. NULL must be returned if the thread context provider
      *         does not support capturing context from the current thread and
-     *         propagating it to other threads.
+     *         propagating it to other threads, in which case the MicroProfile Concurrency
+     *         implementation must in turn raise <code>UnsupportedOperationException</p>
+     *         to the caller.
      */
     ThreadContextSnapshot currentContext(Map<String, String> props);
 

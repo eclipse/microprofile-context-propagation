@@ -82,7 +82,8 @@ public @interface ThreadContextConfig {
      * where the action or task executes. The previous context is resumed
      * on the thread after the action or task ends.</p>
      *
-     * <p>By default, the transaction context is cleared/suspended from
+     * <p>For example, if the user specifies {@link ThreadContext#TRANSACTION} in this set,
+     * then when a action or task runs, the current transaction is cleared/suspended from
      * the execution thread so that actions and tasks can start and
      * end transactions of their choosing, to independently perform their
      * own transactional work, as needed.</p>
@@ -103,7 +104,7 @@ public @interface ThreadContextConfig {
      * or if the {@link #propagated} and/or {@link #unchanged} set
      * includes one or more of the same types as this set.</p>
      */
-    String[] cleared() default { ThreadContext.TRANSACTION };
+    String[] cleared() default {};
 
     /**
      * <p>Defines the set of thread context types to capture from the thread
@@ -113,10 +114,8 @@ public @interface ThreadContextConfig {
      * <p>The default set of propagated thread context types is
      * {@link ThreadContext#ALL_REMAINING}, which includes all available
      * thread context types that support capture and propagation to other
-     * threads, except for those that are explicitly {@link cleared},
-     * which, by default is {@link ThreadContext#TRANSACTION} context,
-     * in which case is suspended from the thread that runs the action or
-     * task.</p>
+     * threads, except for those that are explicitly {@link #cleared}
+     * or {@link #unchanged}.</p>
      *
      * <p>Constants for specifying some of the core context types are provided
      * on {@link ThreadContext}. Other thread context types must be defined
@@ -181,7 +180,7 @@ public @interface ThreadContextConfig {
         public final class Literal extends AnnotationLiteral<ThreadContextConfig> implements ThreadContextConfig {
 
             public static final Literal DEFAULT_INSTANCE = 
-                of(new String[]{ThreadContext.TRANSACTION}, new String[]{}, new String[]{ThreadContext.ALL_REMAINING});;
+                of(new String[]{}, new String[]{}, new String[]{ThreadContext.ALL_REMAINING});
 
             private static final long serialVersionUID = 1L;
 

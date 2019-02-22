@@ -56,7 +56,9 @@ This section includes some additional examples of spec usage.
 
 [source, java]
 ----
-    threadContext = ThreadContext.builder().build();
+    threadContext = ThreadContext.builder()
+                        .propagated(ThreadContext.APPLICATION)
+                        .build();
     contextSnapshot = threadContext.currentContextExecutor();
 
     ... on some other thread,

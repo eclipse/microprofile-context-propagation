@@ -430,7 +430,7 @@ public class MPConfigTest extends Arquillian {
      */
     @Test
     public void overrideContextPropagationForThreadContextWithImpliedCleared() throws Exception {
-        // Expected config is propagated=Buffer; cleared=Transaction(with implied Remaining); unchanged=Label
+        // Expected config is propagated=Buffer; cleared={} (implied Remaining); unchanged=Label
         Assert.assertNotNull(clearAllRemainingThreadContext,
                 "Unable to inject ThreadContext qualified by NamedInstance. Cannot run test.");
         
@@ -781,7 +781,7 @@ public class MPConfigTest extends Arquillian {
         ManagedExecutorConfig.Literal managedExecutorConfig = ManagedExecutorConfig.Literal.of(
                 1,
                 -1,
-                new String[] { ThreadContext.ALL_REMAINING }, // cleared 
+                new String[] { ThreadContext.ALL_REMAINING }, // cleared
                 new String[] { Buffer.CONTEXT_NAME, Label.CONTEXT_NAME }); // propagated 
         try {
             instance = cdi.select(ManagedExecutor.class, managedExecutorConfig);
@@ -795,7 +795,7 @@ public class MPConfigTest extends Arquillian {
         managedExecutorConfig = ManagedExecutorConfig.Literal.of(
                 1,
                 4,
-                new String[] { ThreadPriorityContextProvider.THREAD_PRIORITY, Buffer.CONTEXT_NAME, ThreadContext.TRANSACTION }, // cleared 
+                new String[] { ThreadPriorityContextProvider.THREAD_PRIORITY, Buffer.CONTEXT_NAME, ThreadContext.TRANSACTION }, // cleared
                 new String[] { ThreadContext.ALL_REMAINING }); // propagated 
         try {
             instance = cdi.select(ManagedExecutor.class, namedInstance, managedExecutorConfig);
@@ -838,7 +838,7 @@ public class MPConfigTest extends Arquillian {
 
         // Try matching annotation values before MP Config is applied,
         ThreadContextConfig.Literal threadContextConfig = ThreadContextConfig.Literal.of(
-                new String[] { ThreadContext.TRANSACTION }, // cleared 
+                new String[] { }, // cleared
                 new String[] { ThreadContext.ALL_REMAINING }, // propagated
                 new String[] { Label.CONTEXT_NAME }); // unchanged
         try {
@@ -851,7 +851,7 @@ public class MPConfigTest extends Arquillian {
 
         // Try matching annotation values after MP Config is applied,
         threadContextConfig = ThreadContextConfig.Literal.of(
-                new String[] { ThreadContext.TRANSACTION }, // cleared 
+                new String[] { }, // cleared
                 new String[] { Buffer.CONTEXT_NAME }, // propagated
                 new String[] { Label.CONTEXT_NAME }); // unchanged
         try {

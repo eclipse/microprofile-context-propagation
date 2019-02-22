@@ -109,11 +109,15 @@ public interface ThreadContext {
          * <p>This set replaces the <code>cleared</code> set that was
          * previously specified on the builder instance, if any.</p>
          *
-         * <p>The default set of cleared thread context types is
-         * {@link ThreadContext#TRANSACTION}, which means that a transaction
+         * <p>For example, if the user specifies {@link ThreadContext#TRANSACTION}
+         * in this set, then a transaction
          * is not active on the thread when the action or task runs, such
          * that each action or task is able to independently start and end
          * its own transactional work.</p>
+         *
+         * <p>By default, the set of cleared context is empty, but context clearing
+         * also depends on whether all context types are accounted for in the
+         * {@link #propagated} and {@link #unchanged} sets.
          *
          * <p>{@link ThreadContext#ALL_REMAINING} is automatically appended to the
          * set of cleared context if neither the {@link #propagated} set nor the
@@ -141,10 +145,8 @@ public interface ThreadContext {
          * <p>The default set of propagated thread context types is
          * {@link ThreadContext#ALL_REMAINING}, which includes all available
          * thread context types that support capture and propagation to other
-         * threads, except for those that are explicitly {@link cleared},
-         * which, by default is {@link ThreadContext#TRANSACTION} context,
-         * in which case is suspended from the thread that runs the action or
-         * task.</p>
+         * threads, except for those that are explicitly {@link #cleared}
+         * or {@link #unchanged}.</p>
          *
          * <p>Constants for specifying some of the core context types are provided
          * on {@link ThreadContext}. Other thread context types must be defined

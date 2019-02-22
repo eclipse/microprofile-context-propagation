@@ -432,7 +432,7 @@ public class CDIBean {
     /**
      * When the container creates a ThreadContext for an injection point that lacks a ThreadContextConfig annotation,
      * its configuration is equivalent to ThreadContext.builder().build(), which is that all available thread context
-     * types are propagated, except for Transaction context, which is cleared.
+     * types are propagated.
      */
     public void testInjectThreadContextNoConfig() {
         Assert.assertNotNull(defaultContext,
@@ -472,7 +472,7 @@ public class CDIBean {
     /**
      * When the container creates a ThreadContext for an injection point with an empty ThreadContextConfig annotation,
      * its configuration is equivalent to ThreadContext.builder().build(), which is that all available thread context
-     * types are propagated, except for Transaction context, which is cleared.
+     * types are propagated.
      */
     public void testInjectThreadContextEmptyConfig() throws Exception {
         Assert.assertNotNull(defaultContextWithEmptyAnno,
