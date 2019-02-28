@@ -190,6 +190,3 @@ org.eclipse.microprofile.example.ExampleBean/setCompletableFuture/1/ManagedExecu
 org.eclipse.microprofile.example.ExampleBean/appContext/ThreadContextConfig/cleared=Security,Transaction
 ----
 
-=== Thread Context Provider SPI
-
-External providers of thread context can implement an SPI standardized by the MicroProfile Concurrency specification that allows capture/clear/propagate/restore operations to be plugged in for third party implementations of context.
