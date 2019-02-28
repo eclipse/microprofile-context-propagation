@@ -23,7 +23,7 @@ MicroProfile Concurrency introduces APIs for propagating contexts across units o
 
 === Motivation
 
-When using a reactive model, execution is often cut into small units of work that are chained together to assemble a reactive pipeline. The context under which each unit of work execute is often unpredictable and depends on the particular reactive toolkit used. Some units might run with the context of a thread that awaits completion, or the context of a previous unit that completed and triggered the dependent unit, or with no/undefined context at all. Existing solutions for transferring thread context, such as the EE Concurrency Utilities `ContextService`, are tied to a specific reactive model, promotes usage of thread pools, is difficult to use and require a lot of boilerplate code. This specification makes it possible for thread context propagation to easily be done in a type-safe way, keeping boilerplate code to a minimum, as well as allowing for thread context propagation to be done automatically for many types of reactive models.
+When using a reactive model, execution is cut into small units of work that are chained together to assemble a reactive pipeline. The context under which each unit of work execute is often unpredictable and depends on the particular reactive engine used. Some units might run with the context of a thread that awaits completion, or the context of a previous unit that completed and triggered the dependent unit, or with no/undefined context at all. Existing solutions for transferring thread context, such as the EE Concurrency Utilities `ContextService`, are tied to a specific asynchrony model, promotes usage of thread pools, is difficult to use and require a lot of boilerplate code. This specification makes it possible for thread context propagation to easily be done in a type-safe way, keeping boilerplate code to a minimum, as well as allowing for thread context propagation to be done automatically for many types of reactive models.
 
 We distinguish two main use-cases for propagating contexts to reactive pipelines:
 
@@ -41,7 +41,7 @@ Goals
 
 === Solution
 
-This specification introduces two interfaces that contain methods that can work alongside Jakarta EE Concurrency, if available.
+This specification introduces two interfaces that contain methods that can work alongside EE Concurrency, if available.
 
 The interface, `org.eclipse.microprofile.concurrent.ManagedExecutor`, provides methods for obtaining managed instances of `CompletableFuture` which are backed by the managed executor as the default asynchronous execution facility and the default mechanism of defining thread context propagation. Similar to EE Concurrency’s `ManagedExecutorService`, the MicroProfile `ManagedExecutor` also implements the Java SE `java.util.concurrent.ExecutorService` interface, using managed threads when asynchronous invocation is required. It is possible for a single implementation to be capable of simultaneously implementing both `ManagedExecutor` and `ManagedExecutorService` interfaces.
 
