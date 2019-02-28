@@ -66,17 +66,16 @@ This section includes some additional examples of spec usage.
 [source, java]
 ----
     threadContext = ThreadContext.builder()
-                        .propagated(ThreadContext.APPLICATION)
-                        .unchanged(ThreadContext.TRANSACTION)
+                        .propagated(ThreadContext.APPLICATION, ThreadContext.TRANSACTION)
                         .cleared(ThreadContext.ALL_REMAINING)
                         .build();
 
-    Callable<Integer> updateDatabase = () -> {
+    Callable<Integer> updateDatabase = threadContext.contextualCallable(() -> {
         DataSource ds = InitialContext.doLookup("java:comp/env/ds1");
         try (Connection con = ds.getConnection()) {
             return con.createStatement().executeUpdate(sql);
         }
-    });
+    }));
 
     ... on some other thread,
 
