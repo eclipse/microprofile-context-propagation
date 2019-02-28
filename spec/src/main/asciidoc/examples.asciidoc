@@ -65,7 +65,11 @@ This section includes some additional examples of spec usage.
     });
 ----
 
-=== Run under the transaction of the executing thread
+=== Transaction Usage Guidelines
+
+For implementations that support propagation of JTA transactions, the following guidelines and examples demonstrate possible common usage patterns:
+
+==== Run under the transaction of the executing thread
 
 [source, java]
 ----
@@ -89,4 +93,76 @@ This section includes some additional examples of spec usage.
     updateDatabase.call(); // runs as part of the transaction
     ... more transactional work
     tx.commit();
+----
+
+==== Commit or rollback a transaction that has been propagated by a ManagedExecutor
+
+If transaction demarcation is performed by a container then the only requirement is to avoid explicitly
+terminating a transaction in dependent stages.
+
+If transaction demarcation is performed by the application developer then the transaction should be
+started before running any completion stages and should be terminated in a finally block after all
+the stages have completed. The issue with ending the transaction in a completion stage is that
+the context of the initiating thread will be re-applied after the executor finishes and if a stage
+ended the transaction then this initiating thread will be associated with the finished transaction
+which would mean that that thread could not begin any new transactions.
+ 
+[source, java]
+----
+
+    ...
+
+        // create an executor with transaction propagation enabled
+        ManagedExecutor.builder()
+                    .maxAsync(2)
+                    .propagated(ThreadContext.TRANSACTION)
+                    .cleared(ThreadContext.ALL_REMAINING)
+                    .build();
+
+        // look up a bean for starting and finishing transactions
+        UserTransaction ut = CDI.current().select(UserTransaction.class).get();
+
+        try {
+            // enter transaction scope by starting a transaction
+            ut.begin();
+
+            // transaction scoped beans will be available
+            int initialValue = transactionalService.getValue();
+
+            // call a transactional bean on another thread to validate
+            // that the transaction context propagates.
+            CompletableFuture<Void> stage = executor.runAsync(
+                () -> transactionalService.mandatory()); // will fail without a txn
+
+            // wait for all stages to finish before ending the transaction
+            stage.join();
+
+            // we are still in transaction context so transaction scoped
+            // beans will still be available
+            Assert.assertEquals(initialValue + 1, transactionalService.getValue());
+        }
+        finally {
+            // Must end the transaction in the same thread it was started from.
+            // If it is ended by an executor thread then the transaction context
+            // provider will re-associate the terminated transaction with the
+            // initiating thread when the executor finishes which is undesirable.
+            try {
+                ut.commit();
+
+                try {
+                    // since there is now no active transaction, transaction scoped
+                    // beans should no longer be available
+                    transactionalService.getValue();
+                    Assert.fail(
+                        "TransactionScoped beans should only be available from transaction scope");
+                }
+                catch (Exception ignore) {
+                    // expected since we are no longer in the scope of a transactions
+                }
+            }
+            finally {
+                // there should be no active transaction associated with the thread
+                Assert.assertNull(ut.getStatus() != Status.STATUS_ACTIVE, "transaction still active");
+            }
+        }
 ----
