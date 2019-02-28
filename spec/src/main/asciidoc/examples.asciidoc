@@ -34,7 +34,7 @@ This section includes some additional examples of spec usage.
     stage1.completeAsync(supplier1); // runs with captured context
 ----
 
-=== Apply thread context to a single CompletionStage action
+=== Apply thread context to a CompletionStage and all its dependent stages
 
 [source, java]
 ----
@@ -43,13 +43,9 @@ This section includes some additional examples of spec usage.
                         .cleared(ThreadContext.ALL_REMAINING)
                         .build();
 
-    Consumer<String> contextualConsumer = threadContext.contextualConsumer(s -> {
-        ... do something that requires context
-    });
-
-    stage = invokeSomeMethodThatReturnsUnmanagedCompletionStage();
-    stage.thenApply(function1)            // context is unpredictable
-         .thenAccept(contextualConsumer); // runs with captured context
+    stage = threadContext.withContextCapture(invokeSomeMethodThatReturnsUnmanagedCompletionStage());
+    stage.thenApply(function1)  // runs with captured context
+         .thenAccept(consumer); // runs with captured context
 ----
 
 === Reusable Context Snapshot
