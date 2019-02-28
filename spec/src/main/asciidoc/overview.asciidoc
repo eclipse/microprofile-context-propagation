@@ -84,7 +84,10 @@ Container provides, per unique name, an instance of either `ManagedExecutor` and
         .thenApplyAsync(function1)
         .thenApply(function2);
     ...
-    unmanagedCompletionStage.thenApply(threadContext.contextualFunction(function3));
+    threadContext.withContextCapture(unmanagedCompletionStage)
+        .supply(supplier1)
+        .thenApply(function1)
+        .thenApply(function2);
 ----
 
 In the absence of other qualifiers and annotations, the container creates and injects a new default instance of `ManagedExecutor` or `ThreadContext` per injection point, as shown above.
@@ -106,6 +109,19 @@ With just the config annotation in place, every injection point is assigned a ne
         .thenApply(function)
         .thenAccept(consumer);
     stage.completeAsync(supplier);
+----
+
+Or similarly:
+
+[source, java]
+----
+    @Inject 
+    @ThreadContextConfig(propagated = ThreadContext.SECURITY)
+    ThreadContext threadContext;
+    ...
+    threadContext.withContextCapture(unmanagedCompletionStage)
+        .thenApply(function)
+        .thenAccept(consumer);
 ----
 
 === Sharing Configured Instances
