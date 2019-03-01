@@ -48,6 +48,24 @@ This section includes some additional examples of spec usage.
          .thenAccept(consumer); // runs with captured context
 ----
 
+=== Apply thread context to a single CompletionStage action
+
+[source, java]
+----
+    threadContext = ThreadContext.builder()
+                        .propagated(ThreadContext.SECURITY)
+                        .cleared(ThreadContext.ALL_REMAINING)
+                        .build();
+
+    Consumer<String> contextualConsumer = threadContext.contextualConsumer(s -> {
+            ... do something that requires context
+        });
+    
+    stage = invokeSomeMethodThatReturnsUnmanagedCompletionStage();
+    stage.thenApply(function1)            // context is unpredictable
+         .thenAccept(contextualConsumer); // runs with captured context
+----
+
 === Reusable Context Snapshot
 
 [source, java]
@@ -63,10 +81,13 @@ This section includes some additional examples of spec usage.
 
 === Run under the transaction of the executing thread
 
+If you do not want to either propagate or clear a context, you need to explicitly mark it as `unchanged`. In this example we want to capture and propagate only the application context, but we don't want to clear the transaction context because we're going to manually set it up for the new thread where we're going to use the captured application context:   
+
 [source, java]
 ----
     threadContext = ThreadContext.builder()
-                        .propagated(ThreadContext.APPLICATION, ThreadContext.TRANSACTION)
+                        .propagated(ThreadContext.APPLICATION)
+                        .unchanged(ThreadContext.TRANSACTION)
                         .cleared(ThreadContext.ALL_REMAINING)
                         .build();
 
@@ -81,7 +102,8 @@ This section includes some additional examples of spec usage.
 
     tx.begin();
     ... do transactional work
-    updateDatabase.call(); // runs as part of the transaction
+    // runs as part of the transaction, but with the captured application scope
+    updateDatabase.call(); 
     ... more transactional work
     tx.commit();
 ----
