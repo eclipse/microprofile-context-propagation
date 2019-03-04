@@ -33,13 +33,14 @@ import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
  *
  * <p>Example usage:</p>
  * <pre>
- * <code>&commat;Inject</code> ManagedExecutor executor;
+ * <code>ManagedExecutor executor = ManagedExecutor.builder().propagated(ThreadContext.APPLICATION).cleared(ThreadContext.ALL_REMAINING).build();
  * ...
  * CompletableFuture&lt;Integer&gt; future = executor
  *    .supplyAsync(supplier)
  *    .thenApplyAsync(function1)
  *    .thenApply(function2)
  *    ...
+ * </code>
  * </pre>
  *
  * <p>This specification allows for managed executors that propagate thread context as well as for
@@ -154,6 +155,9 @@ public interface ManagedExecutor extends ExecutorService {
          *         {@link #cleared} set and the {@link #propagated} set</li>
          *         <li>if a thread context type that is configured to be
          *         {@link #cleared} or {@link #propagated} is unavailable</li>
+         *         <li>if context configuration is neither specified on the builder
+         *         nor via MicroProfile Config, and the builder implementation lacks
+         *         vendor-specific defaults of its own.</li>
          *         <li>if more than one provider provides the same thread context
          *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}
          *         </li>
@@ -169,8 +173,8 @@ public interface ManagedExecutor extends ExecutorService {
          * <p>This set replaces the <code>cleared</code> set that was previously
          * specified on the builder instance, if any.</p>
          *
-         * <p>The default set of cleared thread context types is
-         * {@link ThreadContext#TRANSACTION}, which means that a transaction
+         * <p>For example, if the user specifies
+         * {@link ThreadContext#TRANSACTION} in this set, then a transaction
          * is not active on the thread when the action or task runs, such
          * that each action or task is able to independently start and end
          * its own transactional work.</p>
@@ -197,14 +201,6 @@ public interface ManagedExecutor extends ExecutorService {
          *
          * <p>This set replaces the <code>propagated</code> set that was
          * previously specified on the builder instance, if any.</p>
-         *
-         * <p>The default set of propagated thread context types is
-         * {@link ThreadContext#ALL_REMAINING}, which includes all available
-         * thread context types that support capture and propagation to other
-         * threads, except for those that are explicitly {@link cleared},
-         * which, by default is {@link ThreadContext#TRANSACTION} context,
-         * in which case is suspended from the thread that runs the action or
-         * task.</p>
          *
          * <p>Constants for specifying some of the core context types are provided
          * on {@link ThreadContext}. Other thread context types must be defined

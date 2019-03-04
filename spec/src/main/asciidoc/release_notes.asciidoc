@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
 //
 // See the NOTICE file(s) distributed with this work for additional
 // information regarding copyright ownership.
@@ -48,7 +48,8 @@ Use CDI to inject a `ManagedExecutor` or `ThreadContext` service:
 [source,java]
 ----
 public class MyBean {
-    @Inject ManagedExecutor executor;
+    @Inject @ManagedExecutorConfig(propagated = ThreadContext.APPLICATION, cleared = ThreadContext.ALL_REMAINING)
+    ManagedExecutor executor;
 ----
 
 Or you can create one using a builder:
@@ -57,6 +58,7 @@ Or you can create one using a builder:
 ----
     ManagedExecutor executor = ManagedExecutor.builder()
                        .propagated(ThreadContext.APPLICATION, ThreadContext.CDI)
+                       .cleared(ThreadContext.ALL_REMAINING)
                        .maxAsync(5)
                        .build();
 ----

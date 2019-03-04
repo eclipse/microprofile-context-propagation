@@ -66,16 +66,21 @@ public class MPConfigBean {
     // microprofile-config.properties overrides this with propagated=Buffer
     @Inject @NamedInstance("clearAllRemainingThreadContext") @ThreadContextConfig(
             propagated = ThreadContext.ALL_REMAINING,
+            cleared = ThreadContext.TRANSACTION,
             unchanged = Label.CONTEXT_NAME)
     protected ThreadContext clearAllRemainingThreadContext;
 
     // microprofile-config.properties overrides this with propagated=<unconfigured>; cleared=Buffer,ThreadPriority; unchanged=Remaining
-    @Inject
+    @Inject @ThreadContextConfig(
+            propagated = ThreadContext.ALL_REMAINING,
+            cleared = {},
+            unchanged = {})
     protected ThreadContext threadContext;
 
     // microprofile-config.properties overrides exec parameter with maxAsync=1
     @Produces @ApplicationScoped @NamedInstance("producedExecutor")
-    protected ManagedExecutor createExecutor(@ManagedExecutorConfig(maxQueued = 5) ManagedExecutor exec) {
+    protected ManagedExecutor createExecutor(
+            @ManagedExecutorConfig(maxQueued = 5, propagated = {}, cleared = ThreadContext.ALL_REMAINING) ManagedExecutor exec) {
         return exec;
     }
 
@@ -84,7 +89,7 @@ public class MPConfigBean {
     protected ThreadContext createThreadContext(
             @NamedInstance("producedExecutor") ManagedExecutor unused1, // this is here so that we can force parameter position 3 to be used
             @NamedInstance("namedExecutor") ManagedExecutor unused2, // this is here so that we can force parameter position 3 to be used
-            @ThreadContextConfig(propagated=Buffer.CONTEXT_NAME, cleared=ThreadContext.ALL_REMAINING) ThreadContext threadContext) {
+            @ThreadContextConfig(propagated=Buffer.CONTEXT_NAME, cleared=ThreadContext.ALL_REMAINING, unchanged = {}) ThreadContext threadContext) {
         return threadContext;
     }
 

@@ -40,7 +40,9 @@ import javax.enterprise.util.AnnotationLiteral;
  * <p>For example, the following injection points share a single
  * {@link ThreadContext} instance,</p>
  *
- * <pre><code> &commat;Inject &commat;NamedInstance("tc1") &commat;ThreadContextConfig(propagated = { ThreadContext.CDI, ThreadContext.APPLICATION })
+ * <pre><code> &commat;Inject &commat;NamedInstance("tc1") &commat;ThreadContextConfig(propagated = { ThreadContext.CDI, ThreadContext.APPLICATION },
+ *                                                     cleared = { ThreadContext.SECURITY, ThreadContext.TRANSACTION },
+ *                                                     unchanged = ThreadContet.ALL_REMAINING)
  * ThreadContext threadContext1;
  *
  * &commat;Inject
@@ -57,10 +59,14 @@ import javax.enterprise.util.AnnotationLiteral;
  * <p>Alternatively, the following injection points each represent a distinct
  * {@link ThreadContext} instance,</p>
  *
- * <pre><code> &commat;Inject &commat;ThreadContextConfig(propagated = { ThreadContext.SECURITY, ThreadContext.APPLICATION })
+ * <pre><code> &commat;Inject &commat;ThreadContextConfig(propagated = { ThreadContext.SECURITY, ThreadContext.APPLICATION },
+ *                              cleared = ThreadContext.TRANSACTION,
+ *                              unchanged = ThreadContext.ALL_REMAINING)
  * ThreadContext tc2;
  *
- * &commat;Inject &commat;ThreadContextConfig(cleared = ThreadContext.SECURITY, unchanged = ThreadContext.TRANSACTION)
+ * &commat;Inject &commat;ThreadContextConfig(cleared = ThreadContext.SECURITY,
+ *                              unchanged = ThreadContext.TRANSACTION,
+ *                              propagated = ThreadContext.ALL_REMAINING)
  * ThreadContext tc3;
  * </code></pre>
  *
@@ -82,7 +88,8 @@ public @interface ThreadContextConfig {
      * where the action or task executes. The previous context is resumed
      * on the thread after the action or task ends.</p>
      *
-     * <p>By default, the transaction context is cleared/suspended from
+     * <p>For example, if the user specifies {@link ThreadContext#TRANSACTION} in this set,
+     * then when a action or task runs, the current transaction is cleared/suspended from
      * the execution thread so that actions and tasks can start and
      * end transactions of their choosing, to independently perform their
      * own transactional work, as needed.</p>
@@ -103,20 +110,12 @@ public @interface ThreadContextConfig {
      * or if the {@link #propagated} and/or {@link #unchanged} set
      * includes one or more of the same types as this set.</p>
      */
-    String[] cleared() default { ThreadContext.TRANSACTION };
+    String[] cleared();
 
     /**
      * <p>Defines the set of thread context types to capture from the thread
      * that contextualizes an action or task. This context is later
      * re-established on the thread(s) where the action or task executes.</p>
-     *
-     * <p>The default set of propagated thread context types is
-     * {@link ThreadContext#ALL_REMAINING}, which includes all available
-     * thread context types that support capture and propagation to other
-     * threads, except for those that are explicitly {@link cleared},
-     * which, by default is {@link ThreadContext#TRANSACTION} context,
-     * in which case is suspended from the thread that runs the action or
-     * task.</p>
      *
      * <p>Constants for specifying some of the core context types are provided
      * on {@link ThreadContext}. Other thread context types must be defined
@@ -134,7 +133,7 @@ public @interface ThreadContextConfig {
      * or if the {@link #cleared} and/or {@link #unchanged} set
      * includes one or more of the same types as this set.</p>
      */
-    String[] propagated() default { ThreadContext.ALL_REMAINING };
+    String[] propagated();
 
     /**
      * <p>Defines a set of thread context types that are essentially ignored,
@@ -179,10 +178,6 @@ public @interface ThreadContextConfig {
         * Util class used for inline creation of {@link ThreadContextConfig} annotation instances.
         */
         public final class Literal extends AnnotationLiteral<ThreadContextConfig> implements ThreadContextConfig {
-
-            public static final Literal DEFAULT_INSTANCE = 
-                of(new String[]{ThreadContext.TRANSACTION}, new String[]{}, new String[]{ThreadContext.ALL_REMAINING});;
-
             private static final long serialVersionUID = 1L;
 
             private final String[] cleared;

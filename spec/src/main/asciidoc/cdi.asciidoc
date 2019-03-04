@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,17 +22,7 @@ Injection points with the `@NamedInstance` qualifier have a name that is explici
 Injection points that have no CDI qualifier on them have a unique name which is deduced from the injection point itself.
 Container provides, per unique name, an instance of either `ManagedExecutor` and/or `ThreadContext` unless the application specifies a CDI producer with `@NamedInstance` qualifier, given unique name and respective type.
 
-=== Injecting `ManagedExecutor`
-
-The simplest use case is a new executor instance per injection point, where the configuration is equivalent to the default values of the `@ManagedExecutorConfig` annotation.
-
-[source, java]
-----
-@Inject
-ManagedExecutor executor;
-----
-
-==== Configuring `ManagedExecutor`
+==== Injecting and Configuring `ManagedExecutor`
 
 Oftentimes there is a need to configure the executor instance to limit the number of asynchronous tasks that it can start or define which contexts to propagate.
 The `@ManagedExecutorConfig` annotation allows you to configure all aspects of an injected `ManagedExecutor` instance.
@@ -41,7 +31,7 @@ Note that when using this annotation only, new instance of `ManagedExecutor` is 
 [source, java]
 ----
 @Inject
-@ManagedExecutorConfig(maxAsync = 5, propagated = ThreadContext.SECURITY)
+@ManagedExecutorConfig(maxAsync = 5, propagated = ThreadContext.SECURITY, cleared = ThreadContext.ALL_REMAINING)
 ManagedExecutor configuredExecutor;
 ----
 
@@ -59,7 +49,7 @@ public class MyFirstBean {
 
   @Inject
   @NamedInstance("myExecutor")
-  @ManagedExecutorConfig(maxAsync = 5, propagated = ThreadContext.SECURITY)
+  @ManagedExecutorConfig(maxAsync = 5, propagated = ThreadContext.SECURITY, cleared = ThreadContext.ALL_REMAINING)
   ManagedExecutor executor;
 
 }
@@ -74,42 +64,9 @@ public class MySecondBean {
 }
 ----
 
-Since the configuration of `ManagedExecutor` is optional, a shared `ManagedExecutor` with default configuration is also a possibility.
-
-[source, java]
-----
-@ApplicationScoped
-public class FooBean {
-
-  @Inject
-  @NamedInstance("sharedDefaultME")
-  ManagedExecutor executor;
-
-}
-
-@ApplicationScoped
-public class BarBean {
-
-  @Inject
-  @NamedInstance("sharedDefaultME")
-  ManagedExecutor sharedExecutor;
-
-}
-----
-
 If multiple configurations of `ManagedExecutor` are assigned the same name, the container detects it and raises a `javax.enterprise.inject.spi.DefinitionException`.
 
-=== Injecting `ThreadContext`
-
-The simplest use case is a new `ThreadContext` instance per injection point, where the configuration is equivalent to the default values of the `@ThreadContextConfig` annotation.
-
-[source, java]
-----
-@Inject
-ThreadContext context;
-----
-
-==== Configuring `ThreadContext`
+==== Injecting and Configuring `ThreadContext`
 
 Oftentimes there is a need to configure the `ThreadContext` instance to specify which contexts to propagate.
 The `@ThreadContextConfig` annotation allows you to configure all aspects of an injected `ThreadContext` instance.
@@ -118,7 +75,7 @@ Note that when using this annotation only, new instance of `ThreadContext` is cr
 [source, java]
 ----
 @Inject
-@ThreadContextConfig(propagated = ThreadContext.SECURITY)
+@ThreadContextConfig(propagated = ThreadContext.SECURITY, unchanged = {}, cleared = ThreadContext.ALL_REMAINING)
 ThreadContext configuredContext;
 ----
 
@@ -136,7 +93,7 @@ public class MyFirstBean {
 
   @Inject
   @NamedInstance("myThreadContext")
-  @ThreadContextConfig(propagated = ThreadContext.SECURITY)
+  @ThreadContextConfig(propagated = ThreadContext.SECURITY, unchanged = {}, cleared = ThreadContext.ALL_REMAINING)
   ThreadContext context;
 
 }
@@ -147,29 +104,6 @@ public class MySecondBean {
   @Inject
   @NamedInstance("myThreadContext")
   ManagedExecutor sharedContext;
-
-}
-----
-
-Since the configuration of `ThreadContext` is optional, a shared `ThreadContext` with default configuration is also a possibility.
-
-[source, java]
-----
-@ApplicationScoped
-public class FooBean {
-
-  @Inject
-  @NamedInstance("sharedDefaultTC")
-  ThreadContext context;
-
-}
-
-@ApplicationScoped
-public class BarBean {
-
-  @Inject
-  @NamedInstance("sharedDefaultTC")
-  ThreadContext sharedContext;
 
 }
 ----

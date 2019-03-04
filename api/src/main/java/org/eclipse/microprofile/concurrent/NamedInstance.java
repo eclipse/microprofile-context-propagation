@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -36,10 +36,13 @@ import javax.inject.Qualifier;
  * <p>This annotation can be used in combination with the {@link ManagedExecutorConfig} or {@link ThreadContextConfig}
  * annotation to define a new instance. For example,</p>
  *
- * <pre><code> &commat;Inject &commat;NamedInstance("myExecutor") &commat;ManagedExecutorConfig(maxAsync=10)
+ * <pre><code> &commat;Inject &commat;NamedInstance("myExecutor") &commat;ManagedExecutorConfig(propagated = ThreadContext.SECURITY,
+ *                                                             cleared = ThreadContext_ALL_REMAINING)
  * ManagedExecutor myExecutor;
  *
- * &commat;Inject &commat;NamedInstance("myContext") &commat;ThreadContextConfig(propagated = { ThreadContext.SECURITY, ThreadContext.CDI })
+ * &commat;Inject &commat;NamedInstance("myContext") &commat;ThreadContextConfig(propagated = { ThreadContext.SECURITY, ThreadContext.CDI },
+ *                                                          cleared = ThreadContext.TRANSACTION,
+ *                                                          unchanged = ThreadContext.ALL_REMAINING)
  * ThreadContext myThreadContext;
  * </code></pre>
  *
@@ -57,7 +60,7 @@ import javax.inject.Qualifier;
  * defining its own scope, producer, and disposer. For example,</p>
  *
  * <pre><code> &commat;Produces &commat;ApplicationScoped &commat;NamedInstance("exec2")
- * ManagedExecutor exec2 = ManagedExecutor.builder().maxAsync(5).build();
+ * ManagedExecutor exec2 = ManagedExecutor.builder().propagated(ThreadContext.SECURITY).cleared(ThreadContext.ALL_REMAINING).build();
  *
  * public void shutdown(&commat;Disposes &commat;NamedInstance("exec2") ManagedExecutor executor) {
  *     executor.shutdown();

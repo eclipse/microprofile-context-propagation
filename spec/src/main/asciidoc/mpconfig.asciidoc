@@ -17,11 +17,11 @@
 [[concurrencympconfig]]
 == Integration with MicroProfile Config
 
-If a MicroProfile Config implementation is available, MicroProfile Config can be used to override configuration attributes of `ManagedExecutor` and `ThreadContext`.  This is true of instances that are built by the application as well as those produced by the container for injection as CDI beans.  The former involves standard usage of MicroProfile Config.  The latter relies upon the convention of defining MicroProfile Config property names that correspond to the fully qualified name of the injection point for which the instance is produced.  For `ManagedExecutor` and `ThreadContext` instances produced by the container, MicroProfie Config is applied statically. These instances will not dynamically respond to MicroProfile Config changes made after they are produced.
+If a MicroProfile Config implementation is available, MicroProfile Config can be used to override configuration attributes of `ManagedExecutor` and `ThreadContext`.  This is true of instances that are built by the application as well as those produced by the container for injection as CDI beans.  The former involves standard usage of MicroProfile Config.  The latter relies upon the convention of defining MicroProfile Config property names that correspond to the fully qualified name of the injection point for which the instance is produced.  For `ManagedExecutor` and `ThreadContext` instances produced by the container, MicroProfile Config is applied statically. These instances will not dynamically respond to MicroProfile Config changes made after they are produced.
 
 === Application usage of MicroProfile Config
 
-Applications can use MicroProfile Config in the standard way to enable configuration attributes of the `ManagedExecutor` and `ThreadContext` builders to be overriden.  For example,
+Applications can use MicroProfile Config in the standard way to enable configuration attributes of the `ManagedExecutor` and `ThreadContext` builders to be overridden.  For example,
 
 [source, java]
 ----
@@ -29,7 +29,12 @@ Applications can use MicroProfile Config in the standard way to enable configura
 ManagedExecutor createExecutor(
     @ConfigProperty(name="exec1.maxAsync", defaultValue="5") Integer a,
     @ConfigProperty(name="exec1.maxQueued", defaultValue="20") Integer q) {
-    return ManagedExecutor.builder().maxAsync(a).maxQueued(q).build();
+    return ManagedExecutor.builder()
+                          .maxAsync(a)
+                          .maxQueued(q)
+                          .propagated(ThreadContext.SECURITY, ThreadContext.APPLICATION)
+                          .cleared(ThreadContext.ALL_REMAINING)
+                          .build();
 }
 ----
 
@@ -43,7 +48,7 @@ exec1.maxQueued=15
 
 === Container usage of MicroProfile Config
 
-The container produces an instance per unqualified `ManagedExecutor` injection point, which may optionally be annotated with the `@ManagedExecutorConfig` annotation to supply default configuration. The container also produces an instance per `ManagedExecutor` injection point that is annotated with both the `@ManagedExecutorConfig` annotation and the `@NamedInstance` qualifier. And likewise for `ThreadContext` and `@ThreadContextConfig`.
+The container produces an instance per `ManagedExecutor` injection point that is annotated with the `@ManagedExecutorConfig` annotation. And likewise for `ThreadContext` and `@ThreadContextConfig`.
 
 In each of these cases, MicroProfile Config can be used to override the configuration of the instance that is produced by the container.
 
@@ -54,13 +59,10 @@ To override a configuration attribute of an instance that is produced for inject
 package org.eclipse.microprofile.example;
 ...
 public class MyBean {
-    @Inject
-    ManagedExecutor exec2;
-
-    @Inject @ManagedExecutorConfig(maxAsync=3)
+    @Inject @ManagedExecutorConfig(maxAsync=3, propagated=ThreadContext.APPLICATION, cleared=ThreadContext.ALL_REMAINING)
     ManagedExecutor exec3;
 
-    @Inject @NamedInstance("executor4") @ManagedExecutorConfig(maxAsync=4)
+    @Inject @NamedInstance("executor4") @ManagedExecutorConfig(maxAsync=4, propagated=ThreadContext.SECURITY, cleared=ThreadContext.ALL_REMAINING)
     ManagedExecutor exec4;
 
     @Inject @NamedInstance("executor4")
@@ -70,12 +72,9 @@ public class MyBean {
 
 [source, text]
 ----
-org.eclipse.microprofile.example.MyBean/exec2/ManagedExecutorConfig/maxAsync=5
 org.eclipse.microprofile.example.MyBean/exec3/ManagedExecutorConfig/maxAsync=6
 org.eclipse.microprofile.example.MyBean/exec4/ManagedExecutorConfig/maxAsync=7
 ----
-
-Note that `exec2` can be overridden with `ManagedExecutorConfig` attributes even though it does not explicitly declare a `ManagedExecutorConfig` annotation.
 
 Note that `org.eclipse.microprofile.example.MyBean/exec4/ManagedExecutorConfig/maxAsync` overrides the configuration of the instance that is produced for injection into `exec4`. This same instance is injected into `exec5` per the matching `@NamedInstance("executor4")` qualifier.  It is incorrect to specify `org.eclipse.microprofile.example.MyBean/exec5/ManagedExecutorConfig/maxAsync`, which will not apply to `exec5`.
 
@@ -87,7 +86,10 @@ package org.eclipse.microprofile.example;
 ...
 public class MyBean {
     @Produces @ApplicationScoped @NamedInstance("executor6")
-    ManagedExecutor createExecutor(@ManagedExecutorConfig(maxAsync=6) ManagedExecutor exec) {
+    ManagedExecutor createExecutor(@ManagedExecutorConfig(maxAsync=6,
+                                                          propagated=ThreadContext.CDI,
+                                                          cleared=ThreadContext.ALL_REMAINING)
+                                   ManagedExecutor exec) {
         return exec;
     }
 
@@ -112,14 +114,14 @@ MicroProfile Config can be used to override array type properties (`propagated`,
 - Array elements can be any thread context type constant value from ThreadContext (such as `Security`, `Application`, or `Remaining`).
 - The usual rules from the MicroProfile Config specification apply, such as escaping special characters.
 
-For example, we can start with the following injection point, which has the default configuration for `ThreadContext`. This means clearing the `Transaction` context, leaving no context type unchanged, and propagating all `Remaining` context types,
+For example, we can start with the following injection point, which is configured to clear the `Transaction` context, leave no context type unchanged, and propagate all `Remaining` context types,
 
 [source, java]
 ----
 package org.eclipse.microprofile.example;
 ...
 public class MyBean {
-    @Inject
+    @Inject @ThreadContextConfig(cleared=ThreadContext.TRANSACTION, unchanged={}, propagated=ThreadContext.ALL_REMAINING)
     ThreadContext contextPropagator;
 }
 ----

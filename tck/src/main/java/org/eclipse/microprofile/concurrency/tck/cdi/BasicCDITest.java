@@ -126,12 +126,7 @@ public class BasicCDITest extends Arquillian {
     }
 
     @Test
-    public void injectThreadContextWithoutConfig() {
-        bean.testInjectThreadContextNoConfig();
-    }
-
-    @Test
-    public void injectThreadContextWithEmptyConfig() throws Exception {
-        bean.testInjectThreadContextEmptyConfig();
+    public void injectThreadContextWithConfigThatPropagatesAllRemaining() throws Exception {
+        bean.testInjectThreadContextPropagateAllRemaining();
     }
 }

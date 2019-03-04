@@ -38,11 +38,16 @@ import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
  *
  * <p>Example usage:</p>
  * <pre>
- * <code>&commat;Inject</code> ThreadContext threadContext;
+ * <code>ThreadContext threadContext = ThreadContext.builder()
+ *     .propagated(ThreadContext.SECURITY, ThreadContext.APPLICATION)
+ *     .cleared(ThreadContext.TRANSACTION)
+ *     .unchanged(ThreadContext.ALL_REMAINING)
+ *     .build();
  * ...
  * CompletableFuture&lt;Integer&gt; stage2 = stage1.thenApply(threadContext.contextualFunction(function));
  * ...
  * Future&lt;Integer&gt; future = executor.submit(threadContext.contextualCallable(callable));
+ * </code>
  * </pre>
  *
  * <p>This interface is intentionally kept compatible with ContextService,
@@ -93,6 +98,9 @@ public interface ThreadContext {
          *         ({@link #cleared}, {@link #propagated}, {@link #unchanged})</li>
          *         <li>if a thread context type that is configured to be
          *         {@link #cleared} or {@link #propagated} is unavailable</li>
+         *         <li>if context configuration is neither specified on the builder
+         *         nor via MicroProfile Config, and the builder implementation lacks
+         *         vendor-specific defaults of its own.</li>
          *         <li>if more than one <code>ThreadContextProvider</code> has the
          *         same thread context
          *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}
@@ -109,8 +117,8 @@ public interface ThreadContext {
          * <p>This set replaces the <code>cleared</code> set that was
          * previously specified on the builder instance, if any.</p>
          *
-         * <p>The default set of cleared thread context types is
-         * {@link ThreadContext#TRANSACTION}, which means that a transaction
+         * <p>For example, if the user specifies
+         * {@link ThreadContext#TRANSACTION} in this set, then a transaction
          * is not active on the thread when the action or task runs, such
          * that each action or task is able to independently start and end
          * its own transactional work.</p>
@@ -138,14 +146,6 @@ public interface ThreadContext {
          * <p>This set replaces the <code>propagated</code> set that was
          * previously specified on the builder instance, if any.</p>
          *
-         * <p>The default set of propagated thread context types is
-         * {@link ThreadContext#ALL_REMAINING}, which includes all available
-         * thread context types that support capture and propagation to other
-         * threads, except for those that are explicitly {@link cleared},
-         * which, by default is {@link ThreadContext#TRANSACTION} context,
-         * in which case is suspended from the thread that runs the action or
-         * task.</p>
-         *
          * <p>Constants for specifying some of the core context types are provided
          * on {@link ThreadContext}. Other thread context types must be defined
          * by the specification that defines the context type or by a related
@@ -155,7 +155,7 @@ public interface ThreadContext {
          * in the {@link #unchanged} set are cleared from the thread of execution
          * for the duration of the action or task.</p>
          *
-         * @param types types of thread context to capture and propagated.
+         * @param types types of thread context to capture and propagate.
          * @return the same builder instance upon which this method is invoked.
          */
         Builder propagated(String... types);
@@ -249,6 +249,15 @@ public interface ThreadContext {
      * @see ThreadContextConfig
      */
     static final String CDI = "CDI";
+
+    /**
+     * An empty array of thread context.
+     * This is provided as a convenience for code that wishes to be more explicit.
+     * For example, you can specify <code>builder.propagated(ThreadContext.NONE)</code>
+     * rather than <code>builder.propagated(new String[0])</code>
+     * or <code>builder.propagated()</code>, all of which have the same meaning.
+     */
+    static final String[] NONE = new String[0];
 
     /**
      * Identifier for security context. Security context controls the credentials

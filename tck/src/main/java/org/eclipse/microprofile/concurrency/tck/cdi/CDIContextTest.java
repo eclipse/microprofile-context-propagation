@@ -84,7 +84,9 @@ public class CDIContextTest extends Arquillian {
      */
     @Test
     public void testCDIMECtxPropagate() throws Exception {
-        ManagedExecutor propagateCDI = ManagedExecutor.builder().build();
+        ManagedExecutor propagateCDI = ManagedExecutor.builder().propagated(ThreadContext.CDI)
+                                                                .cleared(ThreadContext.ALL_REMAINING)
+                                                                .build();
         try {
             checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-REQUEST", propagateCDI, requestBean);
             checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-SESSION", propagateCDI, sessionBean);
@@ -130,7 +132,10 @@ public class CDIContextTest extends Arquillian {
      */
     @Test
     public void testCDITCCtxPropagate() throws Exception {
-        ThreadContext defaultTC = ThreadContext.builder().build();
+        ThreadContext defaultTC = ThreadContext.builder()
+                                               .propagated(ThreadContext.CDI)
+                                               .cleared(ThreadContext.ALL_REMAINING)
+                                               .build();
 
         requestBean.setState("testCDIContextPropagate-STATE2");
         Callable<String> getState = defaultTC.contextualCallable(() -> {

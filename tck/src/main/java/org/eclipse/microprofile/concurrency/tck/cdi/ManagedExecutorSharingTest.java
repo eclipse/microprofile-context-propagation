@@ -27,7 +27,6 @@ import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.testng.Assert;
 import org.testng.ITestResult;
 import org.testng.annotations.Test;
 import org.testng.annotations.AfterMethod;
@@ -66,19 +65,8 @@ public class ManagedExecutorSharingTest extends Arquillian {
     }
     
     @Test
-    public void testDefaultMEsDifferent() {
-        Assert.assertNotNull(bean, "The CDIBean was not injected into this test");
-        bean.testDefaultMEsDifferent();
-    }
-
-    @Test
     public void testUnnamedConfigDifferent() {
         bean.testUnnamedConfigDifferent();
-    }
-
-    @Test
-    public void testAllDefaultInjectionUnique() {
-        bean.testAllDefaultInjectionUnique();
     }
 
     @Test
