@@ -19,29 +19,33 @@
 
 === Introduction
 
-MicroProfile Concurrency introduces APIs for obtaining instances of `CompletableFuture` that are backed by managed threads (threads that are managed by the container), with the ability to capture context from the thread that creates the `CompletableFuture` and apply it when running the associated action.
+MicroProfile Concurrency introduces APIs for propagating contexts across units of work that are thread-agnostic. It makes it possible to propagate context that was traditionally associated to the current thread across various types of units of work such as `CompletionStage`, `CompletableFuture`, `Function`, `Runnable` regardless of which particular thread ends up executing them.
 
 === Motivation
 
-When using a reactive model with dependent stages which execute upon completion of prior stages, the context under which dependent stages execute is unpredictable. Dependent stages might run with the context of a thread that awaits completion, or the context of a previous stage that completed and triggered the dependent stage, or with no/undefined context at all. Existing solutions for transferring thread context, such as the EE Concurrency Utilities `ContextService`, are difficult to use and require a lot of boilerplate code. This specification makes it possible for thread context propagation to easily be done in a type-safe way, keeping boilerplate code to a minimum, as well as allowing for thread context propagation to be done automatically when using a `CompletableFuture`.
+When using a reactive model, execution is cut into small units of work that are chained together to assemble a reactive pipeline. The context under which each unit of work executes is often unpredictable and depends on the particular reactive engine used. Some units might run with the context of a thread that awaits completion, or the context of a previous unit that completed and triggered the dependent unit, or with no/undefined context at all. Existing solutions for transferring thread context, such as the EE Concurrency Utilities `ContextService`, are tied to a specific asynchrony model, promotes usage of thread pools, is difficult to use and require a lot of boilerplate code. This specification makes it possible for thread context propagation to easily be done in a type-safe way, keeping boilerplate code to a minimum, as well as allowing for thread context propagation to be done automatically for many types of reactive models.
 
-It is also important that a `CompletableFuture` and its dependent stages, and dependent stages created by those stages, and so on, all run on threads that are known by the container and properly managed by it. This specification makes it possible to do so by providing an API by which the user obtains managed `CompletableFuture` instances from a managed executor.
+We distinguish two main use-cases for propagating contexts to reactive pipelines:
+
+    - Splitting units of work into a sequential pipeline where each unit will be executed after the other. Turning an existing blocking request into an async request would produce such pipelines.
+
+    - Fanning out units of work to be executed in parallel on a managed thread pool. Launching an asynchronous job from a request without waiting for its termination would produce such pipelines.
 
 Goals
 
-    - Proper management of `CompletableFuture` threads by the container.
+    - Pluggable context propagation to the most common unit of work types.
 
-    - Mechanism for thread context propagation to `CompletableFuture` actions that reduces the need for boilerplate code.
+    - Mechanism for thread context propagation to `CompletableFuture` and `CompletionStage` units of work that reduces the need for boilerplate code.
 
-    - Full compatibility with EE Concurrency spec, such that proposed interfaces can eventually be seamlessly merged into EE Concurrency.
+    - Full compatibility with EE Concurrency spec, such that proposed interfaces can seamlessly work alongside EE Concurrency, without depending on it.
 
 === Solution
 
-This specification introduces two interfaces that contain methods that we hope will eventually be added to Jakarta EE Concurrency.
+This specification introduces two interfaces that contain methods that can work alongside EE Concurrency, if available.
 
-The interface, `org.eclipse.microprofile.concurrent.ManagedExecutor`, provides methods for obtaining managed instances of `CompletableFuture` which are backed by the managed executor as the default asynchronous execution facility and the default mechanism of defining thread context propagation. Similar to EE Concurrency’s `ManagedExecutorService`, the MicroProfile `ManagedExecutor` also implements the Java SE `java.util.concurrent.ExecutorService` interface, using managed threads when asynchronous invocation is required. It is intended that `ManagedExecutor` methods will one day be added to `ManagedExecutorService`, and for a single implementation to be capable of simultaneously implementing both interfaces, both currently as well as after adoption into Jakarta EE.
+The interface, `org.eclipse.microprofile.concurrent.ManagedExecutor`, provides methods for obtaining managed instances of `CompletableFuture` which are backed by the managed executor as the default asynchronous execution facility and the default mechanism of defining thread context propagation. Similar to EE Concurrency’s `ManagedExecutorService`, the MicroProfile `ManagedExecutor` also implements the Java SE `java.util.concurrent.ExecutorService` interface, using managed threads when asynchronous invocation is required. It is possible for a single implementation to be capable of simultaneously implementing both `ManagedExecutor` and `ManagedExecutorService` interfaces.
 
-A second interface, `org.eclipse.microprofile.concurrent.ThreadContext`, provides methods for individually contextualizing dependent stage actions. This gives the user finer-grained control over the capture and propagation of thread context. It is intended that ThreadContext methods will one day be added to EE Concurrency’s `ContextService` and for a single implementation to be capable of simultaneously implementing both interfaces, both currently as well as after adoption into Jakarta EE.
+A second interface, `org.eclipse.microprofile.concurrent.ThreadContext`, provides methods for individually contextualizing units of work such as `CompletionStage`, `CompletionFuture`, `Runnable`, `Function`, `Supplier` and more, without tying them to a particular thread execution model. This gives the user finer-grained control over the capture and propagation of thread context by remaining thread execution agnostic. It is possible for a single implementation to be capable of simultaneously implementing both `ThreadContext` and `ContextService` interfaces.
 
 === Builders
 
@@ -80,7 +84,10 @@ Container provides, per unique name, an instance of either `ManagedExecutor` and
         .thenApplyAsync(function1)
         .thenApply(function2);
     ...
-    unmanagedCompletionStage.thenApply(threadContext.contextualFunction(function3));
+    threadContext.withContextCapture(unmanagedCompletionStage)
+        .supply(supplier1)
+        .thenApply(function1)
+        .thenApply(function2);
 ----
 
 In the absence of other qualifiers and annotations, the container creates and injects a new default instance of `ManagedExecutor` or `ThreadContext` per injection point, as shown above.
@@ -102,6 +109,19 @@ With just the config annotation in place, every injection point is assigned a ne
         .thenApply(function)
         .thenAccept(consumer);
     stage.completeAsync(supplier);
+----
+
+Or similarly:
+
+[source, java]
+----
+    @Inject 
+    @ThreadContextConfig(propagated = ThreadContext.SECURITY)
+    ThreadContext threadContext;
+    ...
+    threadContext.withContextCapture(unmanagedCompletionStage)
+        .thenApply(function)
+        .thenAccept(consumer);
 ----
 
 === Sharing Configured Instances
@@ -170,6 +190,3 @@ org.eclipse.microprofile.example.ExampleBean/setCompletableFuture/1/ManagedExecu
 org.eclipse.microprofile.example.ExampleBean/appContext/ThreadContextConfig/cleared=Security,Transaction
 ----
 
-=== Thread Context Provider SPI
-
-External providers of thread context can implement an SPI standardized by the MicroProfile Concurrency specification that allows capture/clear/propagate/restore operations to be plugged in for third party implementations of context.
