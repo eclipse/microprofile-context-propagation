@@ -83,7 +83,6 @@ ManagedExecutor createExecutor(
 
 MicroProfile Config can be used to override configuration attributes from the above example as follows,
 
-[source, text]
 ----
 exec1.maxAsync=10
 exec1.maxQueued=15
@@ -113,7 +112,6 @@ public class MyBean {
 }
 ----
 
-[source, text]
 ----
 org.eclipse.microprofile.example.MyBean/exec3/ManagedExecutorConfig/maxAsync=6
 org.eclipse.microprofile.example.MyBean/exec4/ManagedExecutorConfig/maxAsync=7
@@ -141,7 +139,6 @@ public class MyBean {
 }
 ----
 
-[source, text]
 ----
 org.eclipse.microprofile.example.MyBean/createExecutor/1/ManagedExecutorConfig/maxAsync=10
 ----
@@ -171,7 +168,6 @@ public class MyBean {
 
 If the user wishes to override the above to propagate exactly 2 context types (`Application` and `CDI`), clear nothing, and leave all `Remaining` types unchanged, then they could configure the following MicroProfile Config properties,
 
-[source, text]
 ----
 org.eclipse.microprofile.example.MyBean/contextPropagator/ThreadContextConfig/propagated=Application,CDI
 org.eclipse.microprofile.example.MyBean/contextPropagator/ThreadContextConfig/cleared=

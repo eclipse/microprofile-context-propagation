@@ -159,7 +159,6 @@ public class ExampleBean {
 
 The following MicroProfile config properties could be used to override specific configuration attributes of these instances,
 
-[source, text]
 ----
 org.eclipse.microprofile.example.ExampleBean/setCompletableFuture/1/ManagedExecutorConfig/maxAsync=5
 org.eclipse.microprofile.example.ExampleBean/setCompletableFuture/1/ManagedExecutorConfig/maxQueued=20

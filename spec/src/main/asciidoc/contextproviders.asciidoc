@@ -98,14 +98,12 @@ public class ThreadPrioritySnapshot implements ThreadContextSnapshot {
 
 To make the `ThreadContextProvider` implementation available to the `ServiceLoader`, the provider JAR includes a file of the following name and location,
 
-[source]
 ----
 META-INF/services/org.eclipse.microprofile.concurrent.spi.ThreadContextProvider
 ----
 
 The content of the aforementioned file must be one or more lines, each specifying the fully qualified name of a `ThreadContextProvider` implementation that is provided within the JAR file. For our example context provider, this file consists of the following line:
 
-[source]
 ----
 org.eclipse.microprofile.example.context.priority.ThreadPriorityContextProvider
 ----
