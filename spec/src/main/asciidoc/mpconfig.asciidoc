@@ -15,9 +15,52 @@
 //
 
 [[concurrencympconfig]]
-== Integration with MicroProfile Config
+== Establishing default values with MicroProfile Config
 
-If a MicroProfile Config implementation is available, MicroProfile Config can be used to override configuration attributes of `ManagedExecutor` and `ThreadContext`.  This is true of instances that are built by the application as well as those produced by the container for injection as CDI beans.  The former involves standard usage of MicroProfile Config.  The latter relies upon the convention of defining MicroProfile Config property names that correspond to the fully qualified name of the injection point for which the instance is produced.  For `ManagedExecutor` and `ThreadContext` instances produced by the container, MicroProfile Config is applied statically. These instances will not dynamically respond to MicroProfile Config changes made after they are produced.
+If a MicroProfile Config implementation is available, MicroProfile Config can be used to establish default values for configuration attributes of `ManagedExecutor` and `ThreadContext`. This allows the application to bypass configuration of one or more attributes when using the builders to create instances.
+
+For example, you could specify MicroProfile Config properties as follows to establish a set of defaults for `ManagedExecutor`,
+
+[source, text]
+----
+ManagedExecutor/propagated=Remaining
+ManagedExecutor/cleared=Transaction
+ManagedExecutor/maxAsync=10
+ManagedExecutor/maxQueued=-1
+----
+
+With these defaults in place, the application can create a `ManagedExecutor` instance without specifying some of the configuration attributes,
+
+[source, java]
+----
+executor = ManagedExecutor.builder().maxAsync(5).build();
+----
+
+In the code above, the application specifies only the `maxAsync` attribute, limiting actions and tasks requested to run async to at most 5 running at any given time. The other configuration attributes are defaulted as specified in MicroProfile config, with no upper bound on queued tasks, Transaction context cleared, and all other context types propagated.
+
+As another example, the following MicroProfile Config properties establish defaults for `ThreadContext`,
+
+[source, text]
+----
+ThreadContext/propagated=
+ThreadContext/cleared=Security,Transaction
+ThreadContext/unchanged=Remaining
+----
+
+With these defaults in place, the application can create a `ThreadContext` instance without specifying some of the configuration attributes,
+
+[source, java]
+----
+cdiContextPropagator = ThreadContext.builder()
+                                    .propagated(ThreadContext.CDI)
+                                    .build();
+----
+
+In the code above, the application specifies only the `propagated` attribute, indicating that only CDI context is propagated. The other configuration attributes inherit the defaults, which includes clearing Security and Transaction context and leaving all other thread context types unchanged.
+
+== Overriding configured values with MicroProfile Config
+
+MicroProfile Config can also be used to override configured values. This is true of instances that are built by the application as well as those produced by the container for injection as CDI beans.  The former involves standard usage of MicroProfile Config.  The latter relies upon the convention of defining MicroProfile Config property names that correspond to the fully qualified name of the injection point for which the instance is produced.  For `ManagedExecutor` and `ThreadContext` instances produced by the container, MicroProfile Config is applied statically. These instances will not dynamically respond to MicroProfile Config changes made after they are produced.
 
 === Application usage of MicroProfile Config
 
