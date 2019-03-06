@@ -132,6 +132,11 @@ public interface ThreadContext {
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
          *
+         * <p>The MicroProfile Config property, <code>ThreadContext/cleared</code>,
+         * establishes a default that is used if no value is otherwise specified.
+         * The value of the MicroProfile Config property can be the empty string
+         * or a comma separated list of context type constant values.</p>
+         *
          * @param types types of thread context to clear from threads that run
          *        actions and tasks.
          * @return the same builder instance upon which this method is invoked.
@@ -150,6 +155,11 @@ public interface ThreadContext {
          * on {@link ThreadContext}. Other thread context types must be defined
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
+         *
+         * <p>The MicroProfile Config property, <code>ThreadContext/propagated</code>,
+         * establishes a default that is used if no value is otherwise specified.
+         * The value of the MicroProfile Config property can be the empty string
+         * or a comma separated list of context type constant values.</p>
          *
          * <p>Thread context types which are not otherwise included in this set or
          * in the {@link #unchanged} set are cleared from the thread of execution
@@ -172,6 +182,11 @@ public interface ThreadContext {
          * on {@link ThreadContext}. Other thread context types must be defined
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
+         *
+         * <p>The MicroProfile Config property, <code>ThreadContext/unchanged</code>,
+         * establishes a default that is used if no value is otherwise specified.
+         * The value of the MicroProfile Config property can be the empty string
+         * or a comma separated list of context type constant values.</p>
          *
          * <p>The configuration of <code>unchanged</code> context is provided for
          * advanced patterns where it is desirable to leave certain context types

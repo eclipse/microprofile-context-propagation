@@ -188,6 +188,11 @@ public interface ManagedExecutor extends ExecutorService {
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
          *
+         * <p>The MicroProfile Config property, <code>ManagedExecutor/cleared</code>,
+         * establishes a default that is used if no value is otherwise specified.
+         * The value of the MicroProfile Config property can be the empty string
+         * or a comma separated list of context type constant values.</p>
+         *
          * @param types types of thread context to clear from threads that run
          *        actions and tasks.
          * @return the same builder instance upon which this method is invoked.
@@ -207,6 +212,11 @@ public interface ManagedExecutor extends ExecutorService {
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
          *
+         * <p>The MicroProfile Config property, <code>ManagedExecutor/propagated</code>,
+         * establishes a default that is used if no value is otherwise specified.
+         * The value of the MicroProfile Config property can be the empty string
+         * or a comma separated list of context type constant values.</p>
+         *
          * <p>Thread context types which are not otherwise included in this set
          * are cleared from the thread of execution for the duration of the
          * action or task.</p>
@@ -225,7 +235,9 @@ public interface ManagedExecutor extends ExecutorService {
          * the <code>ManagedExecutor</code> starts executing them.</p>
          *
          * <p>The default value of <code>-1</code> indicates no upper bound,
-         * although practically, resource constraints of the system will apply.</p>
+         * although practically, resource constraints of the system will apply.
+         * You can switch the default by specifying the MicroProfile Config
+         * property, <code>ManagedExecutor/maxAsync</code>.</p>
          *
          * @param max upper bound on async completion stage actions and executor tasks.
          * @return the same builder instance upon which this method is invoked.
@@ -239,7 +251,9 @@ public interface ManagedExecutor extends ExecutorService {
          * if no space in the queue is available to accept them.</p>
          *
          * <p>The default value of <code>-1</code> indicates no upper bound,
-         * although practically, resource constraints of the system will apply.</p>
+         * although practically, resource constraints of the system will apply.
+         * You can switch the default by specifying the MicroProfile Config
+         * property, <code>ManagedExecutor/maxQueued</code>.</p>
          *
          * @param max upper bound on async actions and tasks that can be queued.
          * @return the same builder instance upon which this method is invoked.
