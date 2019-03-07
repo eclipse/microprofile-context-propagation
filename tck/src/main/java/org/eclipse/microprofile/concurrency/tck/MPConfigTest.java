@@ -130,6 +130,162 @@ public class MPConfigTest extends Arquillian {
     }
 
     /**
+     * Verify that the cleared and propagated attributes of a ManagedExecutor are defaulted
+     * according to the defaults specified by the application in MicroProfile Config.
+     */
+    @Test
+    public void defaultContextPropagationForManagedExecutorViaMPConfig()
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        // Expected config is maxAsync=1, maxQueued=4; propagated=Label,ThreadPriority; cleared=Remaining
+        ManagedExecutor executor = ManagedExecutor.builder().build();
+
+        int originalPriority = Thread.currentThread().getPriority();
+        try {
+            // Set non-default values
+            int newPriority = originalPriority == 4 ? 3 : 4;
+            Thread.currentThread().setPriority(newPriority);
+            Buffer.set(new StringBuffer("defaultContextPropagationForManagedExecutorViaMPConfig-test-buffer"));
+            Label.set("defaultContextPropagationForManagedExecutorViaMPConfig-test-label");
+
+            // Run on separate thread to test propagated
+            CompletableFuture<Void> stage1 = executor.completedFuture(newPriority)
+                                                     .thenAcceptAsync(expectedPriority -> {
+                Assert.assertEquals(Label.get(), "defaultContextPropagationForManagedExecutorViaMPConfig-test-label",
+                        "Context type (Label) that MicroProfile config defaults to be propagated was not correctly propagated.");
+                Assert.assertEquals(Integer.valueOf(Thread.currentThread().getPriority()), expectedPriority,
+                        "Context type (ThreadPriority) that MicroProfile config defaults to be propagated was not correctly propagated.");
+            });
+
+            Assert.assertNull(stage1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Non-null value returned by stage that runs async Consumer.");
+
+            // Run on current thread to test cleared
+            CompletableFuture<Void> stage2 = stage1.thenRun(() ->
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type (Buffer) that MicroProfile config overrides to be cleared was not cleared.")
+            );
+
+            Assert.assertNull(stage2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "Non-null value returned by stage that runs Runnable.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * Verify that the cleared and propagated attributes of a ThreadContext are defaulted
+     * according to the defaults specified by the application in MicroProfile Config.
+     */
+    @Test
+    public void defaultContextPropagationForThreadContextViaMPConfig() {
+        // Expected config is propagated={}; cleared=Buffer; unchanged=Remaining
+        ThreadContext threadContext = ThreadContext.builder().build();
+
+        int originalPriority = Thread.currentThread().getPriority();
+        try {
+            // Set non-default value
+            Buffer.set(new StringBuffer("defaultContextPropagationForThreadContextViaMPConfig-test-buffer-A"));
+            int newPriority = originalPriority == 3 ? 2 : 3;
+
+            Runnable task = threadContext.contextualRunnable(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type that MicroProfile config defaults to be cleared was not cleared.");
+
+                Assert.assertEquals(Thread.currentThread().getPriority(), newPriority,
+                        "Context type (ThreadPriority) that MicroProfile Config defaults to remain unchanged was changed.");
+
+                Assert.assertEquals(Label.get(), "defaultContextPropagationForThreadContextViaMPConfig-test-label-B",
+                        "Context type (Label) that MicroProfile Config defaults to remain unchanged was changed.");
+
+                Label.set("defaultContextPropagationForThreadContextViaMPConfig-test-label-A");
+            });
+
+            // Set non-default values
+            Thread.currentThread().setPriority(newPriority);
+            Label.set("defaultContextPropagationForThreadContextViaMPConfig-test-label-B");
+
+            task.run();
+
+            Assert.assertEquals(Label.get(), "defaultContextPropagationForThreadContextViaMPConfig-test-label-A",
+                    "Context type that MicroProfile Config defaults to remain unchanged was changed when task completed.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
+     * Verify that the maxAsync and maxQueued attributes of a ManagedExecutor are defaulted
+     * according to the defaults specified by the application in MicroProfile Config.
+     */
+    @Test(dependsOnMethods = "beanInjected")
+    public void defaultMaxAsyncAndMaxQueuedForManagedExecutorViaMPConfig()
+            throws ExecutionException, InterruptedException, TimeoutException {
+
+        // Expected config is maxAsync=1, maxQueued=4; propagated=Buffer; cleared=Remaining
+        ManagedExecutor executor = ManagedExecutor.builder().propagated(Buffer.CONTEXT_NAME).build();
+
+        Phaser barrier = new Phaser(1);
+        try {
+            // Set non-default values
+            Buffer.set(new StringBuffer("defaultMaxAsyncAndMaxQueuedForManagedExecutorViaMPConfig-test-buffer"));
+            Label.set("defaultMaxAsyncAndMaxQueuedForManagedExecutorViaMPConfig-test-label");
+
+            // First, use up the single maxAsync slot with a blocking task and wait for it to start
+            executor.submit(() -> barrier.awaitAdvanceInterruptibly(barrier.arrive() + 1));
+            barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            // Use up queue positions
+            CompletableFuture<String> cf1 = executor.supplyAsync(() -> Buffer.get().toString());
+            CompletableFuture<String> cf2 = executor.supplyAsync(() -> Label.get());
+            CompletableFuture<String> cf3 = executor.supplyAsync(() -> "III");
+            CompletableFuture<String> cf4 = executor.supplyAsync(() -> "IV");
+
+            // Fifth attempt to queue a task must be rejected
+            try {
+                CompletableFuture<String> cf5 = executor.supplyAsync(() -> "V");
+                // CompletableFuture interface does not provide detail on precisely how to report rejection,
+                // so tolerate both possibilities: exception raised or stage returned with exceptional completion.   
+                Assert.assertTrue(cf5.isDone() && cf5.isCompletedExceptionally(),
+                        "Exceeded maxQueued of 4. Future for 5th queued task/action is " + cf5);
+            }
+            catch (RejectedExecutionException x) {
+                // test passes
+            }
+
+            // unblock and allow tasks to finish
+            barrier.arrive();
+
+            Assert.assertEquals(cf1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "defaultMaxAsyncAndMaxQueuedForManagedExecutorViaMPConfig-test-buffer",
+                    "First task: Context not propagated as configured on the builder.");
+
+            Assert.assertEquals(cf2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "",
+                    "Second task: Context not cleared as defaulted by MicroProfile Config property.");
+
+            Assert.assertEquals(cf3.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "III",
+                    "Unexpected result of third task.");
+
+            Assert.assertEquals(cf4.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "IV",
+                    "Unexpected result of fourth task.");
+        }
+        finally {
+            barrier.forceTermination();
+
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
      * Verify that MicroProfile config overrides the cleared and propagated attributes
      * of a ManagedExecutor that is produced by the container because the application annotated
      * an unqualified injection point with ManagedExecutorConfig.

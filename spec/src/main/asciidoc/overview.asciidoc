@@ -55,43 +55,18 @@ Instances of `ManagedExecutor` and `ThreadContext` can be constructed via builde
 ----
     ManagedExecutor executor = ManagedExecutor.builder()
         .propagated(ThreadContext.APPLICATION)
+        .cleared(ThreadContext.ALL_REMAINING)
         .maxAsync(5)
         .build();
 
     ThreadContext threadContext = ThreadContext.builder()
         .propagated(ThreadContext.APPLICATION, ThreadContext.CDI)
+        .unchanged()
         .cleared(ThreadContext.ALL_REMAINING)
         .build();
 ----
 
 Applications should shut down instances of `ManagedExecutor` that they build after they are no longer needed. The shutdown request serves as a signal notifying the container that resources can be safely cleaned up.
-
-=== Injection
-
-Instances of `ManagedExecutor` and `ThreadContext` can be injected into CDI beans via the `@Inject` annotation.
-Injection points with the `@NamedInstance` qualifier have a name that is explicitly declared by the qualifier.
-Injection points that have no CDI qualifier on them have a unique name which is deduced from the injection point itself.
-Container provides, per unique name, an instance of either `ManagedExecutor` and/or `ThreadContext` unless the application specifies a CDI producer with `@NamedInstance` qualifier, given unique name and respective type.
- for example:
-
-[source, java]
-----
-    @Inject ManagedExecutor executor;
-    @Inject ThreadContext threadContext;
-    ...
-    CompletableFuture<Integer> stage = executor
-        .supplyAsync(supplier1)
-        .thenApplyAsync(function1)
-        .thenApply(function2);
-    ...
-    threadContext.withContextCapture(unmanagedCompletionStage)
-        .supply(supplier1)
-        .thenApply(function1)
-        .thenApply(function2);
-----
-
-In the absence of other qualifiers and annotations, the container creates and injects a new default instance of `ManagedExecutor` or `ThreadContext` per injection point, as shown above.
-The configuration of these instances is equivalent to the default values of `@ManagedExecutorConfig` and `@ThreadContextConfig`.
 
 === Injection of Configured Instances
 
@@ -101,7 +76,7 @@ With just the config annotation in place, every injection point is assigned a ne
 [source, java]
 ----
     @Inject 
-    @ManagedExecutorConfig(maxAsync = 5, propagated = ThreadContext.SECURITY)
+    @ManagedExecutorConfig(maxAsync = 5, propagated = ThreadContext.SECURITY, cleared = ThreadContext.ALL_REMAINING)
     ManagedExecutor configuredExecutor;
     ...
     CompletableFuture<Long> stage = configuredExecutor
@@ -116,7 +91,7 @@ Or similarly:
 [source, java]
 ----
     @Inject 
-    @ThreadContextConfig(propagated = ThreadContext.SECURITY)
+    @ThreadContextConfig(propagated = ThreadContext.SECURITY, unchanged = {}, cleared = ThreadContext.ALL_REMAINING)
     ThreadContext threadContext;
     ...
     threadContext.withContextCapture(unmanagedCompletionStage)
@@ -135,7 +110,8 @@ The other injection points, `executor2` and `executor3`, share the same `Managed
 ----
     @Inject
     @NamedInstance("myExec")
-    @ManagedExecutorConfig(propagated = { ThreadContext.SECURITY, ThreadContext.APPLICATION })
+    @ManagedExecutorConfig(propagated = { ThreadContext.SECURITY, ThreadContext.APPLICATION },
+                           cleared = ThreadContext.ALL_REMAINING)
     ManagedExecutor executor1;
     ... // in some other bean
     @Inject

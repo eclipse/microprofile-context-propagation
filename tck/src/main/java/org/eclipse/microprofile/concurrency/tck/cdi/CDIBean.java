@@ -58,7 +58,7 @@ public class CDIBean {
 
     @Inject
     @NamedInstance("maxQueued3")
-    @ManagedExecutorConfig(maxAsync = 1, maxQueued = 3)
+    @ManagedExecutorConfig(maxAsync = 1, maxQueued = 3, propagated = {}, cleared = ThreadContext.ALL_REMAINING)
     ManagedExecutor maxQueued3;
 
     @Inject
@@ -69,32 +69,33 @@ public class CDIBean {
     @NamedInstance("appProduced_injected")
     ManagedExecutor appProduced_injected;
 
-    @Inject
+    @Inject @ManagedExecutorConfig(propagated = {}, cleared = ThreadContext.ALL_REMAINING)
     ManagedExecutor throwAway1;
 
-    @Inject
+    @Inject @ManagedExecutorConfig(propagated = {}, cleared = ThreadContext.ALL_REMAINING)
     ManagedExecutor throwAway2;
 
     @Produces
     @ApplicationScoped
     @NamedInstance("appProduced")
     public ManagedExecutor createExec() {
-        return ManagedExecutor.builder().build();
+        return ManagedExecutor.builder().cleared(ThreadContext.TRANSACTION).propagated(ThreadContext.ALL_REMAINING).build();
     }
 
     @Produces
     @ApplicationScoped
     @NamedInstance("appProduced_injected")
-    public ManagedExecutor createExecInjected(@ManagedExecutorConfig(maxAsync = 1, maxQueued = 3) ManagedExecutor exec) {
+    public ManagedExecutor createExecInjected(@ManagedExecutorConfig(maxAsync = 1,
+                                                                     maxQueued = 3,
+                                                                     propagated = {},
+                                                                     cleared = ThreadContext.ALL_REMAINING)
+                                              ManagedExecutor exec) {
         return exec;
     }
 
     @Inject
-    ThreadContext defaultContext;
-   
-    @Inject
-    @ThreadContextConfig
-    ThreadContext defaultContextWithEmptyAnno;
+    @ThreadContextConfig(cleared = ThreadContext.TRANSACTION, propagated = ThreadContext.ALL_REMAINING)
+    ThreadContext allRemainingContextExceptTransaction;
 
     @Inject
     @ThreadContextConfig(propagated = Buffer.CONTEXT_NAME, cleared = Label.CONTEXT_NAME, unchanged = ThreadContext.ALL_REMAINING)
@@ -107,7 +108,10 @@ public class CDIBean {
     @Produces
     @ApplicationScoped
     @NamedInstance("labelContextPropagator")
-    ThreadContext labelContextPropagator1 = ThreadContext.builder().propagated(Label.CONTEXT_NAME).cleared(ThreadContext.ALL_REMAINING).build();
+    ThreadContext labelContextPropagator1 = ThreadContext.builder().propagated(Label.CONTEXT_NAME)
+                                                                   .unchanged()
+                                                                   .cleared(ThreadContext.ALL_REMAINING)
+                                                                   .build();
 
     @Inject
     @NamedInstance("labelContextPropagator")
@@ -120,7 +124,9 @@ public class CDIBean {
     @Produces
     @ApplicationScoped
     @NamedInstance("priority3Executor")
-    public Executor createPriority3Executor(@NamedInstance("priorityContext") @ThreadContextConfig(propagated = THREAD_PRIORITY) ThreadContext ctx) {
+    public Executor createPriority3Executor(@NamedInstance("priorityContext")
+                                            @ThreadContextConfig(propagated = THREAD_PRIORITY, cleared = ThreadContext.ALL_REMAINING)
+                                            ThreadContext ctx) {
         int originalPriority = Thread.currentThread().getPriority();
         try {
             Thread.currentThread().setPriority(3);
@@ -259,19 +265,10 @@ public class CDIBean {
      * name of the injection point from which the container produces the instance.
      */
     public void testInstancePerUnqualifiedThreadContextInjectionPoint() {
-        Assert.assertNotEquals(defaultContext.toString(), defaultContextWithEmptyAnno.toString(),
+        Assert.assertNotEquals(allRemainingContextExceptTransaction.toString(), bufferContext.toString(),
                 "ThreadContext injection points without qualifiers did not receive unique instances.");
 
-        Assert.assertNotEquals(defaultContext.toString(), bufferContext.toString(),
-                "ThreadContext injection points without qualifiers did not receive unique instances.");
-
-        Assert.assertNotEquals(defaultContext.toString(), labelContext.toString(),
-                "ThreadContext injection points without qualifiers did not receive unique instances.");
-
-        Assert.assertNotEquals(defaultContextWithEmptyAnno.toString(), bufferContext.toString(),
-                "ThreadContext injection points without qualifiers did not receive unique instances.");
-
-        Assert.assertNotEquals(defaultContextWithEmptyAnno.toString(), labelContext.toString(),
+        Assert.assertNotEquals(allRemainingContextExceptTransaction.toString(), labelContext.toString(),
                 "ThreadContext injection points without qualifiers did not receive unique instances.");
 
         Assert.assertNotEquals(bufferContext.toString(), labelContext.toString(),
@@ -430,25 +427,25 @@ public class CDIBean {
     }
 
     /**
-     * When the container creates a ThreadContext for an injection point that lacks a ThreadContextConfig annotation,
-     * its configuration is equivalent to ThreadContext.builder().build(), which is that all available thread context
-     * types are propagated, except for Transaction context, which is cleared.
+     * When the container creates a ThreadContext for an injection point that has a ThreadContextConfig annotation,
+     * which specifies that all available thread context types are propagated except for the cleared types,
+     * then the non-cleared thread context types must be propagated.
      */
-    public void testInjectThreadContextNoConfig() {
-        Assert.assertNotNull(defaultContext,
-                "Container must produce ThreadContext instance for unqualified injection point that lacks ThreadContextConfig.");
+    public void testInjectThreadContextPropagateAllRemaining() throws Exception {
+        Assert.assertNotNull(allRemainingContextExceptTransaction,
+                "Container must produce ThreadContext instance for unqualified injection point with ThreadContextConfig.");
 
         int originalPriority = Thread.currentThread().getPriority();
         int newPriority = originalPriority == 2 ? 1 : 2;
         try {
             Thread.currentThread().setPriority(newPriority);
-            Label.set("testInjectThreadContextNoConfig-label");
-            Buffer.set(new StringBuffer("testInjectThreadContextNoConfig-buffer"));
+            Label.set("testInjectThreadContextPropagateAllRemaining-label");
+            Buffer.set(new StringBuffer("testInjectThreadContextPropagateAllRemaining-buffer"));
 
-            Function<Integer, String> testAllContextPropagated = defaultContext.contextualFunction(i -> {
-                Assert.assertEquals(Buffer.get().toString(), "testInjectThreadContextNoConfig-buffer",
+            Function<Integer, String> testAllContextPropagated = allRemainingContextExceptTransaction.contextualFunction(i -> {
+                Assert.assertEquals(Buffer.get().toString(), "testInjectThreadContextPropagateAllRemaining-buffer",
                         "Thread context type (Buffer) was not propagated.");
-                Assert.assertEquals(Label.get(), "testInjectThreadContextNoConfig-label",
+                Assert.assertEquals(Label.get(), "testInjectThreadContextPropagateAllRemaining-label",
                         "Thread context type (Lable) was not propagated.");
                 Assert.assertEquals(Thread.currentThread().getPriority(), newPriority,
                         "Thread context type (ThreadPriority) was not propagated.");
@@ -456,8 +453,8 @@ public class CDIBean {
             });
 
             Thread.currentThread().setPriority(4);
-            Label.set("testInjectThreadContextNoConfig-new-label");
-            Buffer.set(new StringBuffer("testInjectThreadContextNoConfig-new-buffer"));
+            Label.set("testInjectThreadContextPropagateAllRemaining-new-label");
+            Buffer.set(new StringBuffer("testInjectThreadContextPropagateAllRemaining-new-buffer"));
 
             testAllContextPropagated.apply(100);
         }
@@ -467,28 +464,16 @@ public class CDIBean {
             Label.set(null);
             Thread.currentThread().setPriority(originalPriority);
         }
-    }
 
-    /**
-     * When the container creates a ThreadContext for an injection point with an empty ThreadContextConfig annotation,
-     * its configuration is equivalent to ThreadContext.builder().build(), which is that all available thread context
-     * types are propagated, except for Transaction context, which is cleared.
-     */
-    public void testInjectThreadContextEmptyConfig() throws Exception {
-        Assert.assertNotNull(defaultContextWithEmptyAnno,
-                "Container must produce ThreadContext instance for injection point that is annotated with ThreadContextConfig.");
-
-        int originalPriority = Thread.currentThread().getPriority();
-        int newPriority = originalPriority == 2 ? 1 : 2;
         try {
             Thread.currentThread().setPriority(newPriority);
-            Label.set("testInjectThreadContextEmptyConfig-label");
-            Buffer.set(new StringBuffer("testInjectThreadContextEmptyConfig-buffer"));
+            Label.set("testInjectThreadContextPropagateAllRemaining2-label");
+            Buffer.set(new StringBuffer("testInjectThreadContextPropagateAllRemaining2-buffer"));
 
-            Callable<Boolean> testAllContextPropagated = defaultContextWithEmptyAnno.contextualCallable(() -> {
-                Assert.assertEquals(Buffer.get().toString(), "testInjectThreadContextEmptyConfig-buffer",
+            Callable<Boolean> testAllContextPropagated = allRemainingContextExceptTransaction.contextualCallable(() -> {
+                Assert.assertEquals(Buffer.get().toString(), "testInjectThreadContextPropagateAllRemaining2-buffer",
                         "Thread context type (Buffer) was not propagated.");
-                Assert.assertEquals(Label.get(), "testInjectThreadContextEmptyConfig-label",
+                Assert.assertEquals(Label.get(), "testInjectThreadContextPropagateAllRemaining2-label",
                         "Thread context type (Label) was not propagated.");
                 Assert.assertEquals(Thread.currentThread().getPriority(), newPriority,
                         "Thread context type (ThreadPriority) was not propagated.");
@@ -496,8 +481,8 @@ public class CDIBean {
             });
 
             Thread.currentThread().setPriority(4);
-            Label.set("testInjectThreadContextEmptyConfig-new-label");
-            Buffer.set(new StringBuffer("testInjectThreadContextEmptyConfig-new-buffer"));
+            Label.set("testInjectThreadContextPropagateAllRemaining2-new-label");
+            Buffer.set(new StringBuffer("testInjectThreadContextPropagateAllRemaining2-new-buffer"));
 
             testAllContextPropagated.call();
         }

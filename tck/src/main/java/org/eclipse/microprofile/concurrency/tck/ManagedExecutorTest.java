@@ -186,6 +186,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void completedFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -288,6 +289,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void completedStageDependentStagesRunWithContext() throws InterruptedException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -446,6 +448,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void contextOfContextualCallableOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
@@ -529,6 +532,7 @@ public class ManagedExecutorTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
@@ -617,6 +621,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void contextOfContextualFunctionOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
@@ -714,6 +719,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void contextOfContextualRunnableOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
@@ -792,6 +798,7 @@ public class ManagedExecutorTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
@@ -971,6 +978,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void failedFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -1080,6 +1088,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void failedStageDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -1156,6 +1165,8 @@ public class ManagedExecutorTest extends Arquillian {
     public void maxAsync2() throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .maxAsync(2)
+                .propagated()
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         Phaser barrier = new Phaser(2);
@@ -1210,6 +1221,8 @@ public class ManagedExecutorTest extends Arquillian {
     @Test
     public void maxAsyncInvalidValues() throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor.Builder builder = ManagedExecutor.builder();
+        builder.propagated(ThreadContext.ALL_REMAINING);
+        builder.cleared(ThreadContext.TRANSACTION);
 
         try {
             builder.maxAsync(-10);
@@ -1256,6 +1269,8 @@ public class ManagedExecutorTest extends Arquillian {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .maxAsync(1)
                 .maxQueued(3)
+                .propagated()
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         Phaser barrier = new Phaser(1);
@@ -1326,7 +1341,9 @@ public class ManagedExecutorTest extends Arquillian {
      */
     @Test
     public void maxQueuedInvalidValues() throws ExecutionException, InterruptedException, TimeoutException {
-        ManagedExecutor.Builder builder = ManagedExecutor.builder();
+        ManagedExecutor.Builder builder = ManagedExecutor.builder()
+                .propagated()
+                .cleared(ThreadContext.ALL_REMAINING);
 
         try {
             builder.maxQueued(-2);
@@ -1368,6 +1385,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void newIncompleteFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -1621,6 +1639,8 @@ public class ManagedExecutorTest extends Arquillian {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .maxAsync(1)
                 .maxQueued(4)
+                .propagated()
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         Phaser barrier = new Phaser(1);
@@ -1769,6 +1789,8 @@ public class ManagedExecutorTest extends Arquillian {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .maxAsync(1)
                 .maxQueued(10)
+                .propagated()
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         Phaser barrier = new Phaser(1);
@@ -1933,6 +1955,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void runAsyncStageAndDependentStagesRunWithContext() throws ExecutionException, InterruptedException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -2169,6 +2192,7 @@ public class ManagedExecutorTest extends Arquillian {
     public void supplyAsyncStageAndDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -2281,6 +2305,7 @@ public class ManagedExecutorTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -2350,6 +2375,7 @@ public class ManagedExecutorTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -2410,6 +2436,7 @@ public class ManagedExecutorTest extends Arquillian {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .maxAsync(1)
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         // Verify that maxAsync=1 is enforced by recording the thread id upon which
@@ -2548,6 +2575,7 @@ public class ManagedExecutorTest extends Arquillian {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .maxAsync(1)
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {

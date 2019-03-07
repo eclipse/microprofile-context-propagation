@@ -20,35 +20,27 @@ package org.eclipse.microprofile.concurrency.tck.cdi;
 
 import static org.testng.Assert.*;
 
-import java.util.Arrays;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.concurrent.ManagedExecutor;
 import org.eclipse.microprofile.concurrent.ManagedExecutorConfig;
 import org.eclipse.microprofile.concurrent.NamedInstance;
+import org.eclipse.microprofile.concurrent.ThreadContext;
 
 @ApplicationScoped
 public class ManagedExecutorSharingBean {
+    @Inject
+    @ManagedExecutorConfig(propagated = ThreadContext.CDI, cleared = ThreadContext.ALL_REMAINING)
+    ManagedExecutor unnamedExec1;
 
     @Inject
-    ManagedExecutor defaultME;
-
-    @Inject
-    ManagedExecutor defaultME2;
-
-    @Inject
-    @ManagedExecutorConfig
-    ManagedExecutor defaultAnno1;
-
-    @Inject
-    @ManagedExecutorConfig
-    ManagedExecutor defaultAnno2;
+    @ManagedExecutorConfig(propagated = ThreadContext.CDI, cleared = ThreadContext.ALL_REMAINING)
+    ManagedExecutor unnamedExec2;
 
     @Inject
     @NamedInstance("A")
-    @ManagedExecutorConfig
+    @ManagedExecutorConfig(propagated = ThreadContext.CDI, cleared = ThreadContext.ALL_REMAINING)
     ManagedExecutor namedExecA1;
 
     @Inject
@@ -57,7 +49,7 @@ public class ManagedExecutorSharingBean {
 
     @Inject
     @NamedInstance("B")
-    @ManagedExecutorConfig
+    @ManagedExecutorConfig(propagated = ThreadContext.CDI, cleared = ThreadContext.ALL_REMAINING)
     ManagedExecutor namedExecB1;
 
     @Inject
@@ -65,18 +57,10 @@ public class ManagedExecutorSharingBean {
     ManagedExecutor namedExecB2;
 
     /**
-     * Verify the container creates a ManagedExecutor instance per unqualified ManagedExecutor injection point
-     */
-    public void testDefaultMEsDifferent() {
-        assertNotSame(defaultME.toString(), defaultME2.toString(),
-                "Default injection points \"@Inject ManagedExecutor exec;\" should get different instances");
-    }
-
-    /**
      * Verify the container creates a ManagedExecutor instance per unqualified injection point w/ config
      */
     public void testUnnamedConfigDifferent() {
-        assertNotSame(defaultAnno1.toString(), defaultAnno2.toString(),
+        assertNotSame(unnamedExec1.toString(), unnamedExec2.toString(),
                 "Default injection points with matching @ManagedExecutorConfig should get different instances");
     }
 
@@ -97,18 +81,4 @@ public class ManagedExecutorSharingBean {
         assertNotSame(namedExecA1.toString(), namedExecB1.toString(),
                 "Two injection points with different @NamedInstance values should get separate ManagedExecutor instances");
     }
-
-    public void testAllDefaultInjectionUnique() {
-        assertUnique(defaultME.toString(), defaultME2.toString(), defaultAnno1.toString(), defaultAnno2.toString());
-    }
-
-    private void assertUnique(String... executors) {
-        for (int i = 0; i < executors.length; i++) {
-            for (int j = i + 1; j < executors.length; j++) {
-                assertNotSame(executors[i], executors[j], "Expected all instances to be unique, but index " + i
-                        + " and " + j + " were the same: " + Arrays.toString(executors));
-            }
-        }
-    }
-
 }

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -79,6 +79,7 @@ public class ExampleServlet extends HttpServlet {
     public void init(ServletConfig config) {
         threadContext = ThreadContext.builder()
                             .propagated(ThreadContext.APPLICATION, ThreadContext.SECURITY)
+                            .unchanged()
                             .cleared(ThreadContext.ALL_REMAINING)
                             .build();
     }

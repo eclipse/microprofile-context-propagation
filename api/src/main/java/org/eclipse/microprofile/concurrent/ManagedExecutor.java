@@ -33,13 +33,14 @@ import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
  *
  * <p>Example usage:</p>
  * <pre>
- * <code>&commat;Inject</code> ManagedExecutor executor;
+ * <code>ManagedExecutor executor = ManagedExecutor.builder().propagated(ThreadContext.APPLICATION).cleared(ThreadContext.ALL_REMAINING).build();
  * ...
  * CompletableFuture&lt;Integer&gt; future = executor
  *    .supplyAsync(supplier)
  *    .thenApplyAsync(function1)
  *    .thenApply(function2)
  *    ...
+ * </code>
  * </pre>
  *
  * <p>This specification allows for managed executors that propagate thread context as well as for
@@ -154,6 +155,9 @@ public interface ManagedExecutor extends ExecutorService {
          *         {@link #cleared} set and the {@link #propagated} set</li>
          *         <li>if a thread context type that is configured to be
          *         {@link #cleared} or {@link #propagated} is unavailable</li>
+         *         <li>if context configuration is neither specified on the builder
+         *         nor via MicroProfile Config, and the builder implementation lacks
+         *         vendor-specific defaults of its own.</li>
          *         <li>if more than one provider provides the same thread context
          *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}
          *         </li>
@@ -169,8 +173,8 @@ public interface ManagedExecutor extends ExecutorService {
          * <p>This set replaces the <code>cleared</code> set that was previously
          * specified on the builder instance, if any.</p>
          *
-         * <p>The default set of cleared thread context types is
-         * {@link ThreadContext#TRANSACTION}, which means that a transaction
+         * <p>For example, if the user specifies
+         * {@link ThreadContext#TRANSACTION} in this set, then a transaction
          * is not active on the thread when the action or task runs, such
          * that each action or task is able to independently start and end
          * its own transactional work.</p>
@@ -183,6 +187,11 @@ public interface ManagedExecutor extends ExecutorService {
          * on {@link ThreadContext}. Other thread context types must be defined
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
+         *
+         * <p>The MicroProfile Config property, <code>ManagedExecutor/cleared</code>,
+         * establishes a default that is used if no value is otherwise specified.
+         * The value of the MicroProfile Config property can be the empty string
+         * or a comma separated list of context type constant values.</p>
          *
          * @param types types of thread context to clear from threads that run
          *        actions and tasks.
@@ -198,18 +207,15 @@ public interface ManagedExecutor extends ExecutorService {
          * <p>This set replaces the <code>propagated</code> set that was
          * previously specified on the builder instance, if any.</p>
          *
-         * <p>The default set of propagated thread context types is
-         * {@link ThreadContext#ALL_REMAINING}, which includes all available
-         * thread context types that support capture and propagation to other
-         * threads, except for those that are explicitly {@link cleared},
-         * which, by default is {@link ThreadContext#TRANSACTION} context,
-         * in which case is suspended from the thread that runs the action or
-         * task.</p>
-         *
          * <p>Constants for specifying some of the core context types are provided
          * on {@link ThreadContext}. Other thread context types must be defined
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
+         *
+         * <p>The MicroProfile Config property, <code>ManagedExecutor/propagated</code>,
+         * establishes a default that is used if no value is otherwise specified.
+         * The value of the MicroProfile Config property can be the empty string
+         * or a comma separated list of context type constant values.</p>
          *
          * <p>Thread context types which are not otherwise included in this set
          * are cleared from the thread of execution for the duration of the
@@ -229,7 +235,9 @@ public interface ManagedExecutor extends ExecutorService {
          * the <code>ManagedExecutor</code> starts executing them.</p>
          *
          * <p>The default value of <code>-1</code> indicates no upper bound,
-         * although practically, resource constraints of the system will apply.</p>
+         * although practically, resource constraints of the system will apply.
+         * You can switch the default by specifying the MicroProfile Config
+         * property, <code>ManagedExecutor/maxAsync</code>.</p>
          *
          * @param max upper bound on async completion stage actions and executor tasks.
          * @return the same builder instance upon which this method is invoked.
@@ -243,7 +251,9 @@ public interface ManagedExecutor extends ExecutorService {
          * if no space in the queue is available to accept them.</p>
          *
          * <p>The default value of <code>-1</code> indicates no upper bound,
-         * although practically, resource constraints of the system will apply.</p>
+         * although practically, resource constraints of the system will apply.
+         * You can switch the default by specifying the MicroProfile Config
+         * property, <code>ManagedExecutor/maxQueued</code>.</p>
          *
          * @param max upper bound on async actions and tasks that can be queued.
          * @return the same builder instance upon which this method is invoked.

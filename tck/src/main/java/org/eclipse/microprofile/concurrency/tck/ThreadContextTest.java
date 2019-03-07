@@ -176,6 +176,8 @@ public class ThreadContextTest extends Arquillian {
 
         ThreadContext threadContext = ThreadContext.builder()
                 .cleared(ThreadContext.TRANSACTION)
+                .unchanged()
+                .propagated(ThreadContext.ALL_REMAINING)
                 .build();
 
         Callable<String> taskWithNewTransaction = threadContext.contextualCallable(() -> {
@@ -264,6 +266,7 @@ public class ThreadContextTest extends Arquillian {
     public void contextualBiConsumerRunsWithContext() throws InterruptedException {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
@@ -328,6 +331,8 @@ public class ThreadContextTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .unchanged()
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -388,6 +393,8 @@ public class ThreadContextTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext priorityContext = ThreadContext.builder()
                 .propagated(THREAD_PRIORITY)
+                .unchanged()
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         int originalPriority = Thread.currentThread().getPriority();
@@ -430,6 +437,8 @@ public class ThreadContextTest extends Arquillian {
     public void contextualConsumerRunsWithContext() throws InterruptedException {
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .unchanged()
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -493,6 +502,8 @@ public class ThreadContextTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .unchanged()
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -553,6 +564,8 @@ public class ThreadContextTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext priorityAndBufferContext = ThreadContext.builder()
                 .propagated(THREAD_PRIORITY, Buffer.CONTEXT_NAME)
+                .unchanged()
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         int originalPriority = Thread.currentThread().getPriority();
@@ -619,6 +632,7 @@ public class ThreadContextTest extends Arquillian {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .unchanged(ThreadContext.APPLICATION)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {
@@ -674,7 +688,8 @@ public class ThreadContextTest extends Arquillian {
     public void reuseThreadContextBuilder() throws Exception {
         ThreadContext.Builder builder = ThreadContext.builder()
                 .propagated()
-                .cleared(Buffer.CONTEXT_NAME, THREAD_PRIORITY);
+                .cleared(Buffer.CONTEXT_NAME, THREAD_PRIORITY)
+                .unchanged();
         
         ThreadContext clearingContext = builder.build();
         
@@ -799,6 +814,7 @@ public class ThreadContextTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
         ManagedExecutor bufferContextExecutor = ManagedExecutor.builder()
@@ -904,6 +920,7 @@ public class ThreadContextTest extends Arquillian {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
+                .unchanged()
                 .build();
         ManagedExecutor labelContextExecutor = ManagedExecutor.builder()
                 .propagated(Label.CONTEXT_NAME)
@@ -1008,7 +1025,11 @@ public class ThreadContextTest extends Arquillian {
      */
     @Test
     public void withContextCaptureDependentStageForcedCompletion() throws ExecutionException, InterruptedException {
-        ThreadContext contextPropagator = ThreadContext.builder().build();
+        ThreadContext contextPropagator = ThreadContext.builder()
+                .propagated()
+                .unchanged()
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
 
         CompletableFuture<String> stage1 = new CompletableFuture<String>();
         CompletableFuture<String> stage2 = contextPropagator.withContextCapture(stage1);
@@ -1039,10 +1060,12 @@ public class ThreadContextTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
@@ -1090,10 +1113,12 @@ public class ThreadContextTest extends Arquillian {
             throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .unchanged()
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
@@ -1228,7 +1253,8 @@ public class ThreadContextTest extends Arquillian {
     public void currentContextExecutorRunsWithContext() throws InterruptedException, ExecutionException, TimeoutException {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
-                .cleared(Label.CONTEXT_NAME)
+                .unchanged()
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         try {

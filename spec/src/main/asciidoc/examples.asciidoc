@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ This section includes some additional examples of spec usage.
 ----
     threadContext = ThreadContext.builder()
                         .propagated(ThreadContext.SECURITY)
+                        .unchanged()
                         .cleared(ThreadContext.ALL_REMAINING)
                         .build();
 
@@ -54,6 +55,7 @@ This section includes some additional examples of spec usage.
 ----
     threadContext = ThreadContext.builder()
                         .propagated(ThreadContext.SECURITY)
+                        .unchanged()
                         .cleared(ThreadContext.ALL_REMAINING)
                         .build();
 
@@ -70,7 +72,11 @@ This section includes some additional examples of spec usage.
 
 [source, java]
 ----
-    threadContext = ThreadContext.builder().build();
+    threadContext = ThreadContext.builder()
+                                 .cleared(ThreadContext.TRANSACTION)
+                                 .unchanged(ThreadContext.SECURITY)
+                                 .propagated(ThreadContext.ALL_REMAINING)
+                                 .build();
     contextSnapshot = threadContext.currentContextExecutor();
 
     ... on some other thread,
