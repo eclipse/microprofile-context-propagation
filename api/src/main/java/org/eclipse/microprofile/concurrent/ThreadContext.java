@@ -226,10 +226,7 @@ public interface ThreadContext {
      *
      * @see ManagedExecutor.Builder#cleared
      * @see ManagedExecutor.Builder#propagated
-     * @see ManagedExecutorConfig#cleared
-     * @see ManagedExecutorConfig#propagated
      * @see ThreadContext.Builder
-     * @see ThreadContextConfig
      */
     static final String ALL_REMAINING = "Remaining";
 
@@ -243,10 +240,7 @@ public interface ThreadContext {
      *
      * @see ManagedExecutor.Builder#cleared
      * @see ManagedExecutor.Builder#propagated
-     * @see ManagedExecutorConfig#cleared
-     * @see ManagedExecutorConfig#propagated
      * @see ThreadContext.Builder
-     * @see ThreadContextConfig
      */
     static final String APPLICATION = "Application";
 
@@ -258,10 +252,7 @@ public interface ThreadContext {
      *
      * @see ManagedExecutor.Builder#cleared
      * @see ManagedExecutor.Builder#propagated
-     * @see ManagedExecutorConfig#cleared
-     * @see ManagedExecutorConfig#propagated
      * @see ThreadContext.Builder
-     * @see ThreadContextConfig
      */
     static final String CDI = "CDI";
 
@@ -281,10 +272,7 @@ public interface ThreadContext {
      * 
      * @see ManagedExecutor.Builder#cleared
      * @see ManagedExecutor.Builder#propagated
-     * @see ManagedExecutorConfig#cleared
-     * @see ManagedExecutorConfig#propagated
      * @see ThreadContext.Builder
-     * @see ThreadContextConfig
      */
     static final String SECURITY = "Security";
 
@@ -303,10 +291,7 @@ public interface ThreadContext {
      *
      * @see ManagedExecutor.Builder#cleared
      * @see ManagedExecutor.Builder#propagated
-     * @see ManagedExecutorConfig#cleared
-     * @see ManagedExecutorConfig#propagated
      * @see ThreadContext.Builder
-     * @see ThreadContextConfig
      */
     static final String TRANSACTION = "Transaction";
 
@@ -450,27 +435,6 @@ public interface ThreadContext {
      * @throws IllegalArgumentException if an already-contextualized <code>Supplier</code> is supplied to this method.
      */
     <R> Supplier<R> contextualSupplier(Supplier<R> supplier);
-
-    /**
-     * <p>Returns a textual representation of this instance. For <code>ThreadContext</code> instances
-     * that are produced by the container for CDI injection, the textual representation must include
-     * the fully qualified name of the injection point from which the container produces the instance.
-     * </p>
-     *
-     * <p>The injection point name must be formatted with the same pattern as MicroProfile Config overrides,
-     * which is the fully qualified class name of the injection point (delimited by <code>.</code>),
-     * followed by the <code>/</code> character, followed by the injection point field name
-     * or the injection point method name followed by <code>/</code> and the parameter position.
-     * For example,</p>
-     *
-     * <pre><code>
-     * org.eclipse.microprofile.examples.MyBean/myThreadContext
-     * org.eclipse.microprofile.examples.MyBean/setContextSnapshot/1
-     * </code></pre>
-     *
-     * @return a textual representation of this instance.
-     */
-    String toString();
 
     /**
      * <p>Returns a new <code>CompletableFuture</code> that is completed by the completion of the

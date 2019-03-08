@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
 //
 // See the NOTICE file(s) distributed with this work for additional
 // information regarding copyright ownership.
@@ -108,49 +108,25 @@ currently as well as after adoption into Jakarta EE.
 Injection
 ^^^^^^^^^
 
-It shall be possible to inject instances of ManagedExecutor and
-ThreadContext via the `@Inject` annotation, for example:
+It shall be possible to build instances of ManagedExecutor and
+ThreadContext via a fluent builder pattern, for example:
 
 [source,java]
 ----
-  @Inject ManagedExecutor executor;
-  @Inject ThreadContext threadContext;
+  ManagedExecutor executor = ManagedExecutor.builder()
+                                            .maxAsync(5)
+                                            .propagated(ThreadContext.CDI, ThreadContext.APPLICATION)
+                                            .build();
+
+  ThreadContext threadContext = ThreadContext.builder()
+                                             .propagated(ThreadContext.SECURITY)
+                                             .build();
   ...
   CompletableFuture<Integer> stage = executor
       .supplyAsync(supplier1)
       .thenApplyAsync(function1)
       .thenApply(function2)
       .thenApply(threadContext.contextualFunction(function3));
-----
-
-The container provides default instances of ManagedExecutor and
-ThreadContext, which are injected above.
-
-[[configuration]]
-Configuration
-^^^^^^^^^^^^^
-
-Annotations are provided to configure injected instances other
-than the defaults.
-
-The following is an example of configuring a ManagedExecutor to only
-propagate CDI context plus context CDI depends upon (Application)
-and limit the number of async completion stage actions running at
-any given point in time to 5,
-
-[source,java]
-----
-  @Inject @ManagedExecutorConfig(propagated=ThreadContext.CDI, maxAsync=5)
-  ManagedExecutor executor;
-----
-
-The following is an example of configuring a ThreadContext to only
-capture and propagate Security context,
-
-[source,java]
-----
-  @Inject @ThreadContextConfig(propagated=ThreadContext.SECURITY)
-  ThreadContext threadContext;
 ----
 
 [[spi-for-context-providers]]

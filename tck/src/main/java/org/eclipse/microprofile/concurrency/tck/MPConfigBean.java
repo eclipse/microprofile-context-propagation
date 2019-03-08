@@ -18,22 +18,25 @@
  */
 package org.eclipse.microprofile.concurrency.tck;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Qualifier;
 
 import org.eclipse.microprofile.concurrency.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.concurrency.tck.contexts.label.Label;
 
 import org.eclipse.microprofile.concurrent.ManagedExecutor;
-import org.eclipse.microprofile.concurrent.ManagedExecutorConfig;
-import org.eclipse.microprofile.concurrent.NamedInstance;
 import org.eclipse.microprofile.concurrent.ThreadContext;
-import org.eclipse.microprofile.concurrent.ThreadContextConfig;
 
 @ApplicationScoped
 public class MPConfigBean {
@@ -41,71 +44,39 @@ public class MPConfigBean {
 
     protected Executor contextSnapshot;
 
-    // microprofile-config.properties overrides this with maxAsync=2; maxQueued=3; propagated=Label; cleared=Remaining
-    @Inject @ManagedExecutorConfig(
-            maxAsync = 5,
-            maxQueued = 20,
-            propagated = Buffer.CONTEXT_NAME,
-            cleared = Label.CONTEXT_NAME)
-    protected ManagedExecutor executorWithConfig;
+    @Qualifier
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
+    public @interface Max5Queue {}
 
-    // microprofile-config.properties overrides this with maxQueued=4; cleared=ThreadPriority,Buffer,Transaction; propagated=Remaining
-    @Inject @NamedInstance("namedExecutor") @ManagedExecutorConfig(
-            maxAsync = 1,
-            propagated = { Buffer.CONTEXT_NAME, Label.CONTEXT_NAME },
-            cleared = ThreadContext.ALL_REMAINING)
-    protected ManagedExecutor namedExecutorWithConfig;
-
-    // microprofile-config.properties overrides this with propagated=Label,Buffer
-    @Inject @NamedInstance("namedThreadContext") @ThreadContextConfig(
-            propagated = Buffer.CONTEXT_NAME,
-            cleared = {},
-            unchanged = ThreadContext.ALL_REMAINING)
-    protected ThreadContext namedThreadContextWithConfig;
-    
-    // microprofile-config.properties overrides this with propagated=Buffer
-    @Inject @NamedInstance("clearAllRemainingThreadContext") @ThreadContextConfig(
-            propagated = ThreadContext.ALL_REMAINING,
-            cleared = ThreadContext.TRANSACTION,
-            unchanged = Label.CONTEXT_NAME)
-    protected ThreadContext clearAllRemainingThreadContext;
-
-    // microprofile-config.properties overrides this with propagated=<unconfigured>; cleared=Buffer,ThreadPriority; unchanged=Remaining
-    @Inject @ThreadContextConfig(
-            propagated = ThreadContext.ALL_REMAINING,
-            cleared = {},
-            unchanged = {})
-    protected ThreadContext threadContext;
-
-    // microprofile-config.properties overrides exec parameter with maxAsync=1
-    @Produces @ApplicationScoped @NamedInstance("producedExecutor")
-    protected ManagedExecutor createExecutor(
-            @ManagedExecutorConfig(maxQueued = 5, propagated = {}, cleared = ThreadContext.ALL_REMAINING) ManagedExecutor exec) {
-        return exec;
+    @Produces @ApplicationScoped @Max5Queue
+    protected ManagedExecutor createExecutor() {
+        // rely on MP Config for defaults of maxAsync=1, cleared=Remaining
+        return ManagedExecutor.builder()
+                              .maxQueued(5)
+                              .propagated()
+                              .build();
     }
 
-    // microprofile-config.properties overrides threadContext parameter with propagated=Label
-    @Produces @ApplicationScoped @Named("producedThreadContext") // it's valid for user-supplied producers to use other qualifiers, such as Named
-    protected ThreadContext createThreadContext(
-            @NamedInstance("producedExecutor") ManagedExecutor unused1, // this is here so that we can force parameter position 3 to be used
-            @NamedInstance("namedExecutor") ManagedExecutor unused2, // this is here so that we can force parameter position 3 to be used
-            @ThreadContextConfig(propagated=Buffer.CONTEXT_NAME, cleared=ThreadContext.ALL_REMAINING, unchanged = {}) ThreadContext threadContext) {
-        return threadContext;
+    public void shutdown(@Disposes @Max5Queue ManagedExecutor executor) {
+        executor.shutdown();
     }
 
-    // microprofile-config.properties overrides executor's config with maxAsync=1; maxQueued=2; propagated=Buffer,Label; cleared=Remaining
+    // None of the defaults from MP Config apply because the application explicitly specifies all values
+    @Produces @ApplicationScoped @Named("producedThreadContext")
+    protected ThreadContext bufferContext = ThreadContext.builder()
+                            .propagated(Buffer.CONTEXT_NAME)
+                            .unchanged()
+                            .cleared(ThreadContext.ALL_REMAINING)
+                            .build();
+
     @Inject
-    protected void setCompletedFuture(ManagedExecutor executor) {
+    protected void setCompletedFuture(@Max5Queue ManagedExecutor executor) {
         completedFuture = executor.completedFuture(100);
     }
 
-    // microprofile-config.properties overrides thread context config with propagated=Label; cleared=Remaining; unchanged=ThreadPriority
     @Inject
-    protected void setContextSnapshot(@ThreadContextConfig(propagated = { Label.CONTEXT_NAME, Buffer.CONTEXT_NAME },
-                                                           cleared = {},
-                                                           unchanged = ThreadContext.ALL_REMAINING)
-                                      ThreadContext contextPropagator) {
-
+    protected void setContextSnapshot(@Named("producedThreadContext") ThreadContext contextPropagator) {
         int originalPriority = Thread.currentThread().getPriority();
         int newPriority = originalPriority == 4 ? 3 : 4;
         Thread.currentThread().setPriority(newPriority);
@@ -127,13 +98,5 @@ public class MPConfigBean {
 
     public Executor getContextSnapshot() {
         return contextSnapshot;
-    }
-
-    public ManagedExecutor getExecutorWithConfig() {
-        return executorWithConfig;
-    }
-
-    public ThreadContext getThreadContext() {
-        return threadContext;
     }
 }
