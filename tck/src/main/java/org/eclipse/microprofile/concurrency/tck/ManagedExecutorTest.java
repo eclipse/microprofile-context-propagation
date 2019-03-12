@@ -1617,12 +1617,26 @@ public class ManagedExecutorTest extends Arquillian {
                     }
                 });
             }
-            catch (UnsupportedOperationException x) {
+            catch (IllegalStateException x) {
                 System.out.println("Skipping portion of test propagateTransactionContextJTA. Propagation of active transaction is not supported.");
                 return;
             }
 
-            Assert.assertEquals(stage2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "SUCCESS2");
+            String result;
+            try {
+                result = stage2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+            }
+            catch (ExecutionException x) {
+                if (x.getCause() instanceof IllegalStateException) {
+                    System.out.println("Skipping portion of test propagateTransactionContextJTA. " +
+                                       "Propagation of active transaction to multiple threads in parallel is not supported.");
+                    return;
+                }
+                else {
+                    throw x;
+                }
+            }
+            Assert.assertEquals(result, "SUCCESS2");
         }
         finally {
             commit.invoke(tx);

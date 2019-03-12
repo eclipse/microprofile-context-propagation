@@ -42,11 +42,14 @@ import javax.transaction.UserTransaction;
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 /*
  * Tests for propagating transaction contexts
  */
 public class JTACDITest extends Arquillian {
+    public static final int UNSUPPORTED = -1000;
+
     @Inject
     private TransactionalService transactionalService;
 
@@ -93,8 +96,26 @@ public class JTACDITest extends Arquillian {
             ut.begin();
             int initialValue = transactionalService.getValue(); // transaction scoped beans will be available
             // call a transactional bean on another thread to validate that the transaction context propagates
-            CompletableFuture<Void> stage = executor.runAsync(() -> transactionalService.mandatory());
-            stage.join();
+            CompletableFuture<Void> stage;
+            try {
+                stage = executor.runAsync(() -> transactionalService.mandatory());
+            }
+            catch (IllegalStateException x) {
+                System.out.println("Propagation of active transactions is not supported. Skipping test.");
+                return;
+            }
+            try {
+                stage.join();
+            }
+            catch (CompletionException x) {
+                if (x.getCause() instanceof IllegalStateException) {
+                    System.out.println("Propagation of active transactions to multiple threads in parallel is not supported. Skipping test.");
+                    return;
+                }
+                else {
+                    throw x;
+                }
+            }
 
             // we are still in transaction context so transaction scoped beans will still be available
             Assert.assertEquals(initialValue + 1, transactionalService.getValue());
@@ -138,8 +159,11 @@ public class JTACDITest extends Arquillian {
         try {
             // delegate this test to transactionalService which manages transactional
             // boundaries using the @Transactional annotation
-            Assert.assertEquals(1, transactionalService.testAsync(executor),
-                    "testAsyncTransaction failed%n");
+            int result = transactionalService.testAsync(executor);
+            if (result != UNSUPPORTED) {
+                Assert.assertEquals(1, result,
+                        "testAsyncTransaction failed%n");
+            }
             verifyNoTransaction();
         }
         finally {
@@ -169,12 +193,20 @@ public class JTACDITest extends Arquillian {
                 ut.begin();
                 int currentValue = transactionalService.getValue(); // the bean should be in scope
 
-                // run various transactional updates on the executor
-                CompletableFuture<Void> stage0 = executor.runAsync(() -> {
-                    transactionalService.required(); // invoke a method that requires a transaction
-                    // the service call should have updated the bean in this transaction scope
-                    Assert.assertEquals(currentValue + 1, transactionalService.getValue());
-                }).thenRunAsync(() -> {
+                CompletableFuture<Void> stage0;
+                try {
+                    // run various transactional updates on the executor
+                    stage0 = executor.runAsync(() -> {
+                        transactionalService.required(); // invoke a method that requires a transaction
+                        // the service call should have updated the bean in this transaction scope
+                        Assert.assertEquals(currentValue + 1, transactionalService.getValue());
+                    });
+                }
+                catch (IllegalStateException x) {
+                    System.out.println("Propagation of active transactions is not supported. Skipping test.");
+                    return;
+                }
+                CompletableFuture<Void> stage1= stage0.thenRunAsync(() -> {
                     transactionalService.requiresNew();
                     // the service call should have updated a different bean in a different transaction scope
                     Assert.assertEquals(currentValue + 1, transactionalService.getValue());
@@ -202,7 +234,18 @@ public class JTACDITest extends Arquillian {
                     Assert.assertEquals(currentValue + 3, transactionalService.getValue());
                 });
 
-                stage0.join();
+                try {
+                    stage1.join();
+                }
+                catch (CompletionException x) {
+                    if (x.getCause() instanceof IllegalStateException) {
+                        System.out.println("Propagation of active transactions to multiple threads in parallel is not supported. Skipping test.");
+                        return;
+                    }
+                    else {
+                        throw x;
+                    }
+                }
                 Assert.assertEquals(currentValue + 3, transactionalService.getValue());
             }
             finally {
@@ -219,7 +262,6 @@ public class JTACDITest extends Arquillian {
      * a transaction scoped bean is updated twice.
      */
     @Test
-    // we don't yet have a precedent for how to signal lack of support for propagation to multiple threads in parallel,
     @Ignore
     public void testConcurrentTransactionPropagation() {
         // create an executor that propagates the transaction context
@@ -231,8 +273,10 @@ public class JTACDITest extends Arquillian {
         }
 
         try {
-            Assert.assertEquals(2, transactionalService.testConcurrentTransactionPropagation(
-                    executor), "testTransactionPropagation failed%n");
+            int result = transactionalService.testConcurrentTransactionPropagation(executor);
+            if (result != UNSUPPORTED) {
+                Assert.assertEquals(2, result, "testTransactionPropagation failed%n");
+            }
             verifyNoTransaction();
         }
         finally {
@@ -288,8 +332,27 @@ public class JTACDITest extends Arquillian {
         ut.begin();
         Assert.assertEquals(0, service.getValue());
 
-        CompletableFuture<Void> stage = executor.runAsync(service::mandatory);
-        stage.join();
+        CompletableFuture<Void> stage;
+        try {
+            stage = executor.runAsync(service::mandatory);
+        }
+        catch (IllegalStateException x) {
+            System.out.println("Propagation of active transactions is not supported. Skipping test.");
+            return;
+        }
+
+        try {
+            stage.join();
+        }
+        catch (CompletionException x) {
+            if (x.getCause() instanceof IllegalStateException) {
+                System.out.println("Propagation of active transactions to multiple threads in parallel is not supported. Skipping test.");
+                return;
+            }
+            else {
+                throw x;
+            }
+        }
 
         try {
             ut.rollback();

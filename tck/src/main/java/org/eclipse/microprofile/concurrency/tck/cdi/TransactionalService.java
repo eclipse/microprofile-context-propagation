@@ -24,6 +24,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 @ApplicationScoped
 class TransactionalService {
@@ -68,8 +69,27 @@ class TransactionalService {
     @Transactional(Transactional.TxType.REQUIRED)
     int testAsync(ManagedExecutor executor) {
         int currentValue = bean.getValue();
-        CompletableFuture<Void> stage = executor.runAsync(this::required);
-        stage.join();
+        CompletableFuture<Void> stage;
+        try {
+            stage = executor.runAsync(this::required);
+        }
+        catch (IllegalStateException x) {
+            System.out.println("Propagation of active transactions is not supported. Skipping test.");
+            return JTACDITest.UNSUPPORTED;
+        }
+
+        try {
+            stage.join();
+        }
+        catch (CompletionException x) {
+            if (x.getCause() instanceof IllegalStateException) {
+                System.out.println("Propagation of active transactions to multiple threads in parallel is not supported. Skipping test.");
+                return JTACDITest.UNSUPPORTED;
+            }
+            else {
+                throw x;
+            }
+        }
 
         return bean.getValue() - currentValue;
     }
@@ -79,10 +99,28 @@ class TransactionalService {
         int currentValue = bean.getValue();
 
         // run two concurrent transactional bean updates
-        CompletableFuture<Void> stage0 = executor.runAsync(this::required);
+        CompletableFuture<Void> stage0;
+        try {
+            stage0 = executor.runAsync(this::required);
+        }
+        catch (IllegalStateException x) {
+            System.out.println("Propagation of active transactions is not supported. Skipping test.");
+            return JTACDITest.UNSUPPORTED;
+        }
         CompletableFuture<Void> stage1 = executor.runAsync(this::required);
 
-        CompletableFuture.allOf(stage0, stage1).join();
+        try {
+            CompletableFuture.allOf(stage0, stage1).join();
+        }
+        catch (CompletionException x) {
+            if (x.getCause() instanceof IllegalStateException) {
+                System.out.println("Propagation of active transactions to multiple threads in parallel is not supported. Skipping test.");
+                return JTACDITest.UNSUPPORTED;
+            }
+            else {
+                throw x;
+            }
+        }
 
         return bean.getValue() - currentValue;
     }
