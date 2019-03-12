@@ -107,7 +107,10 @@ public interface ThreadContextProvider {
      *
      * <p>For example:</p>
      * <pre><code>
-     * ManagedExecutor executor = ManagedExecutor.builder().propagated(ThreadContext.CDI).build();
+     * ManagedExecutor executor = ManagedExecutor.builder()
+     *                                           .propagated(ThreadContext.CDI)
+     *                                           .cleared(ThreadContext.ALL_REMAINING)
+     *                                           .build();
      * </code></pre>
      *
      * <p>It is an error for multiple thread context providers of identical type to be

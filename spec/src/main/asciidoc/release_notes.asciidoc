@@ -49,6 +49,7 @@ Use the fluent builder API to construct a `ManagedExecutor`:
 ----
     ManagedExecutor executor = ManagedExecutor.builder()
                        .propagated(ThreadContext.APPLICATION, ThreadContext.CDI)
+                       .cleared(ThreadContext.ALL_REMAINING)
                        .maxAsync(5)
                        .build();
 ----

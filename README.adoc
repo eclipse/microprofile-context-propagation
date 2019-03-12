@@ -104,8 +104,8 @@ EE Concurrency's ContextService and for a single implementation to
 be capable of simultaneously implementing both interfaces, both
 currently as well as after adoption into Jakarta EE.
 
-[[injection]]
-Injection
+[[builders]]
+Builders
 ^^^^^^^^^
 
 It shall be possible to build instances of ManagedExecutor and
@@ -127,6 +127,32 @@ ThreadContext via a fluent builder pattern, for example:
       .thenApplyAsync(function1)
       .thenApply(function2)
       .thenApply(threadContext.contextualFunction(function3));
+----
+
+[[injection]]
+Injection
+^^^^^^^^^
+
+The builders can be used in combination with standard CDI producers and injection
+to define and manage single instances across an application:
+
+[source,java]
+----
+  @Produces @ApplicationScoped @MyQualifier
+  createExecutor() {
+      return ManagedExecutor.builder()
+                            .propagated(ThreadContext.SECURITY)
+                            .cleared(ThreadContext.ALL_REMAINING)
+                            .build();
+  }
+
+  disposeExecutor(@Disposes @MyQualifier exec) {
+      exec.shutdownNow();
+  }
+
+  ... // CDI injection point, possibly in another bean,
+
+  @Inject @MyQualifier ManagedExecutor executor;
 ----
 
 [[spi-for-context-providers]]

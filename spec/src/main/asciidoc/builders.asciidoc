@@ -60,13 +60,6 @@ It is the responsibility of the application to shut down `ManagedExecutor`
 instances that are no longer needed, so as to allow the container to
 efficiently free up resources.
 
-The MicroProfile Concurrency specification does not require `ManagedExecutor`
-instances to be implemented as distinct thread pools. All of the threading-related
-configuration attributes defined within the specification are constraints on
-concurrency and related aspects, not definitions of new thread pools.
-It is perfectly valid, and encouraged, for multiple `ManagedExecutor` instances
-to be backed by a single common thread pool.
-
 === Example ThreadContext Builder Usage
 
 [source, java]

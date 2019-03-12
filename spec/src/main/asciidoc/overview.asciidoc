@@ -91,7 +91,7 @@ Or similarly for thread context,
 
 === Sharing Instances
 
-CDI application scope is a convenient mechanism for sharing instances across an application.
+The definition of CDI producers at application scope, combined with injection, is a convenient mechanism for sharing instances across an application.
 
 [source, java]
 ----
