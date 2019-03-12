@@ -267,8 +267,10 @@ public interface ThreadContext {
     }
     </pre></code>
      * 
-     * When CDI context is propagated, the request's state will also
-     * be available to the contextualized work: <code><pre>
+     * CDI context propagation includes request, session and conversation contexts.
+     * When CDI context is propagated, all of the above mentioned contexts that are
+     * currently active will be available to the contextualized task with preserved 
+     * state. <code><pre>
     ManagedExecutor exec = ManagedExecutor.builder()
         .propagated(ThreadContext.CDI, ThreadContext.APPLICATION)
         .build();
@@ -287,12 +289,13 @@ public interface ThreadContext {
     }
     </pre></code>
      *
-     * If CDI context is 'cleared', the state of any Request, Session, or Conversation
-     * scoped beans will be cleared during task execution, and restored after execution.
+     * If CDI context is 'cleared', currently active contexts will still be
+     * available to the contextualized task, but their state will be erased.
      * 
      * If CDI context is 'unchanged', access to CDI bean's contextual state 
      * will be non-deterministic. Namely, context may be missing, or context
-     * from a different task may be applied instead.
+     * from a different task may be applied instead. This option is discouraged,
+     * and only should be used if CDI context is not used in an application.
      *
      * @see ManagedExecutor.Builder#cleared
      * @see ManagedExecutor.Builder#propagated
