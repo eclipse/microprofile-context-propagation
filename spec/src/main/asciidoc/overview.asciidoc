@@ -122,7 +122,6 @@ The definition of CDI producers at application scope, combined with injection, i
 MicroProfile Config properties can be used to specify defaults for configuration attributes that are not otherwise configured on `ManagedExecutor` and `ThreadContext` instances.
 Here is an example that includes all of the available attributes that can be defaulted:
 
-[source, text]
 ----
 ManagedExecutor/propagated=Security,Application
 ManagedExecutor/cleared=Remaining

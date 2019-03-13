@@ -100,7 +100,6 @@ ManagedExecutor createExecutor(
 
 MicroProfile Config can be used to override configuration attributes from the above example as follows,
 
-[source, text]
 ----
 exec1.maxAsync=10
 exec1.maxQueued=15
