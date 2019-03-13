@@ -255,6 +255,47 @@ public interface ThreadContext {
      * scopes. An empty/default CDI context means that the thread does not have
      * access to the scope of the session, request, and so forth that created the
      * contextualized action.
+     * 
+     * For example, consider the following <code>&#64;RequestScoped<code> resource:
+     * 
+     * <code><pre>
+    &#64;RequestScoped
+    public class MyRequestScopedBean {
+        public String getState() {
+          // returns some request-specific information to the caller
+        }
+    }
+    </pre></code>
+     * 
+     * CDI context propagation includes request, session and conversation contexts.
+     * When CDI context is propagated, all of the above mentioned contexts that are
+     * currently active will be available to the contextualized task with preserved 
+     * state. <code><pre>
+    ManagedExecutor exec = ManagedExecutor.builder()
+        .propagated(ThreadContext.CDI, ThreadContext.APPLICATION)
+        .build();
+    
+    &#64;Inject
+    MyRequestScopedBean requestBean;
+    
+    &#64;GET
+    public void foo() {
+        exec.supplyAsync(() -> {
+            String state = reqBean.getState();
+            // do some work with the request state
+        }).thenApply(more -> {
+            // request state also available in future stages
+        });
+    }
+    </pre></code>
+     *
+     * If CDI context is 'cleared', currently active contexts will still be
+     * available to the contextualized task, but their state will be erased.
+     * 
+     * If CDI context is 'unchanged', access to CDI bean's contextual state 
+     * will be non-deterministic. Namely, context may be missing, or context
+     * from a different task may be applied instead. This option is discouraged,
+     * and only should be used if CDI context is not used in an application.
      *
      * @see ManagedExecutor.Builder#cleared
      * @see ManagedExecutor.Builder#propagated

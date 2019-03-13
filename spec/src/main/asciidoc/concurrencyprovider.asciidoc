@@ -33,7 +33,7 @@ In the case where the `ConcurrencyProvider` implementation is distinct from the 
 
 === Concurrency Manager
 
-``ConcurrencyManager``'s purpose is to provide builders for `ManagedExecutor` and `ThreadContext`. The builders create instances of `ManagedExecutor` and `ThreadContext` where thread context management is based on the `ThreadContextProvider`s that are accessible to the `ServiceLoader` from the class loader that is associated with the `ConcurrencyManager` instance.
+`ConcurrencyManager`'s purpose is to provide builders for `ManagedExecutor` and `ThreadContext`. The builders create instances of `ManagedExecutor` and `ThreadContext` where thread context management is based on the `ThreadContextProvider`'s that are accessible to the `ServiceLoader` from the class loader that is associated with the `ConcurrencyManager` instance.
 
 === Concurrency Manager Builder
 
@@ -47,7 +47,6 @@ This builder enables the container to create customized instances of `Concurrenc
 
 To register a `ConcurrencyManagerExtension`, a JAR file that is accessible from the class loader associated with the `ConcurrencyManager` must include a file of the following name and location,
 
-[source]
 ----
 META-INF/services/org.eclipse.microprofile.concurrent.spi.ConcurrencyManagerExtension
 ----
