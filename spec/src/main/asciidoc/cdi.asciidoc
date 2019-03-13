@@ -17,95 +17,124 @@
 [[concurrencycdi]]
 == CDI Injection
 
-If a CDI implementation is available, instances of `ManagedExecutor` and `ThreadContext` can be injected as CDI beans.
-Injection points with the `@NamedInstance` qualifier have a name that is explicitly declared by the qualifier.
-Injection points that have no CDI qualifier on them have a unique name which is deduced from the injection point itself.
-Container provides, per unique name, an instance of either `ManagedExecutor` and/or `ThreadContext` unless the application specifies a CDI producer with `@NamedInstance` qualifier, given unique name and respective type.
+In order to use `ManagedExecutor` and `ThreadContext` as CDI beans, define producer for them as `@ApplicationScoped` so that instances are shared and reused. In most cases, more granular and shorter-lived scopes are undesirable. For instance, having a new `ManagedExecutor` instance created per HTTP request typically does not make sense. In the event that a more granular scope is desired, the application must take care to supply a disposer to ensure that the executor is shut down once it is no longer needed. When using application scope, it is optional to supply a disposer because the specification requires the container to automatically shut down `ManagedExecutor` instances when the application stops.
 
-==== Injecting and Configuring `ManagedExecutor`
+==== Example Producer for `ManagedExecutor`
 
-Oftentimes there is a need to configure the executor instance to limit the number of asynchronous tasks that it can start or define which contexts to propagate.
-The `@ManagedExecutorConfig` annotation allows you to configure all aspects of an injected `ManagedExecutor` instance.
-Note that when using this annotation only, new instance of `ManagedExecutor` is created for every injection point even if those injection points have equivalent configuration.
-
+Example qualifier,
 [source, java]
 ----
-@Inject
-@ManagedExecutorConfig(maxAsync = 5, propagated = ThreadContext.SECURITY, cleared = ThreadContext.ALL_REMAINING)
-ManagedExecutor configuredExecutor;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import javax.inject.Qualifier;
+
+@Qualifier
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
+public @interface SecurityAndCDIContext {}
 ----
 
-==== Sharing `ManagedExecutor` Instances
-
-The CDI qualifier, `@NamedInstance`, enables you to share the same instance of `ManagedExecutor` across multiple injection points.
-The `@NamedInstance` qualifier has a single parameter which specifies the unique name that is assigned to the given executor configuration.
-Having one injection point annotated with both `ManagedExecutorConfig` and `@NamedInstance`, all other injection points within the application that have a matching `@NamedInstance` qualifier will have the same `ManagedExecutor` instance injected.
-Assuming two beans wish to share an executor instance, the code looks as follows:
-
+Example producer and disposer,
 [source, java]
 ----
+import org.eclipse.microprofile.concurrent.ManagedExecutor;
+import org.eclipse.microprofile.concurrent.ThreadContext;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
+
 @ApplicationScoped
 public class MyFirstBean {
+    @Produces @ApplicationScoped @SecurityAndCDIContext
+    ManagedExecutor executor = ManagedExecutor.builder()
+        .propagated(ThreadContext.SECURITY, ThreadContext.CDI)
+        .build();
 
-  @Inject
-  @NamedInstance("myExecutor")
-  @ManagedExecutorConfig(maxAsync = 5, propagated = ThreadContext.SECURITY, cleared = ThreadContext.ALL_REMAINING)
-  ManagedExecutor executor;
-
+    void disposeExecutor(@Disposes @SecurityAndCDIContext ManagedExecutor exec) {
+        exec.shutdownNow();
+    }
 }
+----
+
+Example injection point,
+[source, java]
+----
+import org.eclipse.microprofile.concurrent.ManagedExecutor;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 @ApplicationScoped
 public class MySecondBean {
-
-  @Inject
-  @NamedInstance("myExecutor")
-  ManagedExecutor sharedExecutor;
-
+    @Inject @SecurityAndCDIContext
+    ManagedExecutor sameExecutor;
+    ...
 }
 ----
 
-If multiple configurations of `ManagedExecutor` are assigned the same name, the container detects it and raises a `javax.enterprise.inject.spi.DefinitionException`.
+==== Example Producer for `ThreadContext`
 
-==== Injecting and Configuring `ThreadContext`
+Example qualifier,
+[source, java]
+----
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+import javax.inject.Qualifier;
 
-Oftentimes there is a need to configure the `ThreadContext` instance to specify which contexts to propagate.
-The `@ThreadContextConfig` annotation allows you to configure all aspects of an injected `ThreadContext` instance.
-Note that when using this annotation only, new instance of `ThreadContext` is created for every injection point even if those injection points have equivalent configuration.
+@Qualifier
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
+public @interface AppContext {}
+----
+
+Example producer method,
 
 [source, java]
 ----
-@Inject
-@ThreadContextConfig(propagated = ThreadContext.SECURITY, unchanged = {}, cleared = ThreadContext.ALL_REMAINING)
-ThreadContext configuredContext;
-----
+import org.eclipse.microprofile.concurrent.ThreadContext;
+import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Produces;
 
-==== Sharing `ThreadContext` Instances
-
-The CDI qualifier, `@NamedInstance`, enables you to share the same instance of `ThreadContext` across multiple injection points.
-The `@NamedInstance` qualifier has a single parameter which specifies the unique name that is assigned to the given executor configuration.
-Having one injection point annotated with both `ThreadContextConfig` and `@NamedInstance`, all other injection points within the application that have a matching `@NamedInstance` qualifier will have the same `ThreadContext` instance injected.
-Assuming two beans wish to share an executor instance, the code looks as follows:
-
-[source, java]
-----
 @ApplicationScoped
 public class MyFirstBean {
-
-  @Inject
-  @NamedInstance("myThreadContext")
-  @ThreadContextConfig(propagated = ThreadContext.SECURITY, unchanged = {}, cleared = ThreadContext.ALL_REMAINING)
-  ThreadContext context;
-
+    @Produces @ApplicationScoped @AppContext
+    createAppContextPropagator() {
+        return ThreadContext.builder()
+               .propagated(ThreadContext.APPLICATION)
+               .cleared(ThreadContext.SECURITY, ThreadContext.TRANSACTION)
+               .unchanged(ThreadContext.ALL_REMAINING)
+               .build();
+  }
 }
+----
+
+Example injection point,
+[source, java]
+----
+import org.eclipse.microprofile.concurrent.ThreadContext;
+import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
+...
 
 @ApplicationScoped
 public class MySecondBean {
+    Function<Integer, Item> findItem;
 
-  @Inject
-  @NamedInstance("myThreadContext")
-  ManagedExecutor sharedContext;
-
+    @Inject
+    protected void setFindItem(@AppContext ThreadContext appContext) {
+        findItem = appContext.contextualFunction(i -> {
+            try (Connection con =
+                 ((DataSource) InitialContext.doLookup("java:comp/env/ds1")).getConnection();
+                 PreparedStatement stmt = con.prepareStatement(sql)) {
+                stmt.setInt(1, i);
+                return toItem(stmt.executeQuery());
+            } catch (Exception x) {
+                throw new CompletionException(x);
+            }
+        });
+    }
+    ...
 }
 ----
-
-If multiple configurations of `ThreadContext` are assigned the same name, the container detects it and raises a `javax.enterprise.inject.spi.DefinitionException`.

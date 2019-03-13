@@ -43,16 +43,7 @@ To get started, add this dependency to your project:
 </dependency>
 ----
 
-Use CDI to inject a `ManagedExecutor` or `ThreadContext` service:
-
-[source,java]
-----
-public class MyBean {
-    @Inject @ManagedExecutorConfig(propagated = ThreadContext.APPLICATION, cleared = ThreadContext.ALL_REMAINING)
-    ManagedExecutor executor;
-----
-
-Or you can create one using a builder:
+Use the fluent builder API to construct a `ManagedExecutor`:
 
 [source,java]
 ----
@@ -70,4 +61,24 @@ Then obtain a `CompletableFuture` or `CompletionStage` from the `ManagedExecutor
     CompletableFuture<Integer> cf1 = executor.supplyAsync(supplier1)
                                              .thenApplyAsync(function1)
                                              .thenApply(function2);
+----
+
+Take care to shut down managed executors once the application no longer needs them:
+
+[source,java]
+----
+    executor.shutdownNow();
+----
+
+Similarly, you can construct `ThreadContext` instances and use them to more granularly control thread propagation to individual stages:
+
+[source,java]
+----
+    ThreadContext secContext = ManagedExecutor.builder()
+                       .propagated(ThreadContext.SECURITY)
+                       .cleared(ThreadContext.TRANSACTION)
+                       .unchanged(ThreadContext.ALL_REMAINING)
+                       .build();
+    ...
+    CompletableFuture<Void> stage2 = stage1.thenAccept(secContext.contextualConsumer(consumer1));
 ----

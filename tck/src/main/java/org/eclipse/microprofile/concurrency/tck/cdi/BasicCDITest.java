@@ -86,36 +86,6 @@ public class BasicCDITest extends Arquillian {
     }
 
     @Test
-    public void testConfigAnno() throws Exception {
-        bean.testConfigAnno();
-    }
-    
-    @Test
-    public void testConfigAnnoOnParameter() throws Exception {
-        bean.testConfigAnnoOnParameter();
-    }
-    
-    @Test
-    public void shutdownContainerInstance() throws Exception {
-        bean.shutdownContainerInstance();
-    }
-
-    @Test
-    public void instancePerUnqualifiedThreadContextInjectionPoint() {
-        bean.testInstancePerUnqualifiedThreadContextInjectionPoint();
-    }
-
-    @Test
-    public void threadContextConfigProvidesConfiguration() {
-        bean.testThreadContextConfig();
-    }
-
-    @Test
-    public void threadContextConfigNamedInstanceAutomaticallyProducesInstance() {
-        bean.testThreadContextConfigNamedInstance();
-    }
-
-    @Test
     public void applicationDefinesProducerOfThreadContext() {
         bean.testAppDefinedProducerOfThreadContext();
     }
@@ -123,10 +93,5 @@ public class BasicCDITest extends Arquillian {
     @Test
     public void applicationDefinesProducerUsingInjectedThreadContext() {
         bean.testAppDefinedProducerUsingInjectedThreadContext();
-    }
-
-    @Test
-    public void injectThreadContextWithConfigThatPropagatesAllRemaining() throws Exception {
-        bean.testInjectThreadContextPropagateAllRemaining();
     }
 }
