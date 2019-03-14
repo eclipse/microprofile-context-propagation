@@ -166,7 +166,9 @@ try {
 
 === Propagation of Active Transactions for Parallel Use
 
-An implementation that supports the optional behavior of propagating active transactions for use on multiple threads in parallel does not raise `IllegalStateException` at any point. As always, the application is responsible for following best practices to ensure transactions are properly resolved and transactional resources are properly cleaned up under all possible outcomes.
+An implementation that supports the optional behavior of propagating active transactions for use on multiple threads in parallel may choose whether or not to support commit and rollback operations from dependent stage actions. If unsupported, these operations raise `SystemException` when invoked from a separate completion stage action. As always, the application is responsible for following best practices to ensure transactions are properly resolved and transactional resources are properly cleaned up under all possible outcomes.
+
+Here is an example of committing the transaction in a dependent stage action,
 
 [source, java]
 ----
@@ -178,9 +180,9 @@ try {
                    .whenComplete((result, failure) -> {
         try {
             if (failure == null && tx.getStatus() == Status.STATUS_ACTIVE)
-                tx.commit();
+                tx.commit();   // <-- raises SystemException if unsupported within dependent stage
             else
-                tx.rollback();
+                tx.rollback(); // <-- raises SystemException if unsupported within dependent stage
         } catch (Exception x) {
             if (failure == null)
                 throw new CompletionException(x);
@@ -189,5 +191,23 @@ try {
 } finally {
     // vendor-specific means required to obtain TransactionManager instance
     transactionManager.suspend();
+}
+----
+
+Here is an example of committing the transaction from the main thread,
+
+[source, java]
+----
+tx.begin();
+try {
+    stage1 = executor.runAsync(action1);
+    stage2 = executor.runAsync(action2);
+    stage3 = CompletableFuture.allOf(stage1, stage2);
+    stage3.join();
+} finally {
+    if (tx.getStatus() == Status.STATUS_ACTIVE && !stage3.isCompletedExceptionally())
+        tx.commit();
+    else
+        tx.rollback();
 }
 ----
