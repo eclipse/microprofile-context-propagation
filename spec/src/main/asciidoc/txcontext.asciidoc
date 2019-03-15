@@ -1,0 +1,213 @@
+//
+// Copyright (c) 2019 Contributors to the Eclipse Foundation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+[[concurrencytxcontext]]
+== Transaction Context
+
+Implementations of MicroProfile Concurrency are allowed to provide varying degrees of support for transaction context.
+
+This varies from not supporting transactions at all, to supporting the clearing of transaction context only, to supporting propagation of transactions for serial, or even parallel use.  The `ThreadContextProvider` for transaction context raises exceptions that are defined by the specification to indicate lack of support for the various optional aspects of transaction context propagation.
+
+=== No Support for Transactions
+
+The `ManagedExecutor` and `ThreadContext` builders are allowed to raise `IllegalStateException` from the `build` method when a builder is configured to propagate transaction context but transactions are not supported (no provider of transaction context is available). This follows the general pattern defined by the `build` method JavaDoc concerning unavailable context types.
+
+[source, java]
+----
+executor = ManagedExecutor.builder()
+                          .propagated(ThreadContext.TRANSACTION)
+                          .cleared(ThreadContext.ALL_REMAINING)
+                          .build(); // <-- raises IllegalStateException
+----
+
+=== Propagation of the Absence of a Transaction, but not of Active Transactions
+
+It can be useful to propagate that a completion stage action does not run under a transaction in order to guarantee deterministic behavior and allow the action to manage its own transactional work. This is important in being able to write applications that reliably access completion stage results from within a transaction without risking that the action might run as part of the transaction. For example,
+
+[source, java]
+----
+executor = ManagedExecutor.builder()
+           .propagated(ThreadContext.TRANSACTION, ThreadContext.APPLICATION)
+           .cleared(ThreadContext.ALL_REMAINING)
+           .build();
+
+// propagates the absence of a transaction,
+// allowing the action to start its own transaction
+stage1 = executor.supplyAsync(supplier);
+stage2 = stage1.thenApply(u -> {
+    try {
+        DataSource ds = InitialContext.doLookup("java:comp/env/ds1");
+        UserTransaction tx = InitialContext.doLookup("java:comp/UserTransaction");
+        tx.begin();
+        try (Connection con = ds.getConnection()) {
+            return u + con.createStatement().executeUpdate(sql);
+        } finally {
+            tx.commit();
+        }
+    } catch (Exception x) {
+        throw new CompletionException(x);
+    }
+});
+
+tx.begin();
+... do transactional work here
+
+updateCount = stage2.join(); // <-- stage2's action is guaranteed to never
+                             //     run under this transaction because absence
+                             //     of a transaction is propagated to it
+
+... more transactional work
+----
+
+It should be noted that cleared, rather than propagated, transaction context can accomplish the same.
+
+A `ThreadContextProvider` that supports propagation of the absence of a transaction, but not propagation of an active transaction is allowed to raise `IllegalStateException` from its `currentContext` method. The exception flows back to the application on operations such as `managedExecutor.supplyAsync(supplier)`, `threadContext.withContextCapture`, or `threadContext.contextualFunction`, indicating the restriction against propagating active transactions. The `IllegalStateException` should have a meaningful message making it clear to the user that lack of support for the propagation of active transactions is the cause of the error.
+
+For example, the application can expect to see `IllegalStateException` here if the optional behavior of propagating active transactions to other threads is not supported,
+
+[source, java]
+----
+tx.begin();
+stage = executor.runAsync(action); // <-- raises IllegalStateException
+...
+----
+
+=== Propagation of Active Transactions for Serial Use, but not Parallel
+
+Some transaction managers and transactional resources may allow for propagation of an active transaction to multiple threads serially, with the limitation that the transaction is active on at most one thread at any given time.
+
+For example,
+
+[source, java]
+----
+executor = ManagedExecutor.builder()
+           .propagated(ThreadContext.TRANSACTION)
+           .build();
+
+// Allowed because it limits the transaction to serial use
+stage1 = executor.newIncompleteFuture();
+tx.begin();
+try {
+    stage3 = stage1.thenApply(updateCount -> {
+        try (Connection con = dataSource.getConnection()) {
+            return updateCount + con.createStatement().executeUpdate(sql2);
+        } catch (SQLException x) {
+            throw new CompletionException(x);
+        }
+    }).thenApply(updateCount -> {
+        try (Connection con = dataSource.getConnection()) {
+            return updateCount + con.createStatement().executeUpdate(sql3);
+        } catch (SQLException x) {
+            throw new CompletionException(x);
+        }
+    }).whenComplete((result, failure) -> {
+        try {
+            if (failure == null && tx.getStatus() == Status.STATUS_ACTIVE)
+                tx.commit();
+            else
+                tx.rollback();
+        } catch (Exception x) {
+            if (failure == null)
+                throw new CompletionException(x);
+        }
+    });
+} finally {
+    // vendor-specific means required to obtain TransactionManager instance
+    transactionManager.suspend();
+}
+
+// ... possibly on another thread
+stage1.complete(initialCount);
+----
+
+A 'ThreadContextProvider' that supports serial use of a propagated transaction, but not parallel use, is allowed to raise `IllegalStateException` upon attempts to associate a JTA transaction to a second thread when the JTA transaction is already active on another thread. The transaction context provider raises `IllegalStateException` upon `ThreadContextSnapshot.begin`, which exceptionally completes the action or task without running it. The `IllegalStateException` should have a meaningful message making it clear to the user that lack of support for the propagation of active transactions for parallel use across multiple threads is the cause of the error.
+
+The application sees the error when requesting the result of the corresponding stage. For example,
+
+[source, java]
+----
+tx.begin();
+try {
+    stage = executor.supplyAsync(() -> {
+        try (Connection con = dataSource.getConnection()) {
+            return con.createStatement().executeUpdate(sql1);
+        } catch (SQLException) {
+            throw new CompletionException(x);
+        }
+    });
+
+    try (Connection con = dataSource.getConnection()) {
+        con.createStatement().executeUpdate(sql2);
+    });
+
+    stage.join(); // <-- raises CompletionException with a chained
+                  //     IllegalStateException indicating lack of support
+                  //     for propagating an active transaction to multiple
+                  //     threads
+
+    tx.commit();
+} catch (Exception x) {
+    tx.rollback();
+    ...
+----
+
+=== Propagation of Active Transactions for Parallel Use
+
+An implementation that supports the optional behavior of propagating active transactions for use on multiple threads in parallel may choose whether or not to support commit and rollback operations from dependent stage actions. If unsupported, these operations raise `SystemException` when invoked from a separate completion stage action. As always, the application is responsible for following best practices to ensure transactions are properly resolved and transactional resources are properly cleaned up under all possible outcomes.
+
+Here is an example of committing the transaction in a dependent stage action,
+
+[source, java]
+----
+tx.begin();
+try {
+    stage1 = executor.runAsync(action1);
+    stage2 = executor.runAsync(action2);
+    stage3 = stage1.runAfterBoth(stage2, (u,v) -> action3)
+                   .whenComplete((result, failure) -> {
+        try {
+            if (failure == null && tx.getStatus() == Status.STATUS_ACTIVE)
+                tx.commit();   // <-- raises SystemException if unsupported within dependent stage
+            else
+                tx.rollback(); // <-- raises SystemException if unsupported within dependent stage
+        } catch (Exception x) {
+            if (failure == null)
+                throw new CompletionException(x);
+        }
+    });
+} finally {
+    // vendor-specific means required to obtain TransactionManager instance
+    transactionManager.suspend();
+}
+----
+
+Here is an example of committing the transaction from the main thread,
+
+[source, java]
+----
+tx.begin();
+try {
+    stage1 = executor.runAsync(action1);
+    stage2 = executor.runAsync(action2);
+    stage3 = CompletableFuture.allOf(stage1, stage2);
+    stage3.join();
+} finally {
+    if (tx.getStatus() == Status.STATUS_ACTIVE && !stage3.isCompletedExceptionally())
+        tx.commit();
+    else
+        tx.rollback();
+}
+----

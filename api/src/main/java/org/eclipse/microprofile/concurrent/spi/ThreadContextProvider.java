@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -59,9 +59,16 @@ public interface ThreadContextProvider {
      *        Thread context providers that don't supply or use execution properties
      *        can ignore this parameter.
      * @return immutable snapshot of the provided type of context, captured from the
-     *         current thread. NULL must be returned if the thread context provider
-     *         does not support capturing context from the current thread and
-     *         propagating it to other threads.
+     *         current thread.
+     * @throws IllegalStateException the {@link org.eclipse.microprofile.concurrent.ThreadContext#TRANSACTION Transaction}
+     *         context provider may raise this exception
+     *         if it chooses not to support the optional capability of propagating Transaction
+     *         context across threads. This exception flows back to the application when the
+     *         application invokes an operation that captures context, such as
+     *         {@link org.eclipse.microprofile.concurrent.ManagedExecutor#runAsync(Runnable) runAsync},
+     *         {@link org.eclipse.microprofile.concurrent.ThreadContext#withContextCapture(java.util.concurrent.CompletableFuture)
+     *         withContextCapture}, and
+     *         {@link org.eclipse.microprofile.concurrent.ThreadContext#contextualFunction(java.util.function.Function) contextualFunction}.
      */
     ThreadContextSnapshot currentContext(Map<String, String> props);
 
