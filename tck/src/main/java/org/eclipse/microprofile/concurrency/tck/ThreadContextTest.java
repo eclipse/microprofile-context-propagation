@@ -212,6 +212,7 @@ public class ThreadContextTest extends Arquillian {
         ThreadContext threadContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .unchanged(Label.CONTEXT_NAME)
+                .cleared()
                 .build();
         
         int originalPriority = Thread.currentThread().getPriority();     
