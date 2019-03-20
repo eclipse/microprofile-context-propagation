@@ -135,6 +135,7 @@ public class CDIContextTest extends Arquillian {
         ThreadContext defaultTC = ThreadContext.builder()
                                                .propagated(ThreadContext.CDI)
                                                .cleared(ThreadContext.ALL_REMAINING)
+                                               .unchanged()
                                                .build();
 
         requestBean.setState("testCDIContextPropagate-STATE2");
@@ -154,6 +155,7 @@ public class CDIContextTest extends Arquillian {
         ThreadContext clearAllCtx = ThreadContext.builder()
                         .propagated() // propagate nothing
                         .cleared(ThreadContext.ALL_REMAINING)
+                        .unchanged()
                         .build();
 
         requestBean.setState("testCDIThreadCtxClear-STATE1");
