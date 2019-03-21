@@ -21,7 +21,7 @@ package org.eclipse.microprofile.context.tck.contexts.buffer.spi;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
-import org.eclipse.microprofile.concurrent.spi.ThreadContextController;
+import org.eclipse.microprofile.context.spi.ThreadContextController;
 
 /**
  * Restores a buffer context that was saved upon creation.

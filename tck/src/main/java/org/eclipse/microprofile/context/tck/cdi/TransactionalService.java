@@ -18,7 +18,7 @@
  */
 package org.eclipse.microprofile.context.tck.cdi;
 
-import org.eclipse.microprofile.concurrent.ManagedExecutor;
+import org.eclipse.microprofile.context.ManagedExecutor;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;

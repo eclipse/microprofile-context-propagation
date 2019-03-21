@@ -19,8 +19,8 @@
 package org.eclipse.microprofile.context.tck.contexts.buffer.spi;
 
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
-import org.eclipse.microprofile.concurrent.spi.ThreadContextController;
-import org.eclipse.microprofile.concurrent.spi.ThreadContextSnapshot;
+import org.eclipse.microprofile.context.spi.ThreadContextController;
+import org.eclipse.microprofile.context.spi.ThreadContextSnapshot;
 
 /**
  * Represents a saved 'buffer' instance.

@@ -18,8 +18,8 @@
  */
 package org.eclipse.microprofile.context.tck.cdi;
 
-import org.eclipse.microprofile.concurrent.ManagedExecutor;
-import org.eclipse.microprofile.concurrent.ThreadContext;
+import org.eclipse.microprofile.context.ManagedExecutor;
+import org.eclipse.microprofile.context.ThreadContext;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;

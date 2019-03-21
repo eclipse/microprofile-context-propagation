@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -16,25 +16,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eclipse.microprofile.concurrent.spi;
+package org.eclipse.microprofile.context.spi;
 
 /**
  * <p>This class gives the container that registered a
- * <code>ConcurrencyProvider</code> exclusive control over unregistering it.
+ * <code>ContextManagerProvider</code> exclusive control over unregistering it.
  * </p>
  */
-public class ConcurrencyProviderRegistration {
-    private final ConcurrencyProvider provider;
+public class ContextManagerProviderRegistration {
+    private final ContextManagerProvider provider;
 
-    ConcurrencyProviderRegistration(ConcurrencyProvider provider) {
+    ContextManagerProviderRegistration(ContextManagerProvider provider) {
         this.provider = provider;
     }
 
     /**
-     * Unregister the <code>ConcurrencyProvider</code> that is represented by
-     * this <code>ConcurrencyProviderRegistration</code> instance.
+     * Unregister the <code>ContextManagerProvider</code> that is represented by
+     * this <code>ContextManagerProviderRegistration</code> instance.
      */
     public void unregister() {
-        ConcurrencyProvider.INSTANCE.compareAndSet(provider, null);
+        ContextManagerProvider.INSTANCE.compareAndSet(provider, null);
     }
 }

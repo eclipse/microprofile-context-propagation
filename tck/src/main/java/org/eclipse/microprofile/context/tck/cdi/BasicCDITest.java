@@ -25,7 +25,7 @@ import javax.inject.Inject;
 import org.eclipse.microprofile.context.tck.contexts.buffer.spi.BufferContextProvider;
 import org.eclipse.microprofile.context.tck.contexts.label.spi.LabelContextProvider;
 import org.eclipse.microprofile.context.tck.contexts.priority.spi.ThreadPriorityContextProvider;
-import org.eclipse.microprofile.concurrent.spi.ThreadContextProvider;
+import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;

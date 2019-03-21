@@ -20,7 +20,7 @@ package org.eclipse.microprofile.context.tck;
 
 import java.lang.reflect.Method;
 
-import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
+import org.eclipse.microprofile.context.spi.ContextManagerProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -55,7 +55,7 @@ public class TckTest extends Arquillian {
 
     @Test
     public void providerSet() {
-        ConcurrencyProvider provider = ConcurrencyProvider.instance();
+        ContextManagerProvider provider = ContextManagerProvider.instance();
         Assert.assertNotNull(provider, "ContextManagerProvider is not set");
     }
 }

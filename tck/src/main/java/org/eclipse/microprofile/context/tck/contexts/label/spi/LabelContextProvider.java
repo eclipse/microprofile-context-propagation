@@ -22,9 +22,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.eclipse.microprofile.context.tck.contexts.label.Label;
-import org.eclipse.microprofile.concurrent.spi.ThreadContextController;
-import org.eclipse.microprofile.concurrent.spi.ThreadContextProvider;
-import org.eclipse.microprofile.concurrent.spi.ThreadContextSnapshot;
+import org.eclipse.microprofile.context.spi.ThreadContextController;
+import org.eclipse.microprofile.context.spi.ThreadContextProvider;
+import org.eclipse.microprofile.context.spi.ThreadContextSnapshot;
 
 /**
  * This is a fake all-in-one context provider that is created by the test suite.

@@ -16,7 +16,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eclipse.microprofile.concurrent;
+package org.eclipse.microprofile.context;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -28,7 +28,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
+import org.eclipse.microprofile.context.spi.ContextManagerProvider;
 
 /**
  * This interface offers various methods for capturing the context of the current thread
@@ -60,7 +60,7 @@ public interface ThreadContext {
      * @return a new {@link Builder} instance.
      */
     public static Builder builder() {
-        return ConcurrencyProvider.instance().getConcurrencyManager().newThreadContextBuilder();
+        return ContextManagerProvider.instance().getContextManager().newThreadContextBuilder();
     }
 
     /**
@@ -103,7 +103,7 @@ public interface ThreadContext {
          *         vendor-specific defaults of its own.</li>
          *         <li>if more than one <code>ThreadContextProvider</code> has the
          *         same thread context
-         *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}
+         *         {@link org.eclipse.microprofile.context.spi.ThreadContextProvider#getThreadContextType type}
          *         </li>
          *         </ul>
          */

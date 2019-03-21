@@ -21,8 +21,8 @@ package org.eclipse.microprofile.context.tck.contexts.buffer.spi;
 import java.util.Map;
 
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
-import org.eclipse.microprofile.concurrent.spi.ThreadContextProvider;
-import org.eclipse.microprofile.concurrent.spi.ThreadContextSnapshot;
+import org.eclipse.microprofile.context.spi.ThreadContextProvider;
+import org.eclipse.microprofile.context.spi.ThreadContextSnapshot;
 
 /**
  * This is a fake context type that is created by the test suite.

@@ -16,14 +16,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eclipse.microprofile.concurrent;
+package org.eclipse.microprofile.context;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
-import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
+import org.eclipse.microprofile.context.spi.ContextManagerProvider;
 
 /**
  * <p>A container-managed executor service that creates instances of CompletableFuture,
@@ -118,7 +118,7 @@ public interface ManagedExecutor extends ExecutorService {
      * @return a new {@link Builder} instance.
      */
     public static Builder builder() {
-        return ConcurrencyProvider.instance().getConcurrencyManager().newManagedExecutorBuilder();
+        return ContextManagerProvider.instance().getContextManager().newManagedExecutorBuilder();
     }
 
     /**
@@ -159,7 +159,7 @@ public interface ManagedExecutor extends ExecutorService {
          *         nor via MicroProfile Config, and the builder implementation lacks
          *         vendor-specific defaults of its own.</li>
          *         <li>if more than one provider provides the same thread context
-         *         {@link org.eclipse.microprofile.concurrent.spi.ThreadContextProvider#getThreadContextType type}
+         *         {@link org.eclipse.microprofile.context.spi.ThreadContextProvider#getThreadContextType type}
          *         </li>
          *         </ul>
          */

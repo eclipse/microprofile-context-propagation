@@ -35,8 +35,8 @@ import javax.inject.Qualifier;
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.context.tck.contexts.label.Label;
 
-import org.eclipse.microprofile.concurrent.ManagedExecutor;
-import org.eclipse.microprofile.concurrent.ThreadContext;
+import org.eclipse.microprofile.context.ManagedExecutor;
+import org.eclipse.microprofile.context.ThreadContext;
 
 @ApplicationScoped
 public class MPConfigBean {

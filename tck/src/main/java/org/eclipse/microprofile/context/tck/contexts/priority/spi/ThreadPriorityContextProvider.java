@@ -20,8 +20,8 @@ package org.eclipse.microprofile.context.tck.contexts.priority.spi;
 
 import java.util.Map;
 
-import org.eclipse.microprofile.concurrent.spi.ThreadContextProvider;
-import org.eclipse.microprofile.concurrent.spi.ThreadContextSnapshot;
+import org.eclipse.microprofile.context.spi.ThreadContextProvider;
+import org.eclipse.microprofile.context.spi.ThreadContextSnapshot;
 
 /**
  * This is an example context type that is created by the test suite.

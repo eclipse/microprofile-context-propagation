@@ -20,9 +20,9 @@ package org.eclipse.microprofile.context.tck;
 
 import java.lang.reflect.Method;
 
-import org.eclipse.microprofile.concurrent.spi.ConcurrencyManager;
-import org.eclipse.microprofile.concurrent.spi.ConcurrencyManager.Builder;
-import org.eclipse.microprofile.concurrent.spi.ConcurrencyProvider;
+import org.eclipse.microprofile.context.spi.ContextManager;
+import org.eclipse.microprofile.context.spi.ContextManager.Builder;
+import org.eclipse.microprofile.context.spi.ContextManagerProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -62,13 +62,13 @@ public class ContextManagerTest extends Arquillian {
      */
     @Test
     public void builderForContextManagerIsProvided() {
-        ConcurrencyProvider provider = ConcurrencyProvider.instance();
+        ContextManagerProvider provider = ContextManagerProvider.instance();
         ClassLoader classLoader = ContextManagerTest.class.getClassLoader();
         Builder contextManagerBuilder = null;
 
         try {
             //obtain the ContextManagerBuilder
-            contextManagerBuilder = provider.getConcurrencyManagerBuilder();
+            contextManagerBuilder = provider.getContextManagerBuilder();
             Assert.assertNotNull(contextManagerBuilder,
                     "MicroProfile Context Propagation implementation does not provide a ContextManager builder.");
         } 
@@ -78,7 +78,7 @@ public class ContextManagerTest extends Arquillian {
 
             //Verify ContextManagerProvider.registerContextManager() is also unsupported.
             try {
-                provider.registerConcurrencyManager(provider.getConcurrencyManager(), classLoader);
+                provider.registerContextManager(provider.getContextManager(), classLoader);
                 Assert.fail("ContextManagerProvider.registerContextManager should not be supported, "
                         + "if ContextManagerProvider.getContextManagerBuilder is not supported.");
             }
@@ -88,7 +88,7 @@ public class ContextManagerTest extends Arquillian {
 
             //Verify ContextManagerProvider.releaseContextManager() is also unsupported.
             try {
-                provider.releaseConcurrencyManager(provider.getConcurrencyManager());
+                provider.releaseContextManager(provider.getContextManager());
                 Assert.fail("ContextManagerProvider.releaseContextManager should not be supported, "
                         + "if ContextManagerProvider.getContextManagerBuilder is not supported.");
             }
@@ -101,15 +101,15 @@ public class ContextManagerTest extends Arquillian {
         }   
 
         //build and register a ContextManager
-        ConcurrencyManager builtManager = contextManagerBuilder.build();
-        provider.registerConcurrencyManager(builtManager, classLoader);
-        ConcurrencyManager registeredManager = provider.getConcurrencyManager(classLoader);
+        ContextManager builtManager = contextManagerBuilder.build();
+        provider.registerContextManager(builtManager, classLoader);
+        ContextManager registeredManager = provider.getContextManager(classLoader);
         Assert.assertEquals(builtManager, registeredManager,
                 "ContextManagerProvider.getContextManager(classLoader) did not return the same manager that was registered.");
 
         //release the ContextManager
-        provider.releaseConcurrencyManager(registeredManager);
-        Assert.assertNotEquals(builtManager, provider.getConcurrencyManager(classLoader),
+        provider.releaseContextManager(registeredManager);
+        Assert.assertNotEquals(builtManager, provider.getContextManager(classLoader),
                 "ContextManager was not released from the ContextManagerProvider.");
     }
 }

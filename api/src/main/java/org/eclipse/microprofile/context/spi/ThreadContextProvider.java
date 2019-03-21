@@ -16,14 +16,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.eclipse.microprofile.concurrent.spi;
+package org.eclipse.microprofile.context.spi;
 
 import java.util.Map;
 
 /**
  * <p>Third party providers of thread context implement this interface to enable the
  * provided type of context to participate in thread context capture & propagation
- * when the MicroProfile Concurrency specification's <code>ManagedExecutor</code>
+ * when the <code>ManagedExecutor</code>
  * and <code>ThreadContext</code> are used to create and contextualize dependent
  * actions and tasks.</p>
  *
@@ -36,7 +36,7 @@ import java.util.Map;
  * discoverable via the standard <code>ServiceLoader</code> mechanism. The JAR file
  * that packages it must include a file of the following name and location,</p>
  *
- * <code>META-INF/services/org.eclipse.microprofile.concurrent.spi.ThreadContextProvider</code>
+ * <code>META-INF/services/org.eclipse.microprofile.context.spi.ThreadContextProvider</code>
  *
  * <p>The content of the aforementioned file must be one or more lines, each specifying
  * the fully qualified name of a <code>ThreadContextProvider</code> implementation
@@ -60,15 +60,15 @@ public interface ThreadContextProvider {
      *        can ignore this parameter.
      * @return immutable snapshot of the provided type of context, captured from the
      *         current thread.
-     * @throws IllegalStateException the {@link org.eclipse.microprofile.concurrent.ThreadContext#TRANSACTION Transaction}
+     * @throws IllegalStateException the {@link org.eclipse.microprofile.context.ThreadContext#TRANSACTION Transaction}
      *         context provider may raise this exception
      *         if it chooses not to support the optional capability of propagating Transaction
      *         context across threads. This exception flows back to the application when the
      *         application invokes an operation that captures context, such as
-     *         {@link org.eclipse.microprofile.concurrent.ManagedExecutor#runAsync(Runnable) runAsync},
-     *         {@link org.eclipse.microprofile.concurrent.ThreadContext#withContextCapture(java.util.concurrent.CompletableFuture)
+     *         {@link org.eclipse.microprofile.context.ManagedExecutor#runAsync(Runnable) runAsync},
+     *         {@link org.eclipse.microprofile.context.ThreadContext#withContextCapture(java.util.concurrent.CompletableFuture)
      *         withContextCapture}, and
-     *         {@link org.eclipse.microprofile.concurrent.ThreadContext#contextualFunction(java.util.function.Function) contextualFunction}.
+     *         {@link org.eclipse.microprofile.context.ThreadContext#contextualFunction(java.util.function.Function) contextualFunction}.
      */
     ThreadContextSnapshot currentContext(Map<String, String> props);
 
