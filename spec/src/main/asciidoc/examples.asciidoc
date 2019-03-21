@@ -15,7 +15,7 @@
 //
 
 [[examples]]
-== MicroProfile Concurrency Examples
+== MicroProfile Context Propagation Examples
 
 This section includes some additional examples of spec usage.
 

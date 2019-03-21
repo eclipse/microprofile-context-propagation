@@ -18,8 +18,8 @@
 //
 image:https://badges.gitter.im/eclipse/microprofile-concurrency.svg[link="https://gitter.im/eclipse/microprofile-concurrency"]
 
-[[microprofile-concurrency]]
-MicroProfile Concurrency
+[[microprofile-context-propagation]]
+MicroProfile Context Propagation
 ------------------------
 :toc:
 
@@ -169,7 +169,7 @@ The thread context provider SPI is defined to bridge the gap,
 allowing any provider of thread context to publish and make
 available the type of thread context it supports, following a
 standard and predictable pattern that can be relied upon by a
-MicroProfile Concurrency implementation, enabling it to
+MicroProfile Context Propagation implementation, enabling it to
 facilitate the inclusion of any generic thread context alongside
 the spec defined thread context types that it captures and
 propagates.

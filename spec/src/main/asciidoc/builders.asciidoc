@@ -17,7 +17,7 @@
 [[builders]]
 == Builders for ManagedExecutor and ThreadContext
 
-MicroProfile Concurrency provides a fluent builder API to programmatically obtain instances of `ManagedExecutor` and `ThreadContext`. Builder instances are obtained via static `builder()` methods on `ManagedExecutor` and `ThreadContext`.
+The MicroProfile Context Propagation spec defines a fluent builder API to programmatically obtain instances of `ManagedExecutor` and `ThreadContext`. Builder instances are obtained via static `builder()` methods on `ManagedExecutor` and `ThreadContext`.
 
 === Example ManagedExecutor Builder Usage
 
@@ -29,8 +29,8 @@ import javax.servlet.ServletConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.eclipse.microprofile.concurrent.ManagedExecutor;
-import org.eclipse.microprofile.concurrent.ThreadContext;
+import org.eclipse.microprofile.context.ManagedExecutor;
+import org.eclipse.microprofile.context.ThreadContext;
 
 public class ExampleServlet extends HttpServlet {
     ManagedExecutor executor;
@@ -71,7 +71,7 @@ import javax.servlet.ServletConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.eclipse.microprofile.concurrent.ThreadContext;
+import org.eclipse.microprofile.context.ThreadContext;
 
 public class ExampleServlet extends HttpServlet {
     ThreadContext threadContext;
@@ -93,7 +93,7 @@ public class ExampleServlet extends HttpServlet {
         // By using java.util.concurrent.CompletableFuture.supplyAsync rather
         // than a managed executor, context propagation is unpredictable,
         // except for the contextFn action that we pre-contextualized using
-        // MicroProfile Concurrency's ThreadContext above.
+        // ThreadContext above.
         stage = CompletableFuture.supplyAsync(supplier)
                                  .thenApplyAsync(function1)
                                  .thenApply(contextFn)

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (c) 2018 Contributors to the Eclipse Foundation
+  ~ Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -21,16 +21,16 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.eclipse.microprofile.concurrency</groupId>
-        <artifactId>microprofile-concurrency-parent</artifactId>
+        <groupId>org.eclipse.microprofile.context-propagation</groupId>
+        <artifactId>microprofile-context-propagation-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>microprofile-concurrency-spec</artifactId>
+    <artifactId>microprofile-context-propagation-spec</artifactId>
     <packaging>pom</packaging>
 
-    <name>MicroProfile Concurrency Specification</name>
-    <description>MicroProfile Concurrency :: Specification</description>
+    <name>MicroProfile Context Propagation Specification</name>
+    <description>MicroProfile Context Propagation :: Specification</description>
 
     <properties>
         <asciidoctor-maven.version>1.5.5</asciidoctor-maven.version>
@@ -88,7 +88,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <sourceDocumentName>microprofile-concurrency.asciidoc</sourceDocumentName>
+                    <sourceDocumentName>microprofile-context-propagation.asciidoc</sourceDocumentName>
                     <sourceHighlighter>coderay</sourceHighlighter>
                     <attributes>
                         <license>Apache License v2.0</license>
