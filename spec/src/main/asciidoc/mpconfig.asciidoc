@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-[[concurrencympconfig]]
+[[mpconfig]]
 == Establishing default values with MicroProfile Config
 
 If a MicroProfile Config implementation is available, MicroProfile Config can be used to establish default values for configuration attributes of `ManagedExecutor` and `ThreadContext`. This allows the application to bypass configuration of one or more attributes when using the builders to create instances.
@@ -67,7 +67,7 @@ When using MicroProfile Config to define defaults for array type properties (`pr
 - Array elements can be any thread context type constant value from ThreadContext (such as `Security`, `Application`, or `Remaining`).
 - The usual rules from the MicroProfile Config specification apply, such as escaping special characters.
 
-In order to guarantee that empty string config values are interpreted properly, the MicroProfile Concurrency implementation must interpret both of the following as indicating empty:
+In order to guarantee that empty string config values are interpreted properly, the MicroProfile Context Propagation implementation must interpret both of the following as indicating empty:
 
 * empty array
 * array containing the empty String as its singular element

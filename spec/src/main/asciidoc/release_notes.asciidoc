@@ -17,11 +17,11 @@
 // limitations under the License.
 
 [[release_notes_10]]
-== Release Notes for MicroProfile Concurrency 1.0
+== Release Notes for MicroProfile Context Propagation 1.0
 
-http://download.eclipse.org/microprofile/microprofile-concurrency-1.0/microprofile-concurrency.pdf[MicroProfile Concurrency Spec PDF]
-http://download.eclipse.org/microprofile/microprofile-concurrency-1.0/microprofile-concurrency.html[MicroProfile Concurrency Spec HTML]
-http://download.eclipse.org/microprofile/microprofile-concurrency-1.0/apidocs/[MicroProfile Concurrency Spec Javadocs]
+http://download.eclipse.org/microprofile/microprofile-context-propagation-1.0/microprofile-context-propagation.pdf[MicroProfile Context Propagation Spec PDF]
+http://download.eclipse.org/microprofile/microprofile-context-propagation-1.0/microprofile-context-propagation.html[MicroProfile Context Propagation Spec HTML]
+http://download.eclipse.org/microprofile/microprofile-context-propagation-1.0/apidocs/[MicroProfile Context Propagation Spec Javadocs]
 
 Key features:
 
@@ -36,8 +36,8 @@ To get started, add this dependency to your project:
 [source,xml]
 ----
 <dependency>
-    <groupId>org.eclipse.microprofile.concurrency</groupId>
-    <artifactId>microprofile-concurrency-api</artifactId>
+    <groupId>org.eclipse.microprofile.context-propagation</groupId>
+    <artifactId>microprofile-context-propagation-api</artifactId>
     <version>1.0</version>
     <scope>provided</scope>
 </dependency>

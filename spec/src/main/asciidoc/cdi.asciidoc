@@ -14,7 +14,7 @@
 // limitations under the License.
 //
 
-[[concurrencycdi]]
+[[mpcontextcdi]]
 == CDI Injection
 
 In order to use `ManagedExecutor` and `ThreadContext` as CDI beans, define producer for them as `@ApplicationScoped` so that instances are shared and reused. In most cases, more granular and shorter-lived scopes are undesirable. For instance, having a new `ManagedExecutor` instance created per HTTP request typically does not make sense. In the event that a more granular scope is desired, the application must take care to supply a disposer to ensure that the executor is shut down once it is no longer needed. When using application scope, it is optional to supply a disposer because the specification requires the container to automatically shut down `ManagedExecutor` instances when the application stops.
@@ -39,8 +39,8 @@ public @interface SecurityAndCDIContext {}
 Example producer and disposer,
 [source, java]
 ----
-import org.eclipse.microprofile.concurrent.ManagedExecutor;
-import org.eclipse.microprofile.concurrent.ThreadContext;
+import org.eclipse.microprofile.context.ManagedExecutor;
+import org.eclipse.microprofile.context.ThreadContext;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
@@ -60,7 +60,7 @@ public class MyFirstBean {
 Example injection point,
 [source, java]
 ----
-import org.eclipse.microprofile.concurrent.ManagedExecutor;
+import org.eclipse.microprofile.context.ManagedExecutor;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -93,7 +93,7 @@ Example producer method,
 
 [source, java]
 ----
-import org.eclipse.microprofile.concurrent.ThreadContext;
+import org.eclipse.microprofile.context.ThreadContext;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
@@ -113,7 +113,7 @@ public class MyFirstBean {
 Example injection point,
 [source, java]
 ----
-import org.eclipse.microprofile.concurrent.ThreadContext;
+import org.eclipse.microprofile.context.ThreadContext;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 ...

@@ -14,12 +14,12 @@
 // limitations under the License.
 //
 
-[[concurrencyspec]]
-== MicroProfile Concurrency Specification
+[[contextpropagationspec]]
+== MicroProfile Context Propagation Specification
 
 === Introduction
 
-MicroProfile Concurrency introduces APIs for propagating contexts across units of work that are thread-agnostic. It makes it possible to propagate context that was traditionally associated to the current thread across various types of units of work such as `CompletionStage`, `CompletableFuture`, `Function`, `Runnable` regardless of which particular thread ends up executing them.
+The MicroProfile Context Propagation specification introduces APIs for propagating contexts across units of work that are thread-agnostic. It makes it possible to propagate context that was traditionally associated to the current thread across various types of units of work such as `CompletionStage`, `CompletableFuture`, `Function`, `Runnable` regardless of which particular thread ends up executing them.
 
 === Motivation
 
@@ -43,9 +43,9 @@ Goals
 
 This specification introduces two interfaces that contain methods that can work alongside EE Concurrency, if available.
 
-The interface, `org.eclipse.microprofile.concurrent.ManagedExecutor`, provides methods for obtaining managed instances of `CompletableFuture` which are backed by the managed executor as the default asynchronous execution facility and the default mechanism of defining thread context propagation. Similar to EE Concurrency’s `ManagedExecutorService`, the MicroProfile `ManagedExecutor` also implements the Java SE `java.util.concurrent.ExecutorService` interface, using managed threads when asynchronous invocation is required. It is possible for a single implementation to be capable of simultaneously implementing both `ManagedExecutor` and `ManagedExecutorService` interfaces.
+The interface, `org.eclipse.microprofile.context.ManagedExecutor`, provides methods for obtaining managed instances of `CompletableFuture` which are backed by the managed executor as the default asynchronous execution facility and the default mechanism of defining thread context propagation. Similar to EE Concurrency’s `ManagedExecutorService`, the MicroProfile `ManagedExecutor` also implements the Java SE `java.util.concurrent.ExecutorService` interface, using managed threads when asynchronous invocation is required. It is possible for a single implementation to be capable of simultaneously implementing both `ManagedExecutor` and `ManagedExecutorService` interfaces.
 
-A second interface, `org.eclipse.microprofile.concurrent.ThreadContext`, provides methods for individually contextualizing units of work such as `CompletionStage`, `CompletionFuture`, `Runnable`, `Function`, `Supplier` and more, without tying them to a particular thread execution model. This gives the user finer-grained control over the capture and propagation of thread context by remaining thread execution agnostic. It is possible for a single implementation to be capable of simultaneously implementing both `ThreadContext` and `ContextService` interfaces.
+A second interface, `org.eclipse.microprofile.context.ThreadContext`, provides methods for individually contextualizing units of work such as `CompletionStage`, `CompletionFuture`, `Runnable`, `Function`, `Supplier` and more, without tying them to a particular thread execution model. This gives the user finer-grained control over the capture and propagation of thread context by remaining thread execution agnostic. It is possible for a single implementation to be capable of simultaneously implementing both `ThreadContext` and `ContextService` interfaces.
 
 === Builders
 

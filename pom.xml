@@ -17,13 +17,13 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.eclipse.microprofile.concurrency</groupId>
-    <artifactId>microprofile-concurrency-parent</artifactId>
+    <groupId>org.eclipse.microprofile.context-propagation</groupId>
+    <artifactId>microprofile-context-propagation-parent</artifactId>
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
 
-    <name>MicroProfile Concurrency</name>
-    <description>Eclipse MicroProfile Concurrency :: Parent POM</description>
+    <name>MicroProfile Context Propagation</name>
+    <description>Eclipse MicroProfile Context Propagation :: Parent POM</description>
 
     <url>http://microprofile.io</url>
 
@@ -56,13 +56,13 @@
 
     <issueManagement>
         <system>GitHub</system>
-        <url>https://github.com/eclipse/microprofile-concurrency/issues</url>
+        <url>https://github.com/eclipse/microprofile-context-propagation/issues</url>
     </issueManagement>
 
     <scm>
-        <connection>scm:git:https://github.com/eclipse/microprofile-concurrency.git</connection>
-        <developerConnection>scm:git:git@github.com:eclipse/microprofile-concurrency.git</developerConnection>
-        <url>https://github.com/eclipse/microprofile-concurrency</url>
+        <connection>scm:git:https://github.com/eclipse/microprofile-context-propagation.git</connection>
+        <developerConnection>scm:git:git@github.com:eclipse/microprofile-context-propagation.git</developerConnection>
+        <url>https://github.com/eclipse/microprofile-context-propagation</url>
         <tag>HEAD</tag>
     </scm>
 

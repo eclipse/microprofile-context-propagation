@@ -14,10 +14,10 @@
 // limitations under the License.
 //
 
-[[concurrencytxcontext]]
+[[txcontext]]
 == Transaction Context
 
-Implementations of MicroProfile Concurrency are allowed to provide varying degrees of support for transaction context.
+Implementations of MicroProfile Context Propagation are allowed to provide varying degrees of support for transaction context.
 
 This varies from not supporting transactions at all, to supporting the clearing of transaction context only, to supporting propagation of transactions for serial, or even parallel use.  The `ThreadContextProvider` for transaction context raises exceptions that are defined by the specification to indicate lack of support for the various optional aspects of transaction context propagation.
 

@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
 //
 // See the NOTICE file(s) distributed with this work for additional
 // information regarding copyright ownership.
@@ -24,8 +24,8 @@ Do you want to contribute to this project? Here is what you can do:
 * Fork the repository, make changes, then do a pull request.
 ** Remember to https://help.github.com/articles/signing-commits/[sign your commits]
 ** Make sure you have signed the https://www.eclipse.org/legal/ECA.php[Eclipse Contributor Agreement]
-* https://github.com/eclipse/microprofile-concurrency/issues[Create or fix an issue].
-* https://gitter.im/eclipse/microprofile-concurrency[Join us on Gitter to discuss this project].
+* https://github.com/eclipse/microprofile-context-propagation/issues[Create or fix an issue].
+* https://gitter.im/eclipse/microprofile-context-propagation[Join us on Gitter to discuss this project].
 * Join our https://calendar.google.com/calendar/embed?src=gbnbc373ga40n0tvbl88nkc3r4%40group.calendar.google.com[weekly meeting] on Thursdays at https://www.timeanddate.com/time/map/[14h30 GMT]. 
 ** https://docs.google.com/document/d/1WWyBjtGxZAwIKHvM6wjjY8nQ_x9Cc7WnvMosGuwodG4/edit[Minutes and Agenda].
 ** https://eclipse.zoom.us/j/949859967[Meeting room].
