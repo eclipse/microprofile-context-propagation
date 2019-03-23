@@ -186,7 +186,9 @@ public interface ThreadContext {
          * <p>The MicroProfile Config property, <code>ThreadContext/unchanged</code>,
          * establishes a default that is used if no value is otherwise specified.
          * The value of the MicroProfile Config property can be the empty string
-         * or a comma separated list of context type constant values.</p>
+         * or a comma separated list of context type constant values. If a default
+         * value is not specified by MicroProfile Config, then the default value
+         * is an empty set.</p>
          *
          * <p>The configuration of <code>unchanged</code> context is provided for
          * advanced patterns where it is desirable to leave certain context types

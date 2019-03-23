@@ -744,6 +744,56 @@ public class ThreadContextTest extends Arquillian {
     }
 
     /**
+     * It is optional to specify the set of unchanged context. In absence of any specified value
+     * and if MicroProfile Config is not used to override the default, the unchanged context list
+     * defaults to empty. Because the spec also requires that ALL_REMAINING be appended to the list
+     * of cleared context list, then it is only necessary for the user to configure the list of
+     * context to propagate.
+     */
+    @Test
+    public void unchangedContextListDefaultsToEmpty() {
+        ThreadContext labelContext = ThreadContext.builder()
+                .propagated(Label.CONTEXT_NAME)
+                .build();
+
+        int originalPriority = Thread.currentThread().getPriority();
+        int newPriority = originalPriority == 3 ? 2 : 3; // a non-default value
+        try {
+            // Set non-default values
+            Buffer.get().append("test-unchangedContextListDefaultsToEmpty-buffer-A");
+            Label.set("test-unchangedContextListDefaultsToEmpty-label-A");
+            Thread.currentThread().setPriority(newPriority);
+
+            Runnable testPropagateLabelContextAndClearOthers = labelContext.contextualRunnable(() -> {
+                Assert.assertEquals(Label.get(), "test-unchangedContextListDefaultsToEmpty-label-A",
+                        "Context type was not propagated to contextual action.");
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "Context type (Buffer) that is defaulted to be cleared was not cleared.");
+                Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
+                        "Context type (ThreadContext) that is defaulted to be cleared was not cleared.");
+            });
+
+            Label.set("test-unchangedContextListDefaultsToEmpty-label-B");
+
+            testPropagateLabelContextAndClearOthers.run();
+
+            // Has context been properly restored after the contextual operation?
+            Assert.assertEquals(Buffer.get().toString(), "test-unchangedContextListDefaultsToEmpty-buffer-A",
+                    "Previous context (Buffer) was not restored after context was cleared for contextual action.");
+            Assert.assertEquals(Label.get(), "test-unchangedContextListDefaultsToEmpty-label-B",
+                    "Previous context (Label) was not restored after context was propagated for contextual action.");
+            Assert.assertEquals(Thread.currentThread().getPriority(), newPriority,
+                    "Previous context (ThreadPriority) was not restored after context was propagated for contextual action.");
+        }
+        finally {
+            // Restore original values
+            Buffer.set(null);
+            Label.set(null);
+            Thread.currentThread().setPriority(originalPriority);
+        }
+    }
+
+    /**
      * Verify that the MicroProfile Context Propagation implementation finds third-party thread context providers
      * that are made available to the ServiceLoader, allows their configuration via the ThreadContext builder,
      * and correctly captures & propagates or clears these thread context types per the builder configuration.
