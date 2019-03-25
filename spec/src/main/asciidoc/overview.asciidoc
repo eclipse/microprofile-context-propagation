@@ -61,6 +61,7 @@ Instances of `ManagedExecutor` and `ThreadContext` can be constructed via builde
 
     ThreadContext threadContext = ThreadContext.builder()
         .propagated(ThreadContext.APPLICATION, ThreadContext.CDI)
+        .cleared(ThreadContext.ALL_REMAINING)
         .build();
 ----
 

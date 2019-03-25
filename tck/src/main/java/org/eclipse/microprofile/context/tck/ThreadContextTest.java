@@ -746,14 +746,13 @@ public class ThreadContextTest extends Arquillian {
     /**
      * It is optional to specify the set of unchanged context. In absence of any specified value
      * and if MicroProfile Config is not used to override the default, the unchanged context list
-     * defaults to empty. Because the spec also requires that ALL_REMAINING be appended to the list
-     * of cleared context list, then it is only necessary for the user to configure the list of
-     * context to propagate.
+     * defaults to empty.
      */
     @Test
     public void unchangedContextListDefaultsToEmpty() {
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
                 .build();
 
         int originalPriority = Thread.currentThread().getPriority();
