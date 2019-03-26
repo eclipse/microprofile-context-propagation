@@ -32,6 +32,7 @@ public class Label {
 
     /**
      * Get the current 'label' context.
+     * @return current label.
      */
     public static String get() {
         return context.get();
@@ -39,6 +40,7 @@ public class Label {
 
     /**
      * Set the current 'label' context.
+     * @param label new label.
      */
     public static void set(String label) {
         context.set(label == null ? "" : label);

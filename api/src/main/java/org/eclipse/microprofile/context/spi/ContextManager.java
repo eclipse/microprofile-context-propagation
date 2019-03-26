@@ -58,7 +58,7 @@ public interface ContextManager {
         public Builder withThreadContextProviders(ThreadContextProvider... providers);
 
         /**
-         * Load all discoverable {@link ContextManagerExtension} instances via the {@link ServiceLoader}
+         * Load all discoverable {@link ContextManagerExtension} instances via the {@link java.util.ServiceLoader}
          * mechanism on the current thread-context {@link ClassLoader} (unless overridden by {@link #forClassLoader(ClassLoader)}).
          * 
          * @return this builder
@@ -73,7 +73,7 @@ public interface ContextManager {
         public Builder withContextManagerExtensions(ContextManagerExtension... extensions);
 
         /**
-         * Load all discoverable {@link ThreadContextProvider} instances via the {@link ServiceLoader}
+         * Load all discoverable {@link ThreadContextProvider} instances via the {@link java.util.ServiceLoader}
          * mechanism on the current thread-context {@link ClassLoader} (unless overridden by {@link #forClassLoader(ClassLoader)}).
          * 
          * @return this builder

@@ -68,8 +68,8 @@ import org.eclipse.microprofile.context.spi.ContextManagerProvider;
  * then the action runs with the already-captured context.
  * </li>
  * <li>
- * Otherwise, each type of thread context is either {@link #propagated} from the thread
- * that creates the completion stage or marked to be {@link #cleared}, according to the
+ * Otherwise, each type of thread context is either {@link Builder#propagated propagated} from the thread
+ * that creates the completion stage or marked to be {@link Builder#cleared cleared}, according to the
  * configuration of the managed executor that is the default asynchronous execution facility
  * for the new stage and its parent stage. In the case that a managed executor is supplied
  * as the <code>executor</code> argument to a <code>*Async</code> method, the supplied
@@ -269,8 +269,9 @@ public interface ManagedExecutor extends ExecutorService {
      * that is returned by this method and all dependent stages that are created from it,
      * and all dependent stages that are created from those, and so forth.</p>
      *
-     * @param <U> result type of the completion stage.
-     * @return the new completion stage.
+     * @param value result with which the completable future is completed.
+     * @param <U> result type of the completable future.
+     * @return the new completable future.
      */
     <U> CompletableFuture<U> completedFuture(U value);
 
@@ -281,6 +282,7 @@ public interface ManagedExecutor extends ExecutorService {
      * that is returned by this method and all dependent stages that are created from it,
      * and all dependent stages that are created from those, and so forth.</p>
      *
+     * @param value result with which the completable future is completed.
      * @param <U> result type of the completion stage.
      * @return the new completion stage.
      */
@@ -293,8 +295,9 @@ public interface ManagedExecutor extends ExecutorService {
      * that is returned by this method and all dependent stages that are created from it,
      * and all dependent stages that are created from those, and so forth.</p>
      *
-     * @param <U> result type of the completion stage.
-     * @return the new completion stage.
+     * @param ex exception or error with which the completable future is completed.
+     * @param <U> result type of the completable future.
+     * @return the new completable future.
      */
     <U> CompletableFuture<U> failedFuture(Throwable ex);
 
@@ -305,6 +308,7 @@ public interface ManagedExecutor extends ExecutorService {
      * that is returned by this method and all dependent stages that are created from it,
      * and all dependent stages that are created from those, and so forth.</p>
      *
+     * @param ex exception or error with which the stage is completed.
      * @param <U> result type of the completion stage.
      * @return the new completion stage.
      */

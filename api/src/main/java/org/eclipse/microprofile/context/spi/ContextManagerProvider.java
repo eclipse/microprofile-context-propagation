@@ -90,6 +90,7 @@ public interface ContextManagerProvider {
      *
      * @param provider the provider implementation to register.
      * @throws IllegalStateException if an implementation is already registered.
+     * @return registration instance that gives the caller control over unregistering.
      */
     public static ContextManagerProviderRegistration register(ContextManagerProvider provider) throws IllegalStateException {
         if (INSTANCE.compareAndSet(null, provider)) {
@@ -137,7 +138,7 @@ public interface ContextManagerProvider {
      * @see ContextManager.Builder#build()
      * @see #registerContextManager(ContextManager, ClassLoader)
      */
-    public ContextManager getContextManager(ClassLoader classLoader);
+    public ContextManager getContextManager(ClassLoader classloader);
 
     /**
      * Returns a new {@link ContextManager.Builder} to create new {@link ContextManager}

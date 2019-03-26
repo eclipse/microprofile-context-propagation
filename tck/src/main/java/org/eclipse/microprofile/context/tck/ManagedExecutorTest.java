@@ -134,9 +134,10 @@ public class ManagedExecutorTest extends Arquillian {
     /**
      * Verify that the ManagedExecutor implementation clears context
      * types that are not configured under propagated, or cleared.
-     * @throws TimeoutException 
-     * @throws ExecutionException 
-     * @throws InterruptedException 
+     *
+     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
      */
     @Test
     public void clearUnspecifiedContexts() throws InterruptedException, ExecutionException, TimeoutException {
@@ -181,6 +182,10 @@ public class ManagedExecutorTest extends Arquillian {
      * by the ManagedExecutor's completedFuture implementation. Thread context is captured
      * at each point where a dependent stage is added, rather than solely upon creation of the
      * initial stage or construction of the builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void completedFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -284,6 +289,8 @@ public class ManagedExecutorTest extends Arquillian {
      * by the ManagedExecutor's completedStage implementation. Thread context is captured
      * at each point where a dependent stage is added, rather than solely upon creation of the
      * initial stage or construction of the builder.
+     *
+     * @throws InterruptedException indicates test failure
      */
     @Test
     public void completedStageDependentStagesRunWithContext() throws InterruptedException {
@@ -367,6 +374,10 @@ public class ManagedExecutorTest extends Arquillian {
     /**
      * Verify the MicroProfile Context Propagation implementation of propagate(), and cleared()
      * for ManagedExecutor.Builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextControlsForManagedExecutorBuilder() throws InterruptedException, ExecutionException, TimeoutException {
@@ -443,6 +454,10 @@ public class ManagedExecutorTest extends Arquillian {
      * When an already-contextualized Callable is specified as the action/task,
      * the action/task runs with its already-captured context rather than
      * capturing and applying context per the configuration of the managed executor.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextOfContextualCallableOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
@@ -526,6 +541,10 @@ public class ManagedExecutorTest extends Arquillian {
      * When an already-contextualized Consumer or BiFunction is specified as the action/task,
      * the action/task runs with its already-captured context rather than
      * capturing and applying context per the configuration of the managed executor.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextOfContextualConsumerAndBiFunctionOverrideContextOfManagedExecutor()
@@ -616,6 +635,10 @@ public class ManagedExecutorTest extends Arquillian {
      * When an already-contextualized Function is specified as the action/task,
      * the action/task runs with its already-captured context rather than
      * capturing and applying context per the configuration of the managed executor.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextOfContextualFunctionOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
@@ -714,6 +737,10 @@ public class ManagedExecutorTest extends Arquillian {
      * When an already-contextualized Runnable is specified as the action/task,
      * the action/task runs with its already-captured context rather than
      * capturing and applying context per the configuration of the managed executor.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextOfContextualRunnableOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
@@ -792,6 +819,10 @@ public class ManagedExecutorTest extends Arquillian {
      * When an already-contextualized Supplier or BiFunction is specified as the action/task,
      * the action/task runs with its already-captured context rather than
      * capturing and applying context per the configuration of the managed executor.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextOfContextualSuppplierAndBiConsumerOverrideContextOfManagedExecutor()
@@ -877,6 +908,10 @@ public class ManagedExecutorTest extends Arquillian {
      * Verify that thread context is cleared per the configuration of the ManagedExecutor builder
      * for all tasks that are executed via the execute method. This test supplies the ManagedExecutor
      * to a Java SE CompletableFuture, which invokes the execute method to run tasks asynchronously.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void executedTaskRunsWithClearedContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -921,6 +956,10 @@ public class ManagedExecutorTest extends Arquillian {
     /**
      * Verify that thread context is propagated per the configuration of the ManagedExecutor builder
      * for all tasks that are executed via the execute method.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void executedTaskRunsWithContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -973,6 +1012,10 @@ public class ManagedExecutorTest extends Arquillian {
      * by the ManagedExecutor's failedFuture implementation. Thread context is captured
      * at each point where a dependent stage is added, rather than solely upon creation of the
      * initial stage or construction of the builder.
+     * 
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void failedFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1083,6 +1126,10 @@ public class ManagedExecutorTest extends Arquillian {
      * by the ManagedExecutor's failedStage implementation. Thread context is captured
      * at each point where a dependent stage is added, rather than solely upon creation of the
      * initial stage or construction of the builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void failedStageDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1160,6 +1207,10 @@ public class ManagedExecutorTest extends Arquillian {
     /**
      * Verify that the ManagedExecutor implementation starts 2 async tasks/actions, and no more,
      * when maxAsync is configured to 2.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void maxAsync2() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1217,6 +1268,10 @@ public class ManagedExecutorTest extends Arquillian {
      * Attempt to specify invalid values (less than -1 and 0) for maxAsync.
      * Require this to be rejected upon the maxQueued operation per JavaDoc
      * rather than from the build method.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void maxAsyncInvalidValues() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1263,6 +1318,10 @@ public class ManagedExecutorTest extends Arquillian {
 
     /**
      * Verify that 3 tasks/actions, and no more, can be queued when maxQueued is configured to 3.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void maxQueued3() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1338,6 +1397,10 @@ public class ManagedExecutorTest extends Arquillian {
      * Attempt to specify invalid values (less than -1 and 0) for maxQueued.
      * Require this to be rejected upon the maxQueued operation per JavaDoc
      * rather than from the build method.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void maxQueuedInvalidValues() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1380,6 +1443,9 @@ public class ManagedExecutorTest extends Arquillian {
      * by the ManagedExecutor's newIncompleteFuture implementation. Thread context is captured
      * at each point where a dependent stage is added, rather than solely upon creation of the
      * initial stage or construction of the builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
      */
     @Test
     public void newIncompleteFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException {
@@ -1473,6 +1539,10 @@ public class ManagedExecutorTest extends Arquillian {
 
     /**
      * Verify that Application context makes the application's thread context class loader available to the task.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void propagateApplicationContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1515,6 +1585,8 @@ public class ManagedExecutorTest extends Arquillian {
      * runs with a transaction on the thread. It would be nice to test participation in the same
      * transaction, but that isn't possible without the TCK having a dependency on a particular
      * type of transactional resource.
+     *
+     * @throws Exception indicates test failure
      */
     @Test
     public void propagateTransactionContextJTA() throws Exception {
@@ -1647,6 +1719,10 @@ public class ManagedExecutorTest extends Arquillian {
      * Verify that the ManagedExecutor shutdownNow method prevents additional tasks from being submitted
      * and cancels tasks that are currently in progress or queued.
      * Also verify that once the tasks and actions terminate, the ManagedExecutor transitions to terminated state.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void shutdownNowPreventsAdditionalSubmitsAndCancelsTasks() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1797,6 +1873,10 @@ public class ManagedExecutorTest extends Arquillian {
      * Verify that the ManagedExecutor shutdown method prevents additional tasks from being submitted
      * but does not interfere with tasks and actions that are running or queued.
      * Also verify that once the tasks and actions finish, the ManagedExecutor transitions to terminated state.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void shutdownPreventsAdditionalSubmits() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1910,6 +1990,10 @@ public class ManagedExecutorTest extends Arquillian {
     /**
      * Verify that the ManagedExecutor.Builder can be used to create multiple ManagedExecutors with 
      * different configured contexts.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void reuseManagedExecutorBuilder() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1964,6 +2048,9 @@ public class ManagedExecutorTest extends Arquillian {
      * by the ManagedExecutor's runAsync implementation. Thread context is captured
      * at each point where a dependent stage is added, rather than solely upon creation of the
      * initial stage or construction of the builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
      */
     @Test
     public void runAsyncStageAndDependentStagesRunWithContext() throws ExecutionException, InterruptedException {
@@ -2107,6 +2194,10 @@ public class ManagedExecutorTest extends Arquillian {
      * Verify that thread context is captured and propagated per the configuration of the
      * ManagedExecutor builder for all tasks that are submitted via the submit(Callable),
      * submit(Runnable) and submit(Runnable, result) methods.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void submittedTasksRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -2201,6 +2292,10 @@ public class ManagedExecutorTest extends Arquillian {
      * by the ManagedExecutor's supplyAsync implementation. Thread context is captured
      * at each point where a dependent stage is added, rather than solely upon creation of the
      * initial stage or construction of the builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void supplyAsyncStageAndDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -2313,6 +2408,10 @@ public class ManagedExecutorTest extends Arquillian {
      * ManagedExecutor builder for all tasks that are submitted via the ManagedExecutor's
      * timed invokeAll operation. Thread context is captured at the point where invokeAll is
      * invoked, rather than upon creation of the executor or construction of the builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void timedInvokeAllRunsTasksWithContext()
@@ -2383,6 +2482,10 @@ public class ManagedExecutorTest extends Arquillian {
      * ManagedExecutor builder for one or more tasks that are submitted via the ManagedExecutor's
      * timed invokeAny operation. Thread context is captured at the point where invokeAny is
      * invoked, rather than upon creation of the executor or construction of the builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void timedInvokeAnyRunsTaskWithContext()
@@ -2443,6 +2546,10 @@ public class ManagedExecutorTest extends Arquillian {
      * ManagedExecutor builder for all tasks that are submitted via the ManagedExecutor's
      * untimed invokeAll operation. Thread context is captured at the point where invokeAll is
      * invoked, rather than upon creation of the executor or construction of the builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void untimedInvokeAllRunsTasksWithContext()
@@ -2582,6 +2689,10 @@ public class ManagedExecutorTest extends Arquillian {
      * ManagedExecutor builder for one or more tasks that are submitted via the ManagedExecutor's
      * untimed invokeAny operation. Thread context is captured at the point where invokeAny is
      * invoked, rather than upon creation of the executor or construction of the builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void untimedInvokeAnyRunsTasksWithContext()

@@ -81,6 +81,8 @@ public class CDIContextTest extends Arquillian {
     /**
      * Set some state on Request, Session, and Conversation scoped beans and verify
      * the state is propagated to the thread where the other task runs.
+     *
+     * @throws Exception indicates test failure
      */
     @Test
     public void testCDIMECtxPropagate() throws Exception {
@@ -100,6 +102,8 @@ public class CDIContextTest extends Arquillian {
     /**
      * Set some state on Request, Session, and Conversation scoped beans and verify
      * the state is cleared on the thread where the other task runs.
+     *
+     * @throws Exception indicates test failure
      */
     @Test
     public void testCDIMECtxClear() throws Exception {
@@ -129,6 +133,8 @@ public class CDIContextTest extends Arquillian {
     /**
      * Set some state on a request scoped bean, then verify a contextualized callable
      * has the state propagated to it when ran on the same thread.
+     *
+     * @throws Exception indicates test failure
      */
     @Test
     public void testCDITCCtxPropagate() throws Exception {
@@ -149,6 +155,8 @@ public class CDIContextTest extends Arquillian {
     /**
      * Set some state on a request scoped bean, then verify a contextualized callable
      * has the state cleared from it when ran on the same thread.
+     *
+     * @throws Exception indicates test failure
      */
     @Test
     public void testCDITCCtxClear() throws Exception {
