@@ -116,6 +116,8 @@ public class CDIBean {
 
     /**
      * Verify that injected ME instances are useable in a very basic way
+     *
+     * @throws Exception indicates test failure
      */
     public void testBasicExecutorUsable() throws Exception {
         assertEquals(appProduced.supplyAsync(() -> "hello").get(MAX_WAIT_SEC, TimeUnit.SECONDS), "hello");

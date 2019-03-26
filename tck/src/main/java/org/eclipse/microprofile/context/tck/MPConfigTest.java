@@ -114,6 +114,10 @@ public class MPConfigTest extends Arquillian {
     /**
      * Verify that the cleared and propagated attributes of a ManagedExecutor are defaulted
      * according to the defaults specified by the application in MicroProfile Config.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void defaultContextPropagationForManagedExecutorViaMPConfig()
@@ -207,6 +211,10 @@ public class MPConfigTest extends Arquillian {
     /**
      * Verify that the maxAsync and maxQueued attributes of a ManagedExecutor are defaulted
      * according to the defaults specified by the application in MicroProfile Config.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test(dependsOnMethods = "beanInjected")
     public void defaultMaxAsyncAndMaxQueuedForManagedExecutorViaMPConfig()
@@ -270,6 +278,10 @@ public class MPConfigTest extends Arquillian {
     /**
      * Verify that MicroProfile config defaults the cleared attribute when only the
      * propagated and maxQueued attributes are specified by the application.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test(dependsOnMethods = "beanInjected")
     public void explicitlySpecifiedPropagatedTakesPrecedenceOverDefaults()
@@ -352,6 +364,10 @@ public class MPConfigTest extends Arquillian {
     /**
      * Verify that MicroProfile config defaults the maxAsync attribute and honors the explicitly specified
      * maxQueued attribute, when only the propagated and maxQueued attributes are specified by the application.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test(dependsOnMethods = "beanInjected")
     public void explicitlySpecifyMaxQueued5()

@@ -127,6 +127,8 @@ public class ThreadContextTest extends Arquillian {
      * Verify that if JTA transactions are supported, then configuring cleared=TRANSACTION
      * results in the active transaction being suspended before running a task and resumed afterward,
      * such that a task can use its own transactions if so desired.
+     *
+     * @throws Exception indicates test failure
      */
     @Test
     public void clearTransactionContextJTA() throws Exception {
@@ -205,7 +207,8 @@ public class ThreadContextTest extends Arquillian {
     /**
      * Verify that the ThreadContext implementation clears context
      * types that are not configured under propagated, unchanged, or cleared.
-     * @throws Exception 
+     *
+     * @throws Exception indicates test failure 
      */
     @Test
     public void clearUnspecifiedContexts() throws Exception {
@@ -262,6 +265,8 @@ public class ThreadContextTest extends Arquillian {
      * current thread per the configuration of the ThreadContext builder, and that the context is
      * applied when the BiConsumer accept method runs. This test case aligns with use case of
      * supplying a contextual BiConsumer to a completion stage that is otherwise not context-aware.
+     *
+     * @throws InterruptedException indicates test failure
      */
     @Test
     public void contextualBiConsumerRunsWithContext() throws InterruptedException {
@@ -326,6 +331,10 @@ public class ThreadContextTest extends Arquillian {
      * current thread per the configuration of the ThreadContext builder, and that the context is
      * applied when the BiFunction apply method runs. This test case aligns with use case of
      * supplying a contextual BiFunction to a completion stage that is otherwise not context-aware.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextualBiFunctionRunsWithContext()
@@ -388,6 +397,10 @@ public class ThreadContextTest extends Arquillian {
      * current thread per the configuration of the ThreadContext builder, and that the context is
      * applied when the Callable call method runs. This test case aligns with use case of
      * supplying a contextual Callable to an unmanaged executor that is otherwise not context-aware.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextualCallableRunsWithContext()
@@ -433,6 +446,8 @@ public class ThreadContextTest extends Arquillian {
      * current thread per the configuration of the ThreadContext builder, and that the context is
      * applied when the Consumer accept method runs. This test case aligns with use case of
      * supplying a contextual Consumer to a completion stage that is otherwise not context-aware.
+     *
+     * @throws InterruptedException indicates test failure
      */
     @Test
     public void contextualConsumerRunsWithContext() throws InterruptedException {
@@ -497,6 +512,10 @@ public class ThreadContextTest extends Arquillian {
      * current thread per the configuration of the ThreadContext builder, and that the context is
      * applied when the Function apply method runs. This test case aligns with use case of
      * supplying a contextual Function to a completion stage that is otherwise not context-aware.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextualFunctionRunsWithContext()
@@ -559,6 +578,10 @@ public class ThreadContextTest extends Arquillian {
      * current thread per the configuration of the ThreadContext builder, and that the context is
      * applied when the Runnable run method runs. This test case aligns with use case of
      * supplying a contextual Runnable to a completion stage that is otherwise not context-aware.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextualRunnableRunsWithContext()
@@ -627,6 +650,8 @@ public class ThreadContextTest extends Arquillian {
      * current thread per the configuration of the ThreadContext builder, and that the context is
      * applied when the Supplier get method runs. This test case aligns with use case of
      * supplying a contextual Supplier to a completion stage that is otherwise not context-aware.
+     *
+     * @throws InterruptedException indicates test failure
      */
     @Test
     public void contextualSupplierRunsWithContext() throws InterruptedException {
@@ -683,7 +708,8 @@ public class ThreadContextTest extends Arquillian {
     /**
      * Verify that the ThreadContext.Builder can be used to create multiple ThreadContexts with 
      * different configured contexts.
-     * @throws Exception 
+     *
+     * @throws Exception indicates test failure
      */
     @Test
     public void reuseThreadContextBuilder() throws Exception {
@@ -795,7 +821,7 @@ public class ThreadContextTest extends Arquillian {
     /**
      * Verify that the MicroProfile Context Propagation implementation finds third-party thread context providers
      * that are made available to the ServiceLoader, allows their configuration via the ThreadContext builder,
-     * and correctly captures & propagates or clears these thread context types per the builder configuration.
+     * and correctly captures and propagates or clears these thread context types per the builder configuration.
      * Subsequently verify that the MicroProfile Context Propagation implementation properly restores thread context
      * after the contextual action completes.
      */
@@ -858,6 +884,10 @@ public class ThreadContextTest extends Arquillian {
      * method can be used to create a dependent CompletableFuture instance that completes when the
      * original stage completes and runs dependent stage actions with context that is captured
      * from the thread that creates the dependent stage.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void withContextCaptureDependentCompletableFuturesRunWithContext()
@@ -964,6 +994,10 @@ public class ThreadContextTest extends Arquillian {
      * method can be used to create a dependent CompletionStage instance that completes when the
      * original stage completes and runs dependent stage actions with context that is captured
      * from the thread that creates the dependent stage.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void withContextCaptureDependentCompletionStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1072,6 +1106,9 @@ public class ThreadContextTest extends Arquillian {
     /**
      * Verify that dependent stages created via withContextCapture can be completed independently
      * of the original stage.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
      */
     @Test
     public void withContextCaptureDependentStageForcedCompletion() throws ExecutionException, InterruptedException {
@@ -1104,6 +1141,10 @@ public class ThreadContextTest extends Arquillian {
      * The withContextCapture method should be able to create multiple dependent stages
      * having a single parent stage, where each of the dependent stages propagates a
      * different set of thread context.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void withContextCaptureMultipleThreadContexts()
@@ -1157,6 +1198,10 @@ public class ThreadContextTest extends Arquillian {
      * The withContextCapture method should be able to create a dependent stage that is
      * associated with a thread context even if its parent stage is already associated with
      * a different thread context. Both stages must honor their respective thread context.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void withContextCaptureSwitchThreadContext()
@@ -1209,6 +1254,10 @@ public class ThreadContextTest extends Arquillian {
     /**
      * Verify the MicroProfile Context Propagation implementation of propagate(), cleared(), and unchanged()
      * for ThreadContext.Builder.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void contextControlsForThreadContextBuilder() throws InterruptedException, ExecutionException, TimeoutException {
@@ -1298,6 +1347,10 @@ public class ThreadContextTest extends Arquillian {
      * current thread per the configuration of the ThreadContext builder, and that the context is
      * applied to the thread where the Executor's execute method runs. This test case aligns with use 
      * case of supplying a contextual Executor to a thread that is otherwise not context-aware.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
      */
     @Test
     public void currentContextExecutorRunsWithContext() throws InterruptedException, ExecutionException, TimeoutException {

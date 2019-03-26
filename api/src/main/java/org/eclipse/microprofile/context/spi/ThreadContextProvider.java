@@ -22,7 +22,7 @@ import java.util.Map;
 
 /**
  * <p>Third party providers of thread context implement this interface to enable the
- * provided type of context to participate in thread context capture & propagation
+ * provided type of context to participate in thread context capture and propagation
  * when the <code>ManagedExecutor</code>
  * and <code>ThreadContext</code> are used to create and contextualize dependent
  * actions and tasks.</p>
@@ -45,7 +45,7 @@ import java.util.Map;
  * <p><code>ManagedExecutor</code> and <code>ThreadContext</code> must use the
  * <code>ServiceLoader</code> to identify all available implementations of
  * <code>ThreadContextProvider</code> that can participate in thread context capture
- * & propagation and must invoke them either to capture current thread context or establish
+ * and propagation and must invoke them either to capture current thread context or establish
  * default thread context per the configuration of the <code>ManagedExecutor</code> or
  * <code>ThreadContext</code> instance wherever these interfaces are used to create
  * and contextualize dependent actions and tasks.</p>
@@ -110,7 +110,7 @@ public interface ThreadContextProvider {
      *
      * <p>The application can use the values documented for the various thread context
      * types when configuring a <code>ManagedExecutor</code> or <code>ThreadContext</code>
-     * to capture & propagate only specific types of thread context.</p>
+     * to capture and propagate only specific types of thread context.</p>
      *
      * <p>For example:</p>
      * <pre><code>

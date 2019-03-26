@@ -252,21 +252,21 @@ public interface ThreadContext {
      * access to the scope of the session, request, and so forth that created the
      * contextualized action.
      * 
-     * For example, consider the following <code>&#64;RequestScoped<code> resource:
+     * For example, consider the following <code>&#64;RequestScoped</code> resource:
      * 
-     * <code><pre>
+     * <pre><code>
     &#64;RequestScoped
     public class MyRequestScopedBean {
         public String getState() {
           // returns some request-specific information to the caller
         }
     }
-    </pre></code>
+    </code></pre>
      * 
      * CDI context propagation includes request, session and conversation contexts.
      * When CDI context is propagated, all of the above mentioned contexts that are
      * currently active will be available to the contextualized task with preserved 
-     * state. <code><pre>
+     * state. <pre><code>
     ManagedExecutor exec = ManagedExecutor.builder()
         .propagated(ThreadContext.CDI, ThreadContext.APPLICATION)
         .build();
@@ -276,14 +276,14 @@ public interface ThreadContext {
     
     &#64;GET
     public void foo() {
-        exec.supplyAsync(() -> {
+        exec.supplyAsync(() -&gt; {
             String state = reqBean.getState();
             // do some work with the request state
-        }).thenApply(more -> {
+        }).thenApply(more -&gt; {
             // request state also available in future stages
         });
     }
-    </pre></code>
+    </code></pre>
      *
      * If CDI context is 'cleared', currently active contexts will still be
      * available to the contextualized task, but their state will be erased.
@@ -348,8 +348,8 @@ public interface ThreadContext {
      * <code>Executor contextSnapshot = threadContext.currentContextExecutor();
      * ...
      * // from another thread, or after thread context has changed,
-     * contextSnapshot.execute(() -> obj.doSomethingThatNeedsContext());
-     * contextSnapshot.execute(() -> doSomethingElseThatNeedsContext(x, y));
+     * contextSnapshot.execute(() -&gt; obj.doSomethingThatNeedsContext());
+     * contextSnapshot.execute(() -&gt; doSomethingElseThatNeedsContext(x, y));
      * </code></pre>
      *
      * <p>The returned <code>Executor</code> must raise <code>IllegalArgumentException</code>
@@ -500,6 +500,7 @@ public interface ThreadContext {
      * completable future or any dependent stages created from it, other than the new dependent
      * completable future that is created by this method.</p>
      *
+     * @param <T> completable future result type.
      * @param stage a completable future whose completion triggers completion of the new completable
      *        future that is created by this method.
      * @return the new completable future.
@@ -527,6 +528,7 @@ public interface ThreadContext {
      * stage or any dependent stages created from it, other than the new dependent
      * completion stage that is created by this method.</p>
      *
+     * @param <T> completion stage result type.
      * @param stage a completion stage whose completion triggers completion of the new stage
      *        that is created by this method.
      * @return the new completion stage.
