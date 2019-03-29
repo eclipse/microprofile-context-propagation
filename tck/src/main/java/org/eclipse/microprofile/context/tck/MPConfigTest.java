@@ -44,6 +44,7 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
+import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.Assert;
@@ -97,8 +98,16 @@ public class MPConfigTest extends Arquillian {
         return ShrinkWrap.create(WebArchive.class, MPConfigTest.class.getSimpleName() + ".war")
                 .addClass(MPConfigBean.class)
                 .addClass(MPConfigTest.class)
-                .addAsManifestResource("META-INF/microprofile-config.properties", "microprofile-config.properties")
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml")
+                .addAsWebInfResource(new StringAsset(
+                                "ManagedExecutor/maxAsync=1\n" +
+                                        "ManagedExecutor/maxQueued=4\n" +
+                                        "ManagedExecutor/propagated=Label,ThreadPriority\n" +
+                                        "ManagedExecutor/cleared=Remaining\n" +
+                                        "ThreadContext/cleared=Buffer\n" +
+                                        "ThreadContext/propagated=\n" +
+                                        "ThreadContext/unchanged=Remaining"),
+                        "classes/META-INF/microprofile-config.properties")
                 .addAsLibraries(fakeContextProviders);
     }
 
