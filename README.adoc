@@ -16,11 +16,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
+image:https://img.shields.io/maven-central/v/org.eclipse.microprofile.context-propagation/microprofile-context-propagation-api.svg[link="http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22org.eclipse.microprofile.context-propagation%22%20AND%20a%3A%22microprofile-context-propagation-api%22"]
+image:https://javadoc.io/badge/org.eclipse.microprofile.context-propagation/microprofile-context-propagation-api.svg[ link="https://javadoc.io/doc/org.eclipse.microprofile.context-propagation/microprofile-context-propagation-api"]
 image:https://badges.gitter.im/eclipse/microprofile-concurrency.svg[link="https://gitter.im/eclipse/microprofile-concurrency"]
 
 [[microprofile-context-propagation]]
-MicroProfile Context Propagation
-------------------------
+= MicroProfile Context Propagation
+
 :toc:
 
 * Status: *new*
