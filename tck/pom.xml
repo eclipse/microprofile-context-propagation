@@ -20,7 +20,6 @@
     </parent>
     <artifactId>microprofile-context-propagation-tck</artifactId>
     <name>microprofile-context-propagation-tck</name>
-    <url>http://maven.apache.org</url>
     <properties>
         <arquillian.version>1.4.0.Final</arquillian.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
