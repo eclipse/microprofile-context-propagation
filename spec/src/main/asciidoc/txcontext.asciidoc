@@ -133,7 +133,7 @@ try {
 stage1.complete(initialCount);
 ----
 
-A 'ThreadContextProvider' that supports serial use of a propagated transaction, but not parallel use, is allowed to raise `IllegalStateException` upon attempts to associate a JTA transaction to a second thread when the JTA transaction is already active on another thread. The transaction context provider raises `IllegalStateException` upon `ThreadContextSnapshot.begin`, which exceptionally completes the action or task without running it. The `IllegalStateException` should have a meaningful message making it clear to the user that lack of support for the propagation of active transactions for parallel use across multiple threads is the cause of the error.
+A 'ThreadContextProvider' that supports serial use of a propagated transaction, but not parallel use, is allowed to raise `IllegalStateException` upon attempts to associate a JTA transaction to a second thread when the JTA transaction is already active on another thread. The transaction context provider raises `IllegalStateException` upon `ThreadContextSnapshot.begin`, which exceptionally completes the action or task without running it. When rejecting parallel use of a transaction, the transaction context provider should also mark the transaction for rollback. The `IllegalStateException` should have a meaningful message making it clear to the user that lack of support for the propagation of active transactions for parallel use across multiple threads is the cause of the error.
 
 The application sees the error when requesting the result of the corresponding stage. For example,
 

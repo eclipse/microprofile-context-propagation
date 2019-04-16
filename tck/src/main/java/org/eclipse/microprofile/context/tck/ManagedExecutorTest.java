@@ -1645,6 +1645,7 @@ public class ManagedExecutorTest extends Arquillian {
         Method begin = userTransaction.getMethod("begin");
         Method commit = userTransaction.getMethod("commit");
         Method getStatus = userTransaction.getMethod("getStatus");
+        Method rollback = userTransaction.getMethod("rollback");
 
         // Propagate context from thread where no transaction is active
         CompletableFuture<String> stage0 = executor.newIncompleteFuture();
@@ -1666,6 +1667,7 @@ public class ManagedExecutorTest extends Arquillian {
 
         CompletableFuture<String> stage2;
 
+        boolean txPropagationRejected = false;
         begin.invoke(tx);
         try {
             // Force stage1 to run on thread where transaction context is already present
@@ -1691,6 +1693,7 @@ public class ManagedExecutorTest extends Arquillian {
             }
             catch (IllegalStateException x) {
                 System.out.println("Skipping portion of test propagateTransactionContextJTA. Propagation of active transaction is not supported.");
+                txPropagationRejected = true;
                 return;
             }
 
@@ -1702,6 +1705,7 @@ public class ManagedExecutorTest extends Arquillian {
                 if (x.getCause() instanceof IllegalStateException) {
                     System.out.println("Skipping portion of test propagateTransactionContextJTA. " +
                                        "Propagation of active transaction to multiple threads in parallel is not supported.");
+                    txPropagationRejected = true;
                     return;
                 }
                 else {
@@ -1711,7 +1715,12 @@ public class ManagedExecutorTest extends Arquillian {
             Assert.assertEquals(result, "SUCCESS2");
         }
         finally {
-            commit.invoke(tx);
+            if (txPropagationRejected) {
+                rollback.invoke(tx);
+            }
+            else {
+                commit.invoke(tx);
+            }
         }
     }
 
