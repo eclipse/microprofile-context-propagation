@@ -122,13 +122,13 @@ MicroProfile Config properties can be used to specify defaults for configuration
 Here is an example that includes all of the available attributes that can be defaulted:
 
 ----
-ManagedExecutor/propagated=Security,Application
-ManagedExecutor/cleared=Remaining
-ManagedExecutor/maxAsync=10
-ManagedExecutor/maxQueued=-1
+mp.context.ManagedExecutor.propagated=Security,Application
+mp.context.ManagedExecutor.cleared=Remaining
+mp.context.ManagedExecutor.maxAsync=10
+mp.context.ManagedExecutor.maxQueued=-1
 
-ThreadContext/propagated=
-ThreadContext/cleared=Security,Transaction
-ThreadContext/unchanged=Remaining
+mp.context.ThreadContext.propagated=
+mp.context.ThreadContext.cleared=Security,Transaction
+mp.context.ThreadContext.unchanged=Remaining
 ----
 
