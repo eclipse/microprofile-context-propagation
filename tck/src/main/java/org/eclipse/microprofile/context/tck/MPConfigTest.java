@@ -100,13 +100,13 @@ public class MPConfigTest extends Arquillian {
                 .addClass(MPConfigTest.class)
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml")
                 .addAsWebInfResource(new StringAsset(
-                                "ManagedExecutor/maxAsync=1\n" +
-                                        "ManagedExecutor/maxQueued=4\n" +
-                                        "ManagedExecutor/propagated=Label,ThreadPriority\n" +
-                                        "ManagedExecutor/cleared=Remaining\n" +
-                                        "ThreadContext/cleared=Buffer\n" +
-                                        "ThreadContext/propagated=\n" +
-                                        "ThreadContext/unchanged=Remaining"),
+                                "mp.context.ManagedExecutor.maxAsync=1\n" +
+                                        "mp.context.ManagedExecutor.maxQueued=4\n" +
+                                        "mp.context.ManagedExecutor.propagated=Label,ThreadPriority\n" +
+                                        "mp.context.ManagedExecutor.cleared=Remaining\n" +
+                                        "mp.context.ThreadContext.cleared=Buffer\n" +
+                                        "mp.context.ThreadContext.propagated=\n" +
+                                        "mp.context.ThreadContext.unchanged=Remaining"),
                         "classes/META-INF/microprofile-config.properties")
                 .addAsLibraries(fakeContextProviders);
     }

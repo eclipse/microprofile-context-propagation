@@ -132,7 +132,7 @@ public interface ThreadContext {
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
          *
-         * <p>The MicroProfile Config property, <code>ThreadContext/cleared</code>,
+         * <p>The MicroProfile Config property, <code>mp.context.ThreadContext.cleared</code>,
          * establishes a default that is used if no value is otherwise specified.
          * The value of the MicroProfile Config property can be the empty string
          * or a comma separated list of context type constant values.</p>
@@ -156,7 +156,7 @@ public interface ThreadContext {
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
          *
-         * <p>The MicroProfile Config property, <code>ThreadContext/propagated</code>,
+         * <p>The MicroProfile Config property, <code>mp.context.ThreadContext.propagated</code>,
          * establishes a default that is used if no value is otherwise specified.
          * The value of the MicroProfile Config property can be the empty string
          * or a comma separated list of context type constant values.</p>
@@ -183,7 +183,7 @@ public interface ThreadContext {
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
          *
-         * <p>The MicroProfile Config property, <code>ThreadContext/unchanged</code>,
+         * <p>The MicroProfile Config property, <code>mp.context.ThreadContext.unchanged</code>,
          * establishes a default that is used if no value is otherwise specified.
          * The value of the MicroProfile Config property can be the empty string
          * or a comma separated list of context type constant values. If a default

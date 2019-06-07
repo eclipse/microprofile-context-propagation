@@ -23,10 +23,10 @@ For example, you could specify MicroProfile Config properties as follows to esta
 
 [source, text]
 ----
-ManagedExecutor/propagated=Remaining
-ManagedExecutor/cleared=Transaction
-ManagedExecutor/maxAsync=10
-ManagedExecutor/maxQueued=-1
+mp.context.ManagedExecutor.propagated=Remaining
+mp.context.ManagedExecutor.cleared=Transaction
+mp.context.ManagedExecutor.maxAsync=10
+mp.context.ManagedExecutor.maxQueued=-1
 ----
 
 With these defaults in place, the application can create a `ManagedExecutor` instance without specifying some of the configuration attributes,
@@ -42,9 +42,9 @@ As another example, the following MicroProfile Config properties establish defau
 
 [source, text]
 ----
-ThreadContext/propagated=
-ThreadContext/cleared=Security,Transaction
-ThreadContext/unchanged=Remaining
+mp.context.ThreadContext.propagated=
+mp.context.ThreadContext.cleared=Security,Transaction
+mp.context.ThreadContext.unchanged=Remaining
 ----
 
 With these defaults in place, the application can create a `ThreadContext` instance without specifying some of the configuration attributes,

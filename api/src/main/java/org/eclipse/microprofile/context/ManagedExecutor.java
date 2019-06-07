@@ -188,7 +188,7 @@ public interface ManagedExecutor extends ExecutorService {
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
          *
-         * <p>The MicroProfile Config property, <code>ManagedExecutor/cleared</code>,
+         * <p>The MicroProfile Config property, <code>mp.context.ManagedExecutor.cleared</code>,
          * establishes a default that is used if no value is otherwise specified.
          * The value of the MicroProfile Config property can be the empty string
          * or a comma separated list of context type constant values.</p>
@@ -212,7 +212,7 @@ public interface ManagedExecutor extends ExecutorService {
          * by the specification that defines the context type or by a related
          * MicroProfile specification.</p>
          *
-         * <p>The MicroProfile Config property, <code>ManagedExecutor/propagated</code>,
+         * <p>The MicroProfile Config property, <code>mp.context.ManagedExecutor.propagated</code>,
          * establishes a default that is used if no value is otherwise specified.
          * The value of the MicroProfile Config property can be the empty string
          * or a comma separated list of context type constant values.</p>
@@ -237,7 +237,7 @@ public interface ManagedExecutor extends ExecutorService {
          * <p>The default value of <code>-1</code> indicates no upper bound,
          * although practically, resource constraints of the system will apply.
          * You can switch the default by specifying the MicroProfile Config
-         * property, <code>ManagedExecutor/maxAsync</code>.</p>
+         * property, <code>mp.context.ManagedExecutor.maxAsync</code>.</p>
          *
          * @param max upper bound on async completion stage actions and executor tasks.
          * @return the same builder instance upon which this method is invoked.
@@ -253,7 +253,7 @@ public interface ManagedExecutor extends ExecutorService {
          * <p>The default value of <code>-1</code> indicates no upper bound,
          * although practically, resource constraints of the system will apply.
          * You can switch the default by specifying the MicroProfile Config
-         * property, <code>ManagedExecutor/maxQueued</code>.</p>
+         * property, <code>mp.context.ManagedExecutor.maxQueued</code>.</p>
          *
          * @param max upper bound on async actions and tasks that can be queued.
          * @return the same builder instance upon which this method is invoked.
