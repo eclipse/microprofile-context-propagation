@@ -19,12 +19,19 @@
 package org.eclipse.microprofile.context.tck.cdi;
 
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import javax.enterprise.context.ContextNotActiveException;
+import javax.enterprise.context.ConversationScoped;
+import javax.enterprise.context.RequestScoped;
+import javax.enterprise.context.SessionScoped;
+import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
 
 import org.eclipse.microprofile.context.ManagedExecutor;
@@ -44,13 +51,10 @@ public class CDIContextTest extends Arquillian {
     static final int TIMEOUT_MIN = 2;
 
     @Inject
-    RequestScopedBean requestBean;
+    Instance<Object> instance;
 
     @Inject
-    SessionScopedBean sessionBean;
-
-    @Inject
-    ConversationScopeBean conversationBean;
+    BeanManager bm;
 
     @AfterMethod
     public void afterMethod(Method m, ITestResult result) {
@@ -72,50 +76,201 @@ public class CDIContextTest extends Arquillian {
                 .addClass(AbstractBean.class)
                 .addClass(RequestScopedBean.class)
                 .addClass(SessionScopedBean.class)
-                .addClass(ConversationScopeBean.class)
+                .addClass(ConversationScopedBean.class)
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml");
         System.out.println(war.toString(true));
         return war;
     }
     
     /**
-     * Set some state on Request, Session, and Conversation scoped beans and verify
+     * Set some state on Request scoped bean and verify
      * the state is propagated to the thread where the other task runs.
+     *
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
      *
      * @throws Exception indicates test failure
      */
     @Test
-    public void testCDIMECtxPropagate() throws Exception {
-        ManagedExecutor propagateCDI = ManagedExecutor.builder().propagated(ThreadContext.CDI)
-                                                                .cleared(ThreadContext.ALL_REMAINING)
-                                                                .build();
+    public void testCDIMECtxPropagatesRequestScopedBean() throws Exception {
+        // check if given context is active, if it isn't test ends successfully
         try {
-            checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-REQUEST", propagateCDI, requestBean);
-            checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-SESSION", propagateCDI, sessionBean);
-            checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-CONVERSATION", propagateCDI, conversationBean);
+            bm.getContext(RequestScoped.class);
+        } catch (ContextNotActiveException e) {
+            return;
+        }
+
+        ManagedExecutor propagateCDI = ManagedExecutor.builder().propagated(ThreadContext.CDI)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        Instance<RequestScopedBean> selectedInstance = instance.select(RequestScopedBean.class);
+        assertTrue(selectedInstance.isResolvable());
+        try {
+            checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-REQUEST", propagateCDI,
+                    selectedInstance.get());
         } 
+        finally {
+            propagateCDI.shutdown();
+        }
+    }
+    /**
+     * Set some state on Session scoped bean and verify
+     * the state is propagated to the thread where the other task runs.
+     *
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
+     *
+     * @throws Exception indicates test failure
+     */
+    @Test
+    public void testCDIMECtxPropagatesSessionScopedBean() throws Exception {
+        // check if given context is active, if it isn't test ends successfully
+        try {
+            bm.getContext(SessionScoped.class);
+        } catch (ContextNotActiveException e) {
+            return;
+        }
+
+        ManagedExecutor propagateCDI = ManagedExecutor.builder().propagated(ThreadContext.CDI)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        Instance<SessionScopedBean> selectedInstance = instance.select(SessionScopedBean.class);
+        assertTrue(selectedInstance.isResolvable());
+        try {
+            checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-SESSION", propagateCDI,
+                    selectedInstance.get());
+        }
+        finally {
+            propagateCDI.shutdown();
+        }
+    }
+    /**
+     * Set some state on Conversation scoped beans and verify
+     * the state is propagated to the thread where the other task runs.
+     *
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
+     *
+     * @throws Exception indicates test failure
+     */
+    @Test
+    public void testCDIMECtxPropagatesConversationScopedBean() throws Exception {
+        // check if given context is active, if it isn't test ends successfully
+        try {
+            bm.getContext(ConversationScoped.class);
+        } catch (ContextNotActiveException e) {
+            return;
+        }
+
+        ManagedExecutor propagateCDI = ManagedExecutor.builder().propagated(ThreadContext.CDI)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        Instance<ConversationScopedBean> selectedInstance = instance.select(ConversationScopedBean.class);
+        assertTrue(selectedInstance.isResolvable());
+        try {
+            checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-CONVERSATION", propagateCDI,
+                    selectedInstance.get());
+        }
         finally {
             propagateCDI.shutdown();
         }
     }
 
     /**
-     * Set some state on Request, Session, and Conversation scoped beans and verify
+     * Set some state on Request scoped bean and verify
      * the state is cleared on the thread where the other task runs.
+     *
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
      *
      * @throws Exception indicates test failure
      */
     @Test
-    public void testCDIMECtxClear() throws Exception {
+    public void testCDIMECtxClearsRequestScopedBean() throws Exception {
+        // check if given context is active, if it isn't test ends successfully
+        try {
+            bm.getContext(RequestScoped.class);
+        } catch (ContextNotActiveException e) {
+            return;
+        }
+
         ManagedExecutor propagatedNone = ManagedExecutor.builder()
                 .propagated() // none
                 .cleared(ThreadContext.ALL_REMAINING)
                 .build();
+
+        Instance<RequestScopedBean> selectedInstance = instance.select(RequestScopedBean.class);
+        assertTrue(selectedInstance.isResolvable());
         try {
-            checkCDIPropagation(false, "testCDI_ME_Ctx_Clear-REQUEST", propagatedNone, requestBean);
-            checkCDIPropagation(false, "testCDI_ME_Ctx_Clear-SESSION", propagatedNone, sessionBean);
-            checkCDIPropagation(false, "testCDI_ME_Ctx_Clear-CONVERSATION", propagatedNone, conversationBean);
+            checkCDIPropagation(false, "testCDI_ME_Ctx_Clear-REQUEST", propagatedNone,
+                    selectedInstance.get());
         } 
+        finally {
+            propagatedNone.shutdown();
+        }
+    }
+
+    /**
+     * Set some state on Session scoped bean and verify
+     * the state is cleared on the thread where the other task runs.
+     *
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
+     *
+     * @throws Exception indicates test failure
+     */
+    @Test
+    public void testCDIMECtxClearsSessionScopedBeans() throws Exception {
+        // check if given context is active, if it isn't test ends successfully
+        try {
+            bm.getContext(SessionScoped.class);
+        } catch (ContextNotActiveException e) {
+            return;
+        }
+
+        ManagedExecutor propagatedNone = ManagedExecutor.builder()
+                .propagated() // none
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        Instance<SessionScopedBean> selectedInstance = instance.select(SessionScopedBean.class);
+        assertTrue(selectedInstance.isResolvable());
+
+        try {
+            checkCDIPropagation(false, "testCDI_ME_Ctx_Clear-SESSION", propagatedNone,
+                    selectedInstance.get());
+        }
+        finally {
+            propagatedNone.shutdown();
+        }
+    }
+
+    /**
+     * Set some state on Conversation scoped bean and verify
+     * the state is cleared on the thread where the other task runs.
+     *
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
+     *
+     * @throws Exception indicates test failure
+     */
+    @Test
+    public void testCDIMECtxClearsConversationScopedBeans() throws Exception {
+        // check if given context is active, if it isn't test ends successfully
+        try {
+            bm.getContext(ConversationScoped.class);
+        } catch (ContextNotActiveException e) {
+            return;
+        }
+
+        ManagedExecutor propagatedNone = ManagedExecutor.builder()
+                .propagated() // none
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        Instance<ConversationScopedBean> selectedInstance = instance.select(ConversationScopedBean.class);
+        assertTrue(selectedInstance.isResolvable());
+        try {
+            checkCDIPropagation(false, "testCDI_ME_Ctx_Clear-CONVERSATION", propagatedNone,
+                    selectedInstance.get());
+        }
         finally {
             propagatedNone.shutdown();
         }
@@ -144,6 +299,9 @@ public class CDIContextTest extends Arquillian {
                                                .unchanged()
                                                .build();
 
+        Instance<RequestScopedBean> selectedInstance = instance.select(RequestScopedBean.class);
+        assertTrue(selectedInstance.isResolvable());
+        RequestScopedBean requestBean = selectedInstance.get();
         requestBean.setState("testCDIContextPropagate-STATE2");
         Callable<String> getState = defaultTC.contextualCallable(() -> {
             String state = requestBean.getState();
@@ -166,6 +324,9 @@ public class CDIContextTest extends Arquillian {
                         .unchanged()
                         .build();
 
+        Instance<RequestScopedBean> selectedInstance = instance.select(RequestScopedBean.class);
+        assertTrue(selectedInstance.isResolvable());
+        RequestScopedBean requestBean = selectedInstance.get();
         requestBean.setState("testCDIThreadCtxClear-STATE1");
         Callable<String> getState = clearAllCtx.contextualCallable(() -> {
             String state = requestBean.getState();
