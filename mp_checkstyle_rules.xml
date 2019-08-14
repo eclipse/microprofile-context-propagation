@@ -69,9 +69,6 @@
         <module name="LeftCurly">
             <property name="option" value="EOL"/>
         </module>
-        <module name="RightCurly">
-            <property name="option" value="ALONE"/>
-        </module>
         <module name="EmptyStatement"/>
         <module name="EqualsHashCode"/>
         <module name="DefaultComesLast"/>
