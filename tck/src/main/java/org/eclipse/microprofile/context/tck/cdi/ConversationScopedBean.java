@@ -23,7 +23,7 @@ import java.io.Serializable;
 import javax.enterprise.context.ConversationScoped;
 
 @ConversationScoped
-public class ConversationScopeBean extends AbstractBean implements Serializable {
+public class ConversationScopedBean extends AbstractBean implements Serializable {
 
     private static final long serialVersionUID = 8175924512735191234L;
 
