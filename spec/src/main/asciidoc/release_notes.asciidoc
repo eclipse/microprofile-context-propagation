@@ -16,12 +16,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-[[release_notes_10]]
-== Release Notes for MicroProfile Context Propagation 1.0
+[[release_notes_1_1]]
+== Release Notes for MicroProfile Context Propagation 1.1
 
-http://download.eclipse.org/microprofile/microprofile-context-propagation-1.0/microprofile-context-propagation.pdf[MicroProfile Context Propagation Spec PDF]
-http://download.eclipse.org/microprofile/microprofile-context-propagation-1.0/microprofile-context-propagation.html[MicroProfile Context Propagation Spec HTML]
-http://download.eclipse.org/microprofile/microprofile-context-propagation-1.0/apidocs/[MicroProfile Context Propagation Spec Javadocs]
+http://download.eclipse.org/microprofile/microprofile-context-propagation-1.1/microprofile-context-propagation.pdf[MicroProfile Context Propagation Spec PDF]
+http://download.eclipse.org/microprofile/microprofile-context-propagation-1.1/microprofile-context-propagation.html[MicroProfile Context Propagation Spec HTML]
+http://download.eclipse.org/microprofile/microprofile-context-propagation-1.1/apidocs/[MicroProfile Context Propagation Spec Javadocs]
 
 Key features:
 
@@ -38,7 +38,7 @@ To get started, add this dependency to your project:
 <dependency>
     <groupId>org.eclipse.microprofile.context-propagation</groupId>
     <artifactId>microprofile-context-propagation-api</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
     <scope>provided</scope>
 </dependency>
 ----
