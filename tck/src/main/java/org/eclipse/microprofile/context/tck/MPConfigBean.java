@@ -26,8 +26,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Disposes;
-import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Qualifier;
@@ -48,27 +46,6 @@ public class MPConfigBean {
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
     public @interface Max5Queue {}
-
-    @Produces @ApplicationScoped @Max5Queue
-    protected ManagedExecutor createExecutor() {
-        // rely on MP Config for defaults of maxAsync=1, cleared=Remaining
-        return ManagedExecutor.builder()
-                              .maxQueued(5)
-                              .propagated()
-                              .build();
-    }
-
-    public void shutdown(@Disposes @Max5Queue ManagedExecutor executor) {
-        executor.shutdown();
-    }
-
-    // None of the defaults from MP Config apply because the application explicitly specifies all values
-    @Produces @ApplicationScoped @Named("producedThreadContext")
-    protected ThreadContext bufferContext = ThreadContext.builder()
-                            .propagated(Buffer.CONTEXT_NAME)
-                            .unchanged()
-                            .cleared(ThreadContext.ALL_REMAINING)
-                            .build();
 
     @Inject
     protected void setCompletedFuture(@Max5Queue ManagedExecutor executor) {

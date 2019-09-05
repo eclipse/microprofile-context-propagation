@@ -98,6 +98,7 @@ public class MPConfigTest extends Arquillian {
         return ShrinkWrap.create(WebArchive.class, MPConfigTest.class.getSimpleName() + ".war")
                 .addClass(MPConfigBean.class)
                 .addClass(MPConfigTest.class)
+                .addClass(ProducerBean.class)
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml")
                 .addAsWebInfResource(new StringAsset(
                                 "mp.context.ManagedExecutor.maxAsync=1\n" +
