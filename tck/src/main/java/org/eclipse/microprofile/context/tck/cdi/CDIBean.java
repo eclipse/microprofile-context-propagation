@@ -18,7 +18,6 @@
  */
 package org.eclipse.microprofile.context.tck.cdi;
 
-import static org.eclipse.microprofile.context.tck.contexts.priority.spi.ThreadPriorityContextProvider.THREAD_PRIORITY;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.*;
 
@@ -30,7 +29,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 import javax.inject.Inject;
 import javax.inject.Qualifier;
 
@@ -53,24 +51,13 @@ public class CDIBean {
     @Inject @AppProducedExecutor
     ManagedExecutor appProduced;
 
-    @Produces @ApplicationScoped @AppProducedExecutor
-    public ManagedExecutor createExec() {
-        return ManagedExecutor.builder().cleared(ThreadContext.TRANSACTION).propagated(ThreadContext.ALL_REMAINING).build();
-    }
-
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
     public @interface LabelContextPropagator {}
 
-    @Produces @ApplicationScoped @LabelContextPropagator
-    ThreadContext labelContextPropagator1 = ThreadContext.builder().propagated(Label.CONTEXT_NAME)
-                                                                   .unchanged()
-                                                                   .cleared(ThreadContext.ALL_REMAINING)
-                                                                   .build();
-
     @Inject @LabelContextPropagator
-    ThreadContext labelContextPropagator2;
+    ThreadContext labelContextPropagator;
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
@@ -84,27 +71,6 @@ public class CDIBean {
 
     @Inject @Priority3Executor
     Executor priority3Executor;
-
-    @Produces @ApplicationScoped @Priority3Executor
-    public Executor createPriority3Executor(@PriorityContext ThreadContext ctx) {
-        int originalPriority = Thread.currentThread().getPriority();
-        try {
-            Thread.currentThread().setPriority(3);
-            Label.set("do-not-propagate-this-label");
-            Buffer.set(new StringBuffer("do-not-propagate-this-buffer"));
-
-            return ctx.currentContextExecutor();
-        }
-        finally {
-            // restore previous values
-            Buffer.set(null);
-            Label.set(null);
-            Thread.currentThread().setPriority(originalPriority);
-        }
-    }
-
-    @Produces @ApplicationScoped @PriorityContext
-    ThreadContext threadPriorityContext = ThreadContext.builder().propagated(THREAD_PRIORITY).build();
 
     /**
      * Extra sanity check test to verify injection is occurring. However, if CDI is 
@@ -127,9 +93,7 @@ public class CDIBean {
      * Application can provide producers of ThreadContext that are qualified.
      */
     public void testAppDefinedProducerOfThreadContext() {
-        Assert.assertNotNull(labelContextPropagator1,
-                "Application should be able to use Produces to define its own producer of ThreadContext.");
-        Assert.assertNotNull(labelContextPropagator2,
+        Assert.assertNotNull(labelContextPropagator,
                 "Application should be able to use qualifier to obtain produced instance of ThreadContext.");
 
         int originalPriority = Thread.currentThread().getPriority();
@@ -139,7 +103,7 @@ public class CDIBean {
             Label.set("testAppDefinedProducerOfThreadContext-label");
             Buffer.set(new StringBuffer("testAppDefinedProducerOfThreadContext-buffer"));
 
-            Runnable testLabelContext = labelContextPropagator2.contextualRunnable(() -> {
+            Runnable testLabelContext = labelContextPropagator.contextualRunnable(() -> {
                 Assert.assertEquals(Label.get(), "testAppDefinedProducerOfThreadContext-label",
                         "Thread context type was not propagated.");
                 Assert.assertEquals(Buffer.get().toString(), "",

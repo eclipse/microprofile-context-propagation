@@ -70,6 +70,7 @@ public class BasicCDITest extends Arquillian {
 
         return ShrinkWrap.create(WebArchive.class, BasicCDITest.class.getSimpleName() + ".war")
                 .addClass(CDIBean.class)
+                .addClass(CdiBeanProducer.class)
                 .addClass(BasicCDITest.class)
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml")
                 .addAsLibraries(fakeContextProviders);
