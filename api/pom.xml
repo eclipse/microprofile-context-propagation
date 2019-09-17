@@ -27,12 +27,4 @@
 
     <name>MicroProfile Context Propagation</name>
     <description>MicroProfile Context Propagation :: API</description>
-
-    <dependencies>
-        <dependency>
-            <groupId>javax.enterprise</groupId>
-            <artifactId>cdi-api</artifactId>
-            <version>2.0</version>
-        </dependency>
-    </dependencies>
 </project>
