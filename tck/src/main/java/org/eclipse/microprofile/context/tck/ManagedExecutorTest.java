@@ -18,9 +18,7 @@
  */
 package org.eclipse.microprofile.context.tck;
 
-import java.lang.annotation.Annotation;
 import java.io.CharConversionException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
@@ -48,8 +46,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.spi.CDI;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
+import javax.transaction.Status;
+import javax.transaction.UserTransaction;
 
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.context.tck.contexts.buffer.spi.BufferContextProvider;
@@ -1586,6 +1588,9 @@ public class ManagedExecutorTest extends Arquillian {
      * transaction, but that isn't possible without the TCK having a dependency on a particular
      * type of transactional resource.
      *
+     * The test tries to get hold of {@code UserTransaction} via JNDI and via CDI.
+     * Should neither work, it still doesn't throw exception but instead returns.
+     *
      * @throws Exception indicates test failure
      */
     @Test
@@ -1602,61 +1607,47 @@ public class ManagedExecutorTest extends Arquillian {
             return;
         }
 
-        Class<?> userTransaction;
-        try {
-            userTransaction = Class.forName("javax.transaction.UserTransaction");
-        }
-        catch (ClassNotFoundException x) {
-            System.out.println("Skipping test propagateTransactionContextJTA. javax.transaction.UserTransaction not available to applications.");
-            return;
-        }
-
-        Object txFromJNDI = null;
+        // try to get UserTransaction via JNDI
+        UserTransaction txFromJNDI = null;
         try {
             txFromJNDI = InitialContext.doLookup("java:comp/UserTransaction");
-            System.out.println("JTA UserTransaction is available in JNDI.");
         }
         catch (NamingException x) {
-            System.out.println("JTA UserTransaction not available in JNDI: " + x);
+            // JTA UserTransaction not available in JNDI
         }
 
-        Object txFromCDI = null;
+        // try to get UserTransaction via CDI
+        UserTransaction txFromCDI = null;
         try {
-            // txFromCDI = CDI.current().select(UserTransaction.class).get();
-            Class<?> cdi = Class.forName("javax.enterprise.inject.spi.CDI");
-            Object current = cdi.getMethod("current").invoke(null);
-            Object instance = cdi.getMethod("select", Class.class, Annotation[].class).invoke(current, userTransaction, new Annotation[] {});
-            txFromCDI = instance.getClass().getMethod("get").invoke(instance);
-            System.out.println("JTA UserTransaction is available via CDI.");
+            CDI<Object> cdi = CDI.current();
+            Instance<UserTransaction> transactionInstance = cdi.select(UserTransaction.class);
+            if (transactionInstance.isResolvable()) {
+                // UserTransaction available via CDI
+                txFromCDI = transactionInstance.get();
+            } else {
+                System.out.println("CDI implementation is present, but UserTransaction cannot be retrieved.");
+            }
         }
-        catch (RuntimeException | InvocationTargetException x) {
-            System.out.println("JTA UserTransaction not available via CDI: " +
-                    (x instanceof InvocationTargetException ? x.getCause() : x));
+        catch (IllegalStateException x) {
+            System.out.println("CDI implementation not present, cannot retrieve UserTransaction from CDI." + x);
         }
 
-        Object tx = txFromJNDI == null ? txFromCDI : txFromJNDI;
+        UserTransaction tx = txFromJNDI == null ? txFromCDI : txFromJNDI;
         if (tx == null) {
             System.out.println("Skipping test propagateTransactionContextJTA. JTA transactions are not supported.");
             return;
         }
-
-        System.out.println("Using JTA UserTransaction: " + tx);
-
-        Method begin = userTransaction.getMethod("begin");
-        Method commit = userTransaction.getMethod("commit");
-        Method getStatus = userTransaction.getMethod("getStatus");
-        Method rollback = userTransaction.getMethod("rollback");
 
         // Propagate context from thread where no transaction is active
         CompletableFuture<String> stage0 = executor.newIncompleteFuture();
 
         CompletableFuture<String> stage1 = stage0.thenApply(s -> {
             try {
-                Assert.assertEquals(getStatus.invoke(tx), 6, // javax.transaction.Status.STATUS_NO_TRANSACTION
+                Assert.assertEquals(tx.getStatus(), Status.STATUS_NO_TRANSACTION,
                         "Transaction status should indicate no transaction is active on thread.");
 
-                begin.invoke(tx);
-                commit.invoke(tx);
+                tx.begin();
+                tx.commit();
 
                 return "SUCCESS1";
             }
@@ -1668,20 +1659,20 @@ public class ManagedExecutorTest extends Arquillian {
         CompletableFuture<String> stage2;
 
         boolean txPropagationRejected = false;
-        begin.invoke(tx);
+        tx.begin();
         try {
             // Force stage1 to run on thread where transaction context is already present
             Assert.assertTrue(stage0.complete("READY"));
             Assert.assertEquals(stage1.join(), "SUCCESS1");
 
-            Assert.assertEquals(getStatus.invoke(tx), 0, // javax.transaction.Status.STATUS_ACTIVE
+            Assert.assertEquals(tx.getStatus(), Status.STATUS_ACTIVE,
                     "Transaction no longer active after running task.");
 
             // Attempt to propagate this transaction to another thread.
             try {
                 stage2 = stage1.thenApplyAsync(s -> {
                     try {
-                        Assert.assertEquals(getStatus.invoke(tx), 0, // javax.transaction.Status.STATUS_ACTIVE
+                        Assert.assertEquals(tx.getStatus(), Status.STATUS_ACTIVE,
                                 "Transaction context not propagated.");
 
                         return "SUCCESS2";
@@ -1716,10 +1707,10 @@ public class ManagedExecutorTest extends Arquillian {
         }
         finally {
             if (txPropagationRejected) {
-                rollback.invoke(tx);
+                tx.rollback();
             }
             else {
-                commit.invoke(tx);
+                tx.commit();
             }
         }
     }
