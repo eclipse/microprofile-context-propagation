@@ -39,6 +39,12 @@ backed by managed threads (threads that are managed by the container),
 with the ability to capture context from the thread that creates the
 CompletableFuture and apply it when running the CompletionStage action.
 
+[[documentation]]
+Documentation
+~~~~~~~~~~~~~
+
+For links to the latest Javadoc and specification document, see the link:https://github.com/eclipse/microprofile-context-propagation/releases/latest[latest release].
+
 [[motivation]]
 Motivation
 ~~~~~~~~~~
