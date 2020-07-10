@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -1549,23 +1549,20 @@ public class ManagedExecutorTest extends Arquillian {
      */
     @Test
     public void propagateApplicationContext() throws ExecutionException, InterruptedException, TimeoutException {
+        ClassLoader appClassLoader = Thread.currentThread().getContextClassLoader();
+
         ManagedExecutor.Builder builder = ManagedExecutor.builder()
                 .propagated(ThreadContext.APPLICATION)
                 .cleared(ThreadContext.ALL_REMAINING);
 
-        ManagedExecutor executor;
-        try {
-            executor = builder.build();
-        }
-        catch (IllegalStateException x) {
-            return; // Skip test if Application context is not supported.
-        }
+        ManagedExecutor executor = builder.build();
 
         try {
             CompletableFuture<Class<?>> cf = executor.supplyAsync(() -> {
                 try {
                     // load a class from the application
                     ClassLoader loader = Thread.currentThread().getContextClassLoader();
+                    Assert.assertEquals(loader, appClassLoader);
                     return loader.loadClass("org.eclipse.microprofile.context.tck.contexts.label.Label");
                 }
                 catch (ClassNotFoundException x) {
