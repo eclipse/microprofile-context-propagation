@@ -177,17 +177,15 @@ by implementations that are also Jakarta/Java EE application servers.
 
 // TODO: insert links to implementation defaults here, once available
 
-Applications can achieve portability across implementations with respect to propagated
-context types either by explicitly specifying the context propagation on the builder
-or by explicitly configuring the desired defaults via MicroProfile Config properties.
+You can define your own defaults for context propagation via MicroProfile Config properties.
 For example,
 
 [source,java]
 ----
-mp.context.ManagedExecutor.propagated=Application,CDI,Security
-mp.context.ManagedExecutor.cleared=Remaining
-mp.context.ThreadContext.propagated=Application,CDI,Security
-mp.context.ThreadContext.cleared=Remaining
+mp.context.ManagedExecutor.cleared=Transaction
+mp.context.ManagedExecutor.propagated=Remaining
+mp.context.ThreadContext.cleared=Transaction
+mp.context.ThreadContext.propagated=Remaining
 ----
 
 [[spi-for-context-providers]]
