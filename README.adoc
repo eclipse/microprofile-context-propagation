@@ -163,6 +163,31 @@ to define and manage single instances across an application:
   @Inject @MyQualifier ManagedExecutor executor;
 ----
 
+[[context-propagation-defaults]]
+Context Propagation Defaults
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The MicroProfile Context Propagation specification does not define a default set of
+context types that must be propagated in the absence of explicit configuration.
+Implementations of MicroProfile Context Propagation are encouraged to default to
+propagating all available context types unless doing so would cause unexpected behavior.
+For consistency with the Jakarta/Java EE Concurrency programming model,
+transaction context may be cleared by default, rather than propagated by default,
+by implementations that are also Jakarta/Java EE application servers.
+
+// TODO: insert links to implementation defaults here, once available
+
+You can define your own defaults for context propagation via MicroProfile Config properties.
+For example,
+
+[source,java]
+----
+mp.context.ManagedExecutor.cleared=Transaction
+mp.context.ManagedExecutor.propagated=Remaining
+mp.context.ThreadContext.cleared=Transaction
+mp.context.ThreadContext.propagated=Remaining
+----
+
 [[spi-for-context-providers]]
 SPI for Thread Context Providers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
