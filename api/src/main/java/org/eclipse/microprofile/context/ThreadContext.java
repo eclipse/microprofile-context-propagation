@@ -22,6 +22,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
@@ -29,6 +30,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.eclipse.microprofile.context.spi.ContextManagerProvider;
+import org.eclipse.microprofile.context.spi.ContextManager;
 
 /**
  * This interface offers various methods for capturing the context of the current thread
@@ -483,8 +485,12 @@ public interface ThreadContext {
      * <p>Returns a new <code>CompletableFuture</code> that is completed by the completion of the
      * specified stage.</p>
      *
-     * <p>The new completable future is backed by a ThreadContext rather than a ManagedExecutor.
-     * Therefore, the new stage and all dependent stages created from it, and so forth,
+     * <p>The new completable future will use the same default executor as this ThreadContext,
+     * which can be a ManagedExecutor if this ThreadContext was obtained by {@link ManagedExecutor#getThreadContext()}
+     * or the default executor service if provided by the platform (which can be done via 
+     * {@link ContextManager.Builder#withDefaultExecutorService(ExecutorService)}), or otherwise have no default executor.</p>
+     * 
+     * <p>If this thread context has no default executor, the new stage and all dependent stages created from it, and so forth,
      * have no default asynchronous execution facility and must raise {@link java.lang.UnsupportedOperationException}
      * for all <code>*Async</code> methods that do not specify an executor. For example,
      * {@link java.util.concurrent.CompletionStage#thenRunAsync(Runnable) thenRunAsync(Runnable)}.</p>
@@ -511,8 +517,12 @@ public interface ThreadContext {
      * <p>Returns a new <code>CompletionStage</code> that is completed by the completion of the
      * specified stage.</p>
      *
-     * <p>The new completion stage is backed by a ThreadContext rather than a ManagedExecutor.
-     * Therefore, the new stage and all dependent stages created from it, and so forth,
+     * <p>The new completion stage will use the same default executor as this ThreadContext,
+     * which can be a ManagedExecutor if this ThreadContext was obtained by {@link ManagedExecutor#getThreadContext()}
+     * or the default executor service if provided by the platform (which can be done via 
+     * {@link ContextManager.Builder#withDefaultExecutorService(ExecutorService)}), or otherwise have no default executor.</p>
+     * 
+     * <p>If this thread context has no default executor, the new stage and all dependent stages created from it, and so forth,
      * have no default asynchronous execution facility and must raise {@link java.lang.UnsupportedOperationException}
      * for all <code>*Async</code> methods that do not specify an executor. For example,
      * {@link java.util.concurrent.CompletionStage#thenRunAsync(Runnable) thenRunAsync(Runnable)}.</p>
