@@ -30,7 +30,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
 
-        <checkstyle.version>3.0.0</checkstyle.version>
+        <checkstyle.version>3.1.1</checkstyle.version>
         <checkstyle.methodNameFormat>^_?[a-z][a-zA-Z0-9]*$</checkstyle.methodNameFormat>
         <!-- whether autorelease maven central staging repositories - default true to allow review and manually release repositories -->
         <autorelease>false</autorelease>

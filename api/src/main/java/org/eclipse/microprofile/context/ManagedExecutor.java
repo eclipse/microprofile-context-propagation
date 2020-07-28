@@ -25,6 +25,8 @@ import java.util.function.Supplier;
 
 import org.eclipse.microprofile.context.spi.ContextManagerProvider;
 
+import org.eclipse.microprofile.context.spi.ContextManager;
+
 /**
  * <p>A container-managed executor service that creates instances of CompletableFuture,
  * which it backs as the default asynchronous execution facility, both for the
@@ -110,6 +112,11 @@ import org.eclipse.microprofile.context.spi.ContextManagerProvider;
  * including those obtained via mechanisms defined by EE Concurrency, must raise
  * IllegalStateException upon invocation of the aforementioned life cycle methods,
  * in order to preserve compatibility with that specification.</p>
+ * 
+ * <p>Managed executors can forward all contextualised async tasks to a backing executor service
+ * if set with {@link ContextManager.Builder#withDefaultExecutorService(ExecutorService)}.
+ * Otherwise, a new backing executor service may be created, unless the implementation has its own
+ * default executor service.</p>
  */
 public interface ManagedExecutor extends ExecutorService {
     /**
@@ -352,4 +359,76 @@ public interface ManagedExecutor extends ExecutorService {
      * @return the new completion stage.
      */
     <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier);
+
+    /**
+     * <p>
+     * Returns a new <code>CompletableFuture</code> that is completed by the completion of the
+     * specified stage.
+     * </p>
+     *
+     * <p>
+     * The new completable future is backed by the ManagedExecutor upon which copy is invoked,
+     * which serves as the default asynchronous execution facility
+     * for the new stage and all dependent stages created from it, and so forth.
+     * </p>
+     *
+     * <p>
+     * When dependent stages are created from the new completable future, thread context is captured
+     * and/or cleared by the ManagedExecutor. This guarantees that the action
+     * performed by each stage always runs under the thread context of the code that creates the stage,
+     * unless the user explicitly overrides by supplying a pre-contextualized action.
+     * </p>
+     *
+     * <p>
+     * Invocation of this method does not impact thread context propagation for the supplied
+     * completable future or any dependent stages created from it, other than the new dependent
+     * completable future that is created by this method.
+     * </p>
+     *
+     * @param <T> completable future result type.
+     * @param stage a completable future whose completion triggers completion of the new completable
+     *        future that is created by this method.
+     * @return the new completable future.
+     */
+    <T> CompletableFuture<T> copy(CompletableFuture<T> stage);
+
+    /**
+     * <p>
+     * Returns a new <code>CompletionStage</code> that is completed by the completion of the
+     * specified stage.
+     * </p>
+     *
+     * <p>
+     * The new completion stage is backed by the ManagedExecutor upon which copy is invoked,
+     * which serves as the default asynchronous execution facility
+     * for the new stage and all dependent stages created from it, and so forth.
+     * </p>
+     *
+     * <p>
+     * When dependent stages are created from the new completion stage, thread context is captured
+     * and/or cleared by the ManagedExecutor. This guarantees that the action
+     * performed by each stage always runs under the thread context of the code that creates the stage,
+     * unless the user explicitly overrides by supplying a pre-contextualized action.
+     * </p>
+     *
+     * <p>
+     * Invocation of this method does not impact thread context propagation for the supplied
+     * stage or any dependent stages created from it, other than the new dependent
+     * completion stage that is created by this method.
+     * </p>
+     *
+     * @param <T> completion stage result type.
+     * @param stage a completion stage whose completion triggers completion of the new stage
+     *        that is created by this method.
+     * @return the new completion stage.
+     */
+    <T> CompletionStage<T> copy(CompletionStage<T> stage);
+
+    /**
+     * Returns a <code>ThreadContext</code> which has the same propagation settings as this <code>ManagedExecutor</code>,
+     * which uses this <code>ManagedExecutor</code> as its default executor.
+     * 
+     * @return a ThreadContext with the same propagation settings as this ManagedExecutor.
+     */
+    ThreadContext getThreadContext();
 }

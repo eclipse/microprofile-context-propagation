@@ -18,6 +18,8 @@
  */
 package org.eclipse.microprofile.context.spi;
 
+import java.util.concurrent.ExecutorService;
+
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.context.ThreadContext;
 
@@ -88,7 +90,17 @@ public interface ContextManager {
          * @return this builder
          */
         public Builder forClassLoader(ClassLoader classLoader);
-        
+
+        /**
+         * Use the given {@link ExecutorService} to execute async tasks for contextualised
+         * {@link CompletableFuture} and {@link CompletionStage} when no executor is specified.
+         * 
+         * @param executorService the {@link ExecutorService} to use for async tasks when
+         * no executor is specified.
+         * @return this builder
+         */
+        public Builder withDefaultExecutorService(ExecutorService executorService);
+
         /**
          * <p>Creates a new {@link ContextManager} with the specified configuration.</p>
          * 
