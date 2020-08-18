@@ -946,14 +946,6 @@ public class ThreadContextTest extends Arquillian {
             // guarantees about context propagation
             CompletableFuture<Integer> unmanagedStage5 = unmanagedStage1.thenApply(i -> i / 2);
 
-            try {
-                CompletableFuture<Integer> stage6 = stage4.thenApplyAsync(i -> i / 5);
-                Assert.fail("Should not be able to create async completion stage because withContextCapture provides no executor. " + stage6);
-            }
-            catch (UnsupportedOperationException x) {
-                // test passes, CompletableFutures from withContextCapture are not backed by an executor
-            }
-
             Label.set("withContextCapture-CompletableFuture-test-label-E");
 
             unmanagedStage1.complete(1010);
@@ -1064,14 +1056,6 @@ public class ThreadContextTest extends Arquillian {
 
                 return i - 2345;
             }, labelContextExecutor); // supplied executor runs the action, but does not determine context propagation
-
-            try {
-                CompletionStage<Void> stage5 = stage4.thenAcceptAsync(i -> System.out.println("This should not ever run."));
-                Assert.fail("Should not be able to create async completion stage because withContextCapture provides no executor. " + stage5);
-            }
-            catch (UnsupportedOperationException x) {
-                // test passes, CompletableFutures from withContextCapture are not backed by an executor
-            }
 
             Buffer.set(new StringBuffer("withContextCapture-CompletionStage-test-buffer-E"));
 
