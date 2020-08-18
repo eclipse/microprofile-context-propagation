@@ -49,6 +49,8 @@ import org.eclipse.microprofile.context.tck.contexts.label.spi.LabelContextProvi
 import org.eclipse.microprofile.context.tck.contexts.priority.spi.ThreadPriorityContextProvider;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.context.ThreadContext;
+import org.eclipse.microprofile.context.spi.ContextManager;
+import org.eclipse.microprofile.context.spi.ContextManagerProvider;
 import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
@@ -57,6 +59,7 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.Assert;
 import org.testng.ITestResult;
+import org.testng.SkipException;
 import org.testng.annotations.Test;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
@@ -115,7 +118,7 @@ public class ThreadContextTest extends Arquillian {
                 .addAsServiceProvider(ThreadContextProvider.class, BufferContextProvider.class, LabelContextProvider.class);
 
         return ShrinkWrap.create(WebArchive.class, ThreadContextTest.class.getSimpleName() + ".war")
-                .addClass(ThreadContextTest.class)
+                .addClasses(ThreadContextTest.class, TckThread.class, TckThreadFactory.class)
                 .addAsLibraries(threadPriorityContextProvider, multiContextProvider);
     }
 
@@ -1423,6 +1426,150 @@ public class ThreadContextTest extends Arquillian {
         finally {
             // Restore original values
             Buffer.set(null);
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that the presence of a default executor service allows contextualised CompletableFuture/CompletionStage
+     * to run async actions on them, and that they are running on that executor service.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
+     */
+    @Test
+    public void withDefaultExecutorServiceContextCanInvokeAsyncActions()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ContextManager.Builder builder = getContextManagerBuilderIfSupported();
+        ExecutorService executorService = Executors.newSingleThreadExecutor(new TckThreadFactory());
+        ContextManager contextManager = builder
+                .withDefaultExecutorService(executorService)
+                .addDiscoveredThreadContextProviders()
+                .build();
+        ThreadContext labelContext = contextManager.newThreadContextBuilder()
+                .propagated(Label.CONTEXT_NAME)
+                .unchanged()
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        try {
+            // Set non-default values
+            Label.set("default-executor-service-context-test-label-A");
+            
+            CompletableFuture<String> noContextCF = new CompletableFuture<>();
+            CompletableFuture<String> noContextCFStage1 = noContextCF.thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "",
+                        "Context type should not be propagated to non-contextual action.");
+
+                return res;
+            });
+
+            CompletableFuture<String> contextCF = labelContext.withContextCapture(noContextCFStage1).thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "default-executor-service-context-test-label-A",
+                        "Context type should be propagated to contextual CompletableFuture.");
+                
+                Assert.assertTrue(Thread.currentThread() instanceof TckThread,
+                        "Current thread should have been created by default executor service");
+                return res;
+            });
+
+            CompletionStage<String> contextCS = labelContext.withContextCapture((CompletionStage<String>)noContextCFStage1).thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "default-executor-service-context-test-label-A",
+                        "Context type should be propagated to contextual CompletionStage.");
+                
+                Assert.assertTrue(Thread.currentThread() instanceof TckThread,
+                        "Current thread should have been created by default executor service");
+                return res;
+            });
+
+            noContextCF.complete("OK");
+            contextCF.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+            contextCS.toCompletableFuture().get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+        }
+        finally {
+            // Restore original values
+            Label.set(null);
+            executorService.shutdownNow();
+        }
+    }
+
+    static ContextManager.Builder getContextManagerBuilderIfSupported() {
+        try {
+            return ContextManagerProvider
+                .instance()
+                .getContextManagerBuilder();
+        } catch(UnsupportedOperationException x) {
+            // optional operation: skip
+            throw new SkipException("getContextManagerBuilder not supported", x);
+        }
+    }
+
+    /**
+     * Verify that the lack of a default executor service bans contextualised CompletableFuture/CompletionStage
+     * from running async actions on them.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
+     */
+    @Test
+    public void withoutDefaultExecutorServiceContextCannotInvokeAsyncActions()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ContextManager contextManager;
+        boolean noExecutorService = false;
+        try {
+            contextManager = getContextManagerBuilderIfSupported()
+                    .addDiscoveredThreadContextProviders()
+                    .withDefaultExecutorService(null)
+                    .build();
+            noExecutorService = true;
+        } catch (SkipException x) {
+            // not supported, use the default but we don't know if it will support async methods
+            contextManager = ContextManagerProvider.instance().getContextManager();
+        }
+        ThreadContext labelContext = contextManager.newThreadContextBuilder()
+                .propagated(Label.CONTEXT_NAME)
+                .unchanged()
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        try {
+            // Set non-default values
+            Label.set("default-executor-service-context-test-label-A");
+            
+            CompletableFuture<String> noContextCF = new CompletableFuture<>();
+            CompletableFuture<String> noContextCFStage1 = noContextCF.thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "",
+                        "Context type should not be propagated to non-contextual action.");
+
+                return res;
+            });
+
+            try {
+                labelContext.withContextCapture(noContextCFStage1).thenApplyAsync(res -> res);
+                // if we were able to set an empty executor service, this must throw, otherwise
+                // it's implementation-dependent
+                if(noExecutorService) {
+                    Assert.fail("Async action should not be allowed without a default executor service");
+                }
+            } catch (UnsupportedOperationException x) {
+                // this can happen if we have no executor service, because noExecutorService is true, or
+                // because the implementation doesn't have one
+            }
+
+            try {
+                labelContext.withContextCapture((CompletionStage<String>)noContextCFStage1).thenApplyAsync(res -> res);
+                // if we were able to set an empty executor service, this must throw, otherwise
+                // it's implementation-dependent
+                if(noExecutorService) {
+                    Assert.fail("Async action should not be allowed without a default executor service");
+                }
+            } catch (UnsupportedOperationException x) {
+                // this can happen if we have no executor service, because noExecutorService is true, or
+                // because the implementation doesn't have one
+            }
+        }
+        finally {
+            // Restore original values
             Label.set(null);
         }
     }

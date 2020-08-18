@@ -60,6 +60,7 @@ import org.eclipse.microprofile.context.tck.contexts.label.spi.LabelContextProvi
 import org.eclipse.microprofile.context.tck.contexts.priority.spi.ThreadPriorityContextProvider;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.context.ThreadContext;
+import org.eclipse.microprofile.context.spi.ContextManager;
 import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
@@ -123,7 +124,7 @@ public class ManagedExecutorTest extends Arquillian {
                         BufferContextProvider.class, LabelContextProvider.class, ThreadPriorityContextProvider.class);
 
         return ShrinkWrap.create(WebArchive.class, ManagedExecutorTest.class.getSimpleName() + ".war")
-                .addClass(ManagedExecutorTest.class)
+                .addClasses(ManagedExecutorTest.class, TckThread.class, TckThreadFactory.class, ThreadContextTest.class)
                 .addAsLibraries(fakeContextProviders);
     }
 
@@ -2757,6 +2758,204 @@ public class ManagedExecutorTest extends Arquillian {
             // Restore original values
             Buffer.set(null);
             Label.set(null);
+        }
+    }
+    
+    /**
+     * Verify that we can copy a CompletableFuture and get context propagation in the copy's dependent stages.
+     * 
+     * @throws InterruptedException indicates test failure
+     * @throws ExecutionException indicates test failure
+     * @throws TimeoutException indicates test failure
+     */
+    @Test
+    public void copyCompletableFuture() throws InterruptedException, ExecutionException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .maxAsync(1)
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        try {
+            // Set non-default values
+            Label.set("copy-test-label-A");
+
+            CompletableFuture<String> noContextCF = new CompletableFuture<>();
+            CompletableFuture<String> noContextCFStage1 = noContextCF.thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "",
+                        "Context type should not be propagated to non-contextual action.");
+
+                return res;
+            });
+            
+            CompletableFuture<String> contextCF = executor.copy(noContextCFStage1).thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "copy-test-label-A",
+                        "Context type should be propagated to contextual action.");
+                
+                return res;
+            });
+            
+            noContextCF.complete("OK");
+            contextCF.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that we can copy a CompletionStage and get context propagation in the copy's dependent stages.
+     * 
+     * @throws InterruptedException indicates test failure
+     * @throws ExecutionException indicates test failure
+     * @throws TimeoutException indicates test failure
+     */
+    @Test
+    public void copyCompletionStage() throws InterruptedException, ExecutionException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .maxAsync(1)
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        try {
+            // Set non-default values
+            Label.set("copy-test-label-A");
+
+            CompletableFuture<String> noContextCF = new CompletableFuture<>();
+            CompletionStage<String> noContextCFStage1 = noContextCF.thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "",
+                        "Context type should not be propagated to non-contextual action.");
+
+                return res;
+            });
+            
+            CompletionStage<String> contextCF = executor.copy(noContextCFStage1).thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "copy-test-label-A",
+                        "Context type should be propagated to contextual action.");
+                
+                return res;
+            });
+            
+            noContextCF.complete("OK");
+            contextCF.toCompletableFuture().get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Label.set(null);
+        }
+    }
+
+    /**
+     * Verify that we can obtain a ThreadContext with the same settings as the ManagedExecutor
+     * 
+     * @throws InterruptedException indicates test failure
+     * @throws ExecutionException indicates test failure
+     * @throws TimeoutException indicates test failure
+     */
+    @Test
+    public void threadContextHasSamePropagationSettings() throws InterruptedException, ExecutionException, TimeoutException {
+        ManagedExecutor executor = ManagedExecutor.builder()
+                .maxAsync(1)
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+
+        try {
+            // Set non-default values
+            Label.set("thread-context-test-label-A");
+            Buffer.set(new StringBuffer("thread-context-test-buffer-A"));
+
+            executor.getThreadContext().contextualRunnable(() -> {
+                Assert.assertEquals(Label.get(), "thread-context-test-label-A",
+                        "getThreadContext call is lacking propagation of Label context.");
+                
+                Assert.assertEquals(Buffer.get().toString(), "",
+                        "getThreadContext call is lacking clearance of Buffer context.");
+            }).run();
+        }
+        finally {
+            executor.shutdownNow();
+            // Restore original values
+            Label.set(null);
+            Buffer.set(null);
+        }
+    }
+
+    /**
+     * Verify that the presence of a default executor service implies async actions run on it.
+     *
+     * @throws ExecutionException indicates test failure
+     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException indicates test failure
+     */
+    @Test
+    public void withDefaultExecutorServiceIsUsedDirectlyAndViaGetThreadContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        ExecutorService executorService = Executors.newSingleThreadExecutor(new TckThreadFactory());
+        ContextManager contextManager = ThreadContextTest.getContextManagerBuilderIfSupported()
+                .withDefaultExecutorService(executorService)
+                .addDiscoveredThreadContextProviders()
+                .build();
+        ManagedExecutor executor = contextManager.newManagedExecutorBuilder()
+                .propagated(Label.CONTEXT_NAME)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .build();
+        try {
+            // Set non-default values
+            Label.set("default-executor-service-managed-executor-test-label-A");
+            
+            
+            // try it directly
+            CompletableFuture<String> contextCF = executor.newIncompleteFuture();
+            CompletableFuture<String> contextCFStage1 = contextCF.thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "default-executor-service-managed-executor-test-label-A",
+                        "Context type should be propagated to contextual CompletableFuture.");
+                
+                Assert.assertTrue(Thread.currentThread() instanceof TckThread,
+                        "Current thread should have been created by default executor service");
+
+                return res;
+            });
+
+            // and indirectly
+            CompletableFuture<String> noContextCF = new CompletableFuture<>();
+            CompletableFuture<String> contextCFStage2 = executor.getThreadContext().withContextCapture(noContextCF);
+            CompletableFuture<String> contextCFStage3 = contextCFStage2.thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "default-executor-service-managed-executor-test-label-A",
+                        "Context type should be propagated to contextual CompletableFuture.");
+                
+                Assert.assertTrue(Thread.currentThread() instanceof TckThread,
+                        "Current thread should have been created by default executor service");
+
+                return res;
+            });
+            
+            CompletionStage<String> contextCSStage1 = executor.getThreadContext().withContextCapture((CompletionStage<String>)noContextCF);
+            CompletionStage<String> contextCSStage2 = contextCSStage1.thenApplyAsync(res -> {
+                Assert.assertEquals(Label.get(), "default-executor-service-managed-executor-test-label-A",
+                        "Context type should be propagated to contextual CompletionStage.");
+                
+                Assert.assertTrue(Thread.currentThread() instanceof TckThread,
+                        "Current thread should have been created by default executor service");
+
+                return res;
+            });
+
+            noContextCF.complete("OK");
+            contextCF.complete("OK");
+            contextCFStage1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+            contextCFStage3.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+            contextCSStage2.toCompletableFuture().get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+        }
+        finally {
+            // Restore original values
+            Label.set(null);
+            executorService.shutdownNow();
+            executor.shutdownNow();
         }
     }
 }
