@@ -1557,8 +1557,17 @@ public class ManagedExecutorTest extends Arquillian {
 
         ManagedExecutor executor = builder.build();
 
+        ExecutorService unmanagedSingleThreadExecutor = Executors.newFixedThreadPool(1);
         try {
-            CompletableFuture<Class<?>> cf = executor.supplyAsync(() -> {
+            // Set the class loader of the single thread upon which unmanagedSingleThreadExecutor runs tasks
+            ClassLoader newClassLoader = unmanagedSingleThreadExecutor.submit(() -> {
+                ClassLoader loader = new ClassLoader() {};
+                Thread.currentThread().setContextClassLoader(loader);
+                return loader;
+            }).get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            // Use a ManagedExecutor to apply context to an operation that runs on unmanagedSingleThreadExecutor
+            CompletableFuture<Class<?>> cf = executor.completedFuture(1).thenApplyAsync(i -> {
                 try {
                     // load a class from the application
                     ClassLoader loader = Thread.currentThread().getContextClassLoader();
@@ -1568,13 +1577,21 @@ public class ManagedExecutorTest extends Arquillian {
                 catch (ClassNotFoundException x) {
                     throw new CompletionException(x);
                 }
-            });
+            }, unmanagedSingleThreadExecutor);
 
             Assert.assertEquals(cf.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Label.class,
                     "Could not load class from application's class loader.");
+
+            // Verify that the class loader of unmanagedSingleThreadExecutor was restored after
+            // running the previous task.
+            unmanagedSingleThreadExecutor.submit(() -> {
+                ClassLoader loader = Thread.currentThread().getContextClassLoader();
+                Assert.assertEquals(loader, newClassLoader);
+            }).get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
         }
         finally {
             executor.shutdownNow();
+            unmanagedSingleThreadExecutor.shutdownNow();
         }
     }
 
