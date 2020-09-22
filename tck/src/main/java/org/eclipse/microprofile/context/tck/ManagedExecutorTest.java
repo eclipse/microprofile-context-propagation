@@ -20,8 +20,10 @@ package org.eclipse.microprofile.context.tck;
 
 import java.io.CharConversionException;
 import java.lang.reflect.Method;
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -1567,27 +1569,31 @@ public class ManagedExecutorTest extends Arquillian {
             }).get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
 
             // Use a ManagedExecutor to apply context to an operation that runs on unmanagedSingleThreadExecutor
-            CompletableFuture<Class<?>> cf = executor.completedFuture(1).thenApplyAsync(i -> {
+            CompletableFuture<Map.Entry<ClassLoader, Class<?>>> cf = executor.completedFuture(1).thenApplyAsync(i -> {
                 try {
                     // load a class from the application
                     ClassLoader loader = Thread.currentThread().getContextClassLoader();
-                    Assert.assertEquals(loader, appClassLoader);
-                    return loader.loadClass("org.eclipse.microprofile.context.tck.contexts.label.Label");
+                    return new SimpleEntry<ClassLoader, Class<?>>(
+                            loader,
+                            loader.loadClass("org.eclipse.microprofile.context.tck.contexts.label.Label"));
                 }
                 catch (ClassNotFoundException x) {
                     throw new CompletionException(x);
                 }
             }, unmanagedSingleThreadExecutor);
 
-            Assert.assertEquals(cf.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Label.class,
-                    "Could not load class from application's class loader.");
+            Map.Entry<ClassLoader, Class<?>> result = cf.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+            Assert.assertEquals(result.getKey(), appClassLoader);
+            Assert.assertEquals(result.getValue(), Label.class,
+                    "Did not properly load class from application's class loader.");
 
             // Verify that the class loader of unmanagedSingleThreadExecutor was restored after
             // running the previous task.
-            unmanagedSingleThreadExecutor.submit(() -> {
-                ClassLoader loader = Thread.currentThread().getContextClassLoader();
-                Assert.assertEquals(loader, newClassLoader);
+            ClassLoader loaderForSingleThreadExecutor = unmanagedSingleThreadExecutor.submit(() -> {
+                return Thread.currentThread().getContextClassLoader();
             }).get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
+
+            Assert.assertEquals(loaderForSingleThreadExecutor, newClassLoader);
         }
         finally {
             executor.shutdownNow();
