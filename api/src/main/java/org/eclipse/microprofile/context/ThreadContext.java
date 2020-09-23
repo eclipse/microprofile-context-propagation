@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -236,9 +236,10 @@ public interface ThreadContext {
 
     /**
      * Identifier for application context. Application context controls the
-     * application component that is associated with a thread. It can determine
-     * the thread context class loader as well as the set of resource references
-     * that are available for lookup or resource injection. An empty/default
+     * application component that is associated with a thread.
+     * For Jakarta/Java EE applications, application context includes the
+     * thread context class loader as well as the java:comp, java:module,
+     * and java:app name spaces of the application. An empty/default
      * application context means that the thread is not associated with any
      * application.
      *
