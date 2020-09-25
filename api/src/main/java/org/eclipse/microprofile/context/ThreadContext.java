@@ -303,11 +303,19 @@ public interface ThreadContext {
     static final String CDI = "CDI";
 
     /**
-     * An empty array of thread context.
-     * This is provided as a convenience for code that wishes to be more explicit.
+     * <p>An empty array of thread context.</p>
+     *
+     * <p>This is provided as a convenience for code that wishes to be more explicit.
      * For example, you can specify <code>builder.propagated(ThreadContext.NONE)</code>
      * rather than <code>builder.propagated(new String[0])</code>
-     * or <code>builder.propagated()</code>, all of which have the same meaning.
+     * or <code>builder.propagated()</code>, all of which have the same meaning.</p>
+     *
+     * <p>When using MicroProfile Config to specify defaults, the value
+     * <code>None</code> indicates an empty array. For example,
+     * <pre>mp.context.ThreadContext.unchanged=None</pre>
+     * or
+     * <pre>mp.context.ManagedExecutor.propagated=None</pre>
+     * </p>
      */
     static final String[] NONE = new String[0];
 

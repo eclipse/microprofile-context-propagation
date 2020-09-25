@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2019 Contributors to the Eclipse Foundation
+// Copyright (c) 2019,2020 Contributors to the Eclipse Foundation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ As another example, the following MicroProfile Config properties establish defau
 
 [source, text]
 ----
-mp.context.ThreadContext.propagated=
+mp.context.ThreadContext.propagated=None
 mp.context.ThreadContext.cleared=Security,Transaction
 mp.context.ThreadContext.unchanged=Remaining
 ----
@@ -62,17 +62,20 @@ In the code above, the application specifies only the `propagated` attribute, in
 
 When using MicroProfile Config to define defaults for array type properties (`propagated`, `cleared`, and `unchanged`), the following rules apply for config property values:
 
-- The value can be a single array element, multiple elements (delimited by `,`), or empty.
+- The value can be a single array element, multiple elements (delimited by `,`), or the value ``None``, which is interpreted as an empty array of context types.
 - Array elements can be any value returned by a ``ThreadContextProvider``'s `getThreadContextType()` method.
 - Array elements can be any thread context type constant value from ThreadContext (such as `Security`, `Application`, or `Remaining`).
 - The usual rules from the MicroProfile Config specification apply, such as escaping special characters.
 
+As of MicroProfile Config 2.0 and above, the value of ``None`` must be used to indicate an empty array.
+Prior to MicroProfile Config 2.0, an empty string value could be used to specify an empty array.
 In order to guarantee that empty string config values are interpreted properly, the MicroProfile Context Propagation implementation must interpret both of the following as indicating empty:
 
 * empty array
 * array containing the empty String as its singular element
 
 This is necessary due to a lack of clarity in the first several versions of the MicroProfile Config specification about how the empty string value is to be interpreted for arrays of String.
+MicroProfile Config 2.0 removed the ability to configure empty arrays and lists altogether.
 
 == Overriding values with MicroProfile Config
 

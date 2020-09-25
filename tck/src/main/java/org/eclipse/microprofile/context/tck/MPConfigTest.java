@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019,2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -106,7 +106,7 @@ public class MPConfigTest extends Arquillian {
                                         "mp.context.ManagedExecutor.propagated=Label,ThreadPriority\n" +
                                         "mp.context.ManagedExecutor.cleared=Remaining\n" +
                                         "mp.context.ThreadContext.cleared=Buffer\n" +
-                                        "mp.context.ThreadContext.propagated=\n" +
+                                        "mp.context.ThreadContext.propagated=None\n" +
                                         "mp.context.ThreadContext.unchanged=Remaining"),
                         "classes/META-INF/microprofile-config.properties")
                 .addAsLibraries(fakeContextProviders);
