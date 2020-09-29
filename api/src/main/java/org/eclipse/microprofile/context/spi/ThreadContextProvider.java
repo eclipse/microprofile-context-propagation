@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -124,6 +124,11 @@ public interface ThreadContextProvider {
      * simultaneously available (for example, two providers of <code>CDI</code> context
      * found on the <code>ServiceLoader</code>). If this is found to be the case,
      * <code>ManagedExecutor</code> and <code>ThreadContext</code> must fail to inject.</p>
+     *
+     * <p>The identifiers <code>None</code> and <code>Remaining</code> have special
+     * meaning, as defined by {@link org.eclipse.microprofile.context.ThreadContext},
+     * and must not be returned from this method by any <code>ThreadContextProvider</code>.
+     * </p>
      *
      * @return identifier for the provided type of thread context.
      */
