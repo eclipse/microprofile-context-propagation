@@ -315,7 +315,6 @@ public interface ThreadContext {
      * <pre>mp.context.ThreadContext.unchanged=None</pre>
      * or
      * <pre>mp.context.ManagedExecutor.propagated=None</pre>
-     * </p>
      */
     static final String[] NONE = new String[0];
 
