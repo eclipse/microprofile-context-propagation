@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2020 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -18,6 +18,8 @@
  */
 package org.eclipse.microprofile.context.spi;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 
 import org.eclipse.microprofile.context.ManagedExecutor;
