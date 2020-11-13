@@ -23,7 +23,7 @@ A full list of changes delivered in the 1.1 release can be found at link:https:/
 
 === Incompatible Changes
 
-None, but refer to the Functional/Specification Changes section regarding an incompatible change from MicroProfile Config 2.0 that impacts this specification.
+None, but refer to the <<Functional/Specification Changes>> section regarding an incompatible change from MicroProfile Config 2.0 that impacts this specification.
 
 === API/SPI Changes
 - API methods for creating context propagation-aware copies of existing completion stages (link:https://github.com/eclipse/microprofile-context-propagation/issues/173[#173])
