@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2020 Contributors to the Eclipse Foundation
 //
 // See the NOTICE file(s) distributed with this work for additional
 // information regarding copyright ownership.
@@ -19,9 +19,29 @@
 [[release_notes_1_1]]
 == Release Notes for MicroProfile Context Propagation 1.1
 
-http://download.eclipse.org/microprofile/microprofile-context-propagation-1.1/microprofile-context-propagation.pdf[MicroProfile Context Propagation Spec PDF]
-http://download.eclipse.org/microprofile/microprofile-context-propagation-1.1/microprofile-context-propagation.html[MicroProfile Context Propagation Spec HTML]
-http://download.eclipse.org/microprofile/microprofile-context-propagation-1.1/apidocs/[MicroProfile Context Propagation Spec Javadocs]
+A full list of changes delivered in the 1.1 release can be found at link:https://github.com/eclipse/microprofile-context-propagation/milestone/2?closed=1[MicroProfile Context Propagation 1.1 Milestone].
+
+=== Incompatible Changes
+
+None, but refer to the <<Functional/Specification Changes>> section regarding an incompatible change from MicroProfile Config 2.0 that impacts this specification.
+
+=== API/SPI Changes
+- API methods for creating context propagation-aware copies of existing completion stages (link:https://github.com/eclipse/microprofile-context-propagation/issues/173[#173])
+- SPI method to determine thread context type clarified to disallow the `None` and `Remaining` values, which have special meaning (link:https://github.com/eclipse/microprofile-context-propagation/pull/199[#199])
+
+=== Functional/Specification Changes
+- Application context clarified to include the thread context class loader and namespace for Jakarta/Java EE applications  (link:https://github.com/eclipse/microprofile-context-propagation/issues/192[#192])
+- Introduces the value `None` for spec-defined MicroProfile Config properties to indicate an empty list of thread context types. Previously, this was configured via an empty value, but an incompatible change in MicroProfile Config 2.0 has switched the meaning of empty value to something else. (link:https://github.com/eclipse/microprofile-context-propagation/issues/160[#160])
+
+=== Other Changes
+
+None.
+
+[[release_notes_1_0]]
+
+== Release Notes for MicroProfile Context Propagation 1.0
+
+A full list of changes delivered in the 1.0 release can be found at link:https://github.com/eclipse/microprofile-context-propagation/milestone/1?closed=1[MicroProfile Context Propagation 1.0 Milestone].
 
 Key features:
 
@@ -30,18 +50,6 @@ Key features:
 - Compatibility with EE Concurrency
 - CDI injection as well as builder pattern
 - Configurable via MicroProfile Config
-
-To get started, add this dependency to your project:
-
-[source,xml]
-----
-<dependency>
-    <groupId>org.eclipse.microprofile.context-propagation</groupId>
-    <artifactId>microprofile-context-propagation-api</artifactId>
-    <version>1.1</version>
-    <scope>provided</scope>
-</dependency>
-----
 
 Use the fluent builder API to construct a `ManagedExecutor`:
 
