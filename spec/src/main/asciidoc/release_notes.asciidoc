@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018,2020 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2021 Contributors to the Eclipse Foundation
 //
 // See the NOTICE file(s) distributed with this work for additional
 // information regarding copyright ownership.
@@ -16,10 +16,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-[[release_notes_1_1]]
-== Release Notes for MicroProfile Context Propagation 1.1
+[[release_notes_1_2]]
+== Release Notes for MicroProfile Context Propagation 1.2
 
-A full list of changes delivered in the 1.1 release can be found at link:https://github.com/eclipse/microprofile-context-propagation/milestone/2?closed=1[MicroProfile Context Propagation 1.1 Milestone].
+A full list of changes delivered in the 1.2 release can be found at link:https://github.com/eclipse/microprofile-context-propagation/milestone/2?closed=1[MicroProfile Context Propagation 1.2 Milestone].
 
 === Incompatible Changes
 
@@ -36,6 +36,11 @@ None, but refer to the <<Functional/Specification Changes>> section regarding an
 === Other Changes
 
 None.
+
+[[release_notes_1_1]]
+== Release Notes for MicroProfile Context Propagation 1.1
+
+The 1.1 release was replaced with the 1.2 release in order to align with the new release process defined by the MicroProfile Working Group. Do not implement or use the 1.1 release.
 
 [[release_notes_1_0]]
 
