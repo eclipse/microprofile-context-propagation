@@ -36,6 +36,9 @@
         <autorelease>false</autorelease>
         <!-- keeping closed repos with failure - default is false because the errors are visible in the maven output, but true will leave the repo open for investigation in Sonatype Nexus -->
         <keepStagingReposOnFailure>false</keepStagingReposOnFailure>
+
+        <revremark>Draft</revremark>
+        <inceptionYear>2018</inceptionYear>
     </properties>
 
     <licenses>
@@ -59,58 +62,9 @@
 
     <developers>
         <developer>
-            <name>Andrew Guibert</name>
-            <url>https://github.com/aguibert</url>
-            <organization>IBM</organization>
-            <organizationUrl>https://www.ibm.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Ken Finnigan</name>
-            <url>https://github.com/kenfinnigan</url>
-            <organization>Red Hat</organization>
-            <organizationUrl>https://redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Martin Stefanko</name>
-            <url>https://github.com/xstefank</url>
-            <organization>Red Hat</organization>
-            <organizationUrl>https://redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Matej Novotny</name>
-            <url>https://github.com/manovotn</url>
-            <organization>Red Hat</organization>
-            <organizationUrl>https://redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Michael Musgrove</name>
-            <url>https://github.com/mmusgrov</url>
-            <organization>Red Hat</organization>
-            <organizationUrl>https://redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Nathan Mittlestat</name>
-            <url>https://github.com/aguibert</url>
-            <organization>IBM</organization>
-            <organizationUrl>https://www.ibm.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Nathan Rauh</name>
-            <url>https://github.com/njr-11</url>
-            <organization>IBM</organization>
-            <organizationUrl>https://www.ibm.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Stéphane Épardaud</name>
-            <url>https://github.com/FroMage</url>
-            <organization>Red Hat</organization>
-            <organizationUrl>https://redhat.com</organizationUrl>
-        </developer>
-        <developer>
-            <name>Tom Jenkinson</name>
-            <url>https://github.com/tomjenkinson</url>
-            <organization>Red Hat</organization>
-            <organizationUrl>https://redhat.com</organizationUrl>
+            <name>MicroProfile Community</name>
+            <url>http://microprofile.io/</url>
+            <organization>Eclipse Foundation</organization>
         </developer>
     </developers>
 
@@ -252,8 +206,32 @@
                         <exclude>.checkstyle</exclude>
                         <exclude>.factorypath</exclude>
                         <exclude>.editorconfig</exclude>
+                        <exclude>**/*.html</exclude>
+                        <exclude>**/license-efsl.adoc</exclude>
+                        <exclude>**/*.asciidoc</exclude>
+                        <exclude>**/*.md</exclude>
+                        <exclude>.vscode**</exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>1.12</version>
+                    <executions>
+                        <execution>
+                            <id>timestamp-property</id>
+                            <goals>
+                                <goal>timestamp-property</goal>
+                            </goals>
+                            <phase>validate</phase>
+                            <configuration>
+                                <name>currentYear</name>
+                                <pattern>yyyy</pattern>
+                            </configuration>
+                        </execution>
+                    </executions>
             </plugin>
 
         </plugins>
