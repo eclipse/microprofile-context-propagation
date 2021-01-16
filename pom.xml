@@ -18,7 +18,7 @@
     <groupId>org.eclipse.microprofile.context-propagation</groupId>
     <artifactId>microprofile-context-propagation-parent</artifactId>
     <packaging>pom</packaging>
-    <version>1.2-SNAPSHOT</version>
+    <version>1.2-RC1</version>
 
     <name>MicroProfile Context Propagation</name>
     <description>Eclipse MicroProfile Context Propagation :: Parent POM</description>
@@ -72,7 +72,7 @@
         <connection>scm:git:https://github.com/eclipse/microprofile-context-propagation.git</connection>
         <developerConnection>scm:git:git@github.com:eclipse/microprofile-context-propagation.git</developerConnection>
         <url>https://github.com/eclipse/microprofile-context-propagation</url>
-        <tag>HEAD</tag>
+        <tag>1.2-RC1</tag>
     </scm>
 
     <distributionManagement>
