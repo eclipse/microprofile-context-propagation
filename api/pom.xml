@@ -18,12 +18,12 @@
     <parent>
         <groupId>org.eclipse.microprofile.context-propagation</groupId>
         <artifactId>microprofile-context-propagation-parent</artifactId>
-        <version>1.2-RC1</version>
+        <version>1.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>microprofile-context-propagation-api</artifactId>
     <packaging>jar</packaging>
-    <version>1.2-RC1</version>
+    <version>1.2-SNAPSHOT</version>
 
     <name>MicroProfile Context Propagation</name>
     <description>MicroProfile Context Propagation :: API</description>
