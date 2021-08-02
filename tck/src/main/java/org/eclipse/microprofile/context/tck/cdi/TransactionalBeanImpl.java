@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019,2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -18,7 +18,7 @@
  */
 package org.eclipse.microprofile.context.tck.cdi;
 
-import javax.transaction.TransactionScoped;
+import jakarta.transaction.TransactionScoped;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
 

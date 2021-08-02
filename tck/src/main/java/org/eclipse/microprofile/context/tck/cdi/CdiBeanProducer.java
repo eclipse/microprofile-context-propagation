@@ -23,8 +23,8 @@ import org.eclipse.microprofile.context.ThreadContext;
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.context.tck.contexts.label.Label;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 import java.util.concurrent.Executor;
 
 import static org.eclipse.microprofile.context.tck.contexts.priority.spi.ThreadPriorityContextProvider.THREAD_PRIORITY;

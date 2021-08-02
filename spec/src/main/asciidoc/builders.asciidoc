@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2021 Contributors to the Eclipse Foundation
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,10 +25,10 @@ The MicroProfile Context Propagation spec defines a fluent builder API to progra
 ----
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CompletableFuture;
-import javax.servlet.ServletConfig;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.context.ThreadContext;
 
@@ -67,10 +67,10 @@ efficiently free up resources.
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import javax.servlet.ServletConfig;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.eclipse.microprofile.context.ThreadContext;
 
 public class ExampleServlet extends HttpServlet {

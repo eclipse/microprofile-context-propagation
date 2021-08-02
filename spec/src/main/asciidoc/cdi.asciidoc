@@ -28,7 +28,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import javax.inject.Qualifier;
+import jakarta.inject.Qualifier;
 
 @Qualifier
 @Retention(RetentionPolicy.RUNTIME)
@@ -41,8 +41,8 @@ Example producer and disposer,
 ----
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.context.ThreadContext;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
 @ApplicationScoped
 public class MyFirstBean {
@@ -61,8 +61,8 @@ Example injection point,
 [source, java]
 ----
 import org.eclipse.microprofile.context.ManagedExecutor;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class MySecondBean {
@@ -81,7 +81,7 @@ import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import javax.inject.Qualifier;
+import jakarta.inject.Qualifier;
 
 @Qualifier
 @Retention(RetentionPolicy.RUNTIME)
@@ -94,8 +94,8 @@ Example producer method,
 [source, java]
 ----
 import org.eclipse.microprofile.context.ThreadContext;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
 @ApplicationScoped
 public class MyFirstBean {
@@ -114,8 +114,8 @@ Example injection point,
 [source, java]
 ----
 import org.eclipse.microprofile.context.ThreadContext;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 ...
 
 @ApplicationScoped

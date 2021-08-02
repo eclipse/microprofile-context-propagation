@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2019,2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -28,9 +28,9 @@ import java.lang.annotation.Target;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.inject.Qualifier;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import jakarta.inject.Qualifier;
 
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.context.tck.contexts.label.Label;

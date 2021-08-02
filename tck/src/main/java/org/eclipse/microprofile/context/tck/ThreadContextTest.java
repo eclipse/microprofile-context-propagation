@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
+ * Copyright (c) 2018,2021 Contributors to the Eclipse Foundation
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information regarding copyright ownership.
@@ -35,12 +35,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.spi.CDI;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.CDI;
+import jakarta.transaction.Status;
+import jakarta.transaction.UserTransaction;
+
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
-import javax.transaction.Status;
-import javax.transaction.UserTransaction;
 
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.context.tck.contexts.buffer.spi.BufferContextProvider;
