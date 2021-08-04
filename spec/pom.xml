@@ -21,7 +21,7 @@
     <parent>
         <groupId>org.eclipse.microprofile.context-propagation</groupId>
         <artifactId>microprofile-context-propagation-parent</artifactId>
-        <version>1.3-RC1</version>
+        <version>1.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>microprofile-context-propagation-spec</artifactId>
