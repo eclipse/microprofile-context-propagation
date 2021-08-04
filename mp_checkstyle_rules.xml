@@ -51,7 +51,7 @@
         </module>
         <module name="AvoidStarImport">
             <property name="excludes"
-                      value="java.io,java.net,java.util,javax.enterprise.inject.spi,javax.enterprise.context,org.testng.Assert"/>
+                      value="java.io,java.net,java.util,jakarta.enterprise.inject.spi,jakarta.enterprise.context,org.testng.Assert"/>
         </module>
         <module name="IllegalImport"/>
         <module name="RedundantImport"/>
