@@ -490,6 +490,71 @@ public interface ThreadContext {
     <R> Supplier<R> contextualSupplier(Supplier<R> supplier);
 
     /**
+     * <p>Returns a proxy for one or more interfaces, such that methods run with
+     * context that is captured, per the configuration of this <code>ThreadContext</code>,
+     * from the thread that invokes <code>onMethodsOf</code>.</p>
+     *
+     * <p>When interface methods are invoked on the resulting proxy,
+     * context is first established on the thread that will run the method,
+     * and then the method of the provided instance is invoked.
+     * Finally, the previous context is restored on the thread, and the result of the
+     * method is returned to the invoker.</p>
+     *
+     * <p>For example, in the case of,</p>
+     * <pre>
+     * <code>publisher.subscribe(threadContext.onMethodsOf(subscriber))</code></pre>
+     *
+     * <p>the context of the thread that invokes <code>onMethodsOf</code> is made available to the
+     * subscriber's <code>onSubscribe</code>, <code>onNext</code>, <code>onError</code>, and
+     * <code>onComplete</code> methods whenever they are used.</p>
+     *
+     * @param <T>      an interface that is implemented by the instance.
+     * @param <U>      type of supplied instance.
+     * @param instance instance to contextualize.
+     * @return contextualized proxy for interfaces that are implemented by the supplied instance.
+     * @throws IllegalArgumentException if an already-contextualized instance is supplied to this method,
+     *                 or if the supplied instance does not implement any interfaces that can be proxied,
+     *                 or if an instance of <code>CompletionStage</code> is supplied as the parameter.
+     * @throws UnsupportedOperationException if the instance implements <code>java.io.Serializable</code>.
+     *                 Serializing and deserializing captured thread context is not supported.
+     */
+    <T, U extends T> T onMethodsOf(U instance);
+
+    /**
+     * <p>Proxies a publisher interface such that it invokes subscriber methods with context that is captured,
+     * per the configuration of this <code>ThreadContext</code>, from the thread that invokes
+     * <code>onSubscriberMethods</code>.</p>
+     *
+     * <p>When subscriber methods are invoked by the publisher instance,
+     * context is first established on the thread that will run the method,
+     * then the corresponding method is invoked on the actual subscriber instance.
+     * Finally, the previous context is restored on the thread.</p>
+     *
+     * <p>For example, in the case of,</p>
+     * <pre>
+     * <code>threadContext.onSubscriberMethods(publisher);
+     * ...
+     * publisher.subscribe(subscriber);</code></pre>
+     *
+     * <p>context of the thread that invokes <code>onSubscriberMethods</code> is made available to the
+     * <code>onSubscribe</code>, <code>onNext</code>, <code>onError</code>, and <code>onComplete</code>
+     * methods of every subscriber for which <code>publisher.subscribe(subscriber)</code> is
+     * subsequently invoked on the proxy publisher instance.</p>
+     *
+     * @param <P>         a publisher.
+     * @param <Publisher> spec interface of publisher (<code>java.util.concurrent.Flow.Publisher</code>
+     *                    or <code>org.reactivestreams.Publisher</code>).
+     * @param publisher instance to proxy such that thread context is applied to subscribers that are added via the proxy.
+     * @return Publisher proxy.
+     * @throws IllegalArgumentException if the supplied instance is already a proxy that was created by <code>onSubscriberMethods</code>.
+     *                 or if the supplied instance does not implement <code>java.util.concurrent.Flow.Publisher</code>
+     *                 or <code>org.reactivestreams.Publisher</code>.
+     * @throws UnsupportedOperationException if the publisher instance implements <code>java.io.Serializable</code>.
+     *                 Serializing and deserializing captured thread context is not supported.
+     */
+    <Publisher, P extends Publisher> Publisher onSubscriberMethods(P publisher);
+
+    /**
      * <p>Returns a new <code>CompletableFuture</code> that is completed by the completion of the
      * specified stage.</p>
      *
