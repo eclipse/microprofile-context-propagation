@@ -18,6 +18,10 @@
  */
 package org.eclipse.microprofile.context.tck.cdi;
 
+import static org.eclipse.microprofile.context.tck.contexts.priority.spi.ThreadPriorityContextProvider.THREAD_PRIORITY;
+
+import java.util.concurrent.Executor;
+
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.context.ThreadContext;
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
@@ -25,9 +29,6 @@ import org.eclipse.microprofile.context.tck.contexts.label.Label;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
-import java.util.concurrent.Executor;
-
-import static org.eclipse.microprofile.context.tck.contexts.priority.spi.ThreadPriorityContextProvider.THREAD_PRIORITY;
 
 @ApplicationScoped
 public class CdiBeanProducer {
@@ -36,7 +37,8 @@ public class CdiBeanProducer {
     @ApplicationScoped
     @CDIBean.AppProducedExecutor
     public ManagedExecutor createExec() {
-        return ManagedExecutor.builder().cleared(ThreadContext.TRANSACTION).propagated(ThreadContext.ALL_REMAINING).build();
+        return ManagedExecutor.builder().cleared(ThreadContext.TRANSACTION).propagated(ThreadContext.ALL_REMAINING)
+                .build();
     }
 
     @Produces

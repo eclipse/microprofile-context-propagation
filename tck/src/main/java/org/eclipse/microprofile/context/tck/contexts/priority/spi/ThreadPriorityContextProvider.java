@@ -24,10 +24,10 @@ import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.eclipse.microprofile.context.spi.ThreadContextSnapshot;
 
 /**
- * This is an example context type that is created by the test suite.
- * This context type captures/clears/propagates/restores thread priority (java.lang.Thread.get/setPriority). 
- * This is chosen, not because it is useful in any way, but because the concept of thread priority is simple,
- * well understood, and already built into Java.
+ * This is an example context type that is created by the test suite. This context type
+ * captures/clears/propagates/restores thread priority (java.lang.Thread.get/setPriority). This is chosen, not because
+ * it is useful in any way, but because the concept of thread priority is simple, well understood, and already built
+ * into Java.
  */
 public class ThreadPriorityContextProvider implements ThreadContextProvider {
     public static final String THREAD_PRIORITY = "ThreadPriority";

@@ -18,9 +18,9 @@
  */
 package org.eclipse.microprofile.context.tck.contexts.buffer.spi;
 
-import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.context.spi.ThreadContextController;
 import org.eclipse.microprofile.context.spi.ThreadContextSnapshot;
+import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 
 /**
  * Represents a saved 'buffer' instance.
@@ -33,9 +33,8 @@ public class BufferContextSnapshot implements ThreadContextSnapshot {
     }
 
     /**
-     * Apply the requested buffer context to the current thread,
-     * first storing a copying of the buffer that was previously associated with the thread,
-     * to later be restored via the returned ThreadContextController.
+     * Apply the requested buffer context to the current thread, first storing a copying of the buffer that was
+     * previously associated with the thread, to later be restored via the returned ThreadContextController.
      */
     @Override
     public ThreadContextController begin() {
@@ -50,8 +49,7 @@ public class BufferContextSnapshot implements ThreadContextSnapshot {
         String s = "BufferContextSnapshot@" + Integer.toHexString(System.identityHashCode(this));
         if (buffer == null) {
             s += " CLEARED";
-        }
-        else {
+        } else {
             s += " for StringBuffer@" + Integer.toHexString(System.identityHashCode(buffer)) + ": " + buffer.toString();
         }
         return s;

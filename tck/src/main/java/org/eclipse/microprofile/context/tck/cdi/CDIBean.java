@@ -18,8 +18,8 @@
  */
 package org.eclipse.microprofile.context.tck.cdi;
 
-import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -28,53 +28,60 @@ import java.lang.annotation.Target;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.microprofile.context.ManagedExecutor;
+import org.eclipse.microprofile.context.ThreadContext;
+import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
+import org.eclipse.microprofile.context.tck.contexts.label.Label;
+import org.testng.Assert;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Qualifier;
 
-import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
-import org.eclipse.microprofile.context.tck.contexts.label.Label;
-import org.eclipse.microprofile.context.ManagedExecutor;
-import org.eclipse.microprofile.context.ThreadContext;
-import org.testng.Assert;
-
 @ApplicationScoped
 public class CDIBean {
-    
+
     static final long MAX_WAIT_SEC = 120;
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-    public @interface AppProducedExecutor {}
+    @Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+    public @interface AppProducedExecutor {
+    }
 
-    @Inject @AppProducedExecutor
+    @Inject
+    @AppProducedExecutor
     ManagedExecutor appProduced;
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-    public @interface LabelContextPropagator {}
+    @Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+    public @interface LabelContextPropagator {
+    }
 
-    @Inject @LabelContextPropagator
+    @Inject
+    @LabelContextPropagator
     ThreadContext labelContextPropagator;
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-    public @interface PriorityContext {}
+    @Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+    public @interface PriorityContext {
+    }
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-    public @interface Priority3Executor {}
+    @Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+    public @interface Priority3Executor {
+    }
 
-    @Inject @Priority3Executor
+    @Inject
+    @Priority3Executor
     Executor priority3Executor;
 
     /**
-     * Extra sanity check test to verify injection is occurring. However, if CDI is 
-     * set up properly, this bean should not even be reachable if injection fails. 
+     * Extra sanity check test to verify injection is occurring. However, if CDI is set up properly, this bean should
+     * not even be reachable if injection fails.
      */
     public void testVerifyInjection() {
         assertNotNull(appProduced);
@@ -83,7 +90,8 @@ public class CDIBean {
     /**
      * Verify that injected ME instances are useable in a very basic way
      *
-     * @throws Exception indicates test failure
+     * @throws Exception
+     *             indicates test failure
      */
     public void testBasicExecutorUsable() throws Exception {
         assertEquals(appProduced.supplyAsync(() -> "hello").get(MAX_WAIT_SEC, TimeUnit.SECONDS), "hello");
@@ -115,8 +123,7 @@ public class CDIBean {
             Label.set("testAppDefinedProducerOfThreadContext-new-label");
 
             testLabelContext.run();
-        }
-        finally {
+        } finally {
             // restore previous values
             Buffer.set(null);
             Label.set(null);
@@ -139,7 +146,8 @@ public class CDIBean {
             Buffer.set(new StringBuffer("testAppDefinedProducerUsingInjectedThreadContext-buffer"));
 
             // priority3Executor is an application-produced instance, where its producer method injects a ThreadContext
-            // instance that is provided by the container. The following verifies thread context propagation of that instance,
+            // instance that is provided by the container. The following verifies thread context propagation of that
+            // instance,
             priority3Executor.execute(() -> {
                 Assert.assertEquals(Thread.currentThread().getPriority(), 3,
                         "Thread context type was not propagated.");
@@ -148,8 +156,7 @@ public class CDIBean {
                 Assert.assertEquals(Buffer.get().toString(), "",
                         "Thread context type (Buffer) was not cleared.");
             });
-        }
-        finally {
+        } finally {
             // restore previous values
             Buffer.set(null);
             Label.set(null);

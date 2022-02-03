@@ -20,12 +20,10 @@ package org.eclipse.microprofile.context.tck.cdi;
 
 import java.lang.reflect.Method;
 
-import jakarta.inject.Inject;
-
+import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.eclipse.microprofile.context.tck.contexts.buffer.spi.BufferContextProvider;
 import org.eclipse.microprofile.context.tck.contexts.label.spi.LabelContextProvider;
 import org.eclipse.microprofile.context.tck.contexts.priority.spi.ThreadPriorityContextProvider;
-import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -33,9 +31,11 @@ import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.ITestResult;
-import org.testng.annotations.Test;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import jakarta.inject.Inject;
 
 public class BasicCDITest extends Arquillian {
 
@@ -46,7 +46,8 @@ public class BasicCDITest extends Arquillian {
 
     @AfterMethod
     public void afterMethod(Method m, ITestResult result) {
-        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName() + (result.isSuccess() ? " SUCCESS" : " FAILED"));
+        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName()
+                + (result.isSuccess() ? " SUCCESS" : " FAILED"));
         Throwable failure = result.getThrowable();
         if (failure != null) {
             failure.printStackTrace(System.out);
@@ -75,7 +76,7 @@ public class BasicCDITest extends Arquillian {
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml")
                 .addAsLibraries(fakeContextProviders);
     }
-    
+
     @Test
     public void testVerifyInjection() {
         bean.testVerifyInjection();

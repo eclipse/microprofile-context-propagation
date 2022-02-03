@@ -48,23 +48,18 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import jakarta.enterprise.inject.Instance;
-import jakarta.enterprise.inject.spi.CDI;
-import jakarta.transaction.Status;
-import jakarta.transaction.UserTransaction;
-
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
+import org.eclipse.microprofile.context.ManagedExecutor;
+import org.eclipse.microprofile.context.ThreadContext;
+import org.eclipse.microprofile.context.spi.ContextManager;
+import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.context.tck.contexts.buffer.spi.BufferContextProvider;
 import org.eclipse.microprofile.context.tck.contexts.label.Label;
 import org.eclipse.microprofile.context.tck.contexts.label.spi.LabelContextProvider;
 import org.eclipse.microprofile.context.tck.contexts.priority.spi.ThreadPriorityContextProvider;
-import org.eclipse.microprofile.context.ManagedExecutor;
-import org.eclipse.microprofile.context.ThreadContext;
-import org.eclipse.microprofile.context.spi.ContextManager;
-import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -72,23 +67,28 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.Assert;
 import org.testng.ITestResult;
-import org.testng.annotations.Test;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.CDI;
+import jakarta.transaction.Status;
+import jakarta.transaction.UserTransaction;
 
 public class ManagedExecutorTest extends Arquillian {
     /**
-     * Maximum tolerated wait for an asynchronous operation to complete.
-     * This is important to ensure that tests don't hang waiting for asynchronous operations to complete.
-     * Normally these sort of operations will complete in tiny fractions of a second, but we are specifying
-     * an extremely generous value here to allow for the widest possible variety of test execution environments.
+     * Maximum tolerated wait for an asynchronous operation to complete. This is important to ensure that tests don't
+     * hang waiting for asynchronous operations to complete. Normally these sort of operations will complete in tiny
+     * fractions of a second, but we are specifying an extremely generous value here to allow for the widest possible
+     * variety of test execution environments.
      */
     private static final long MAX_WAIT_NS = TimeUnit.MINUTES.toNanos(2);
 
     /**
-     * Pool of unmanaged threads (not context-aware) that can be used by tests. 
+     * Pool of unmanaged threads (not context-aware) that can be used by tests.
      */
     private ExecutorService unmanagedThreads;
 
@@ -99,7 +99,8 @@ public class ManagedExecutorTest extends Arquillian {
 
     @AfterMethod
     public void afterMethod(Method m, ITestResult result) {
-        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName() + (result.isSuccess() ? " SUCCESS" : " FAILED"));
+        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName()
+                + (result.isSuccess() ? " SUCCESS" : " FAILED"));
         Throwable failure = result.getThrowable();
         if (failure != null) {
             failure.printStackTrace(System.out);
@@ -138,19 +139,22 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that the ManagedExecutor implementation clears context
-     * types that are not configured under propagated, or cleared.
+     * Verify that the ManagedExecutor implementation clears context types that are not configured under propagated, or
+     * cleared.
      *
-     * @throws TimeoutException indicates test failure
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
      */
     @Test
     public void clearUnspecifiedContexts() throws InterruptedException, ExecutionException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .build();
-        
+
         int originalPriority = Thread.currentThread().getPriority();
         try {
             // Set non-default values
@@ -159,42 +163,44 @@ public class ManagedExecutorTest extends Arquillian {
             Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-A"));
 
             Future<Void> future = executor.completedFuture(1).thenRun(() -> {
-                    Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
-                            "Context type was not propagated to contextual action.");
+                Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
+                        "Context type was not propagated to contextual action.");
 
-                    Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-B"));
+                Buffer.set(new StringBuffer("clearUnspecifiedContexts-test-buffer-B"));
 
-                    Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
-                            "Context type that remained unspecified was not cleared by default.");
+                Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
+                        "Context type that remained unspecified was not cleared by default.");
             });
 
             Assert.assertNull(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
                     "Non-null value returned by stage that runs Runnable.");
-            
+
             Assert.assertEquals(Buffer.get().toString(), "clearUnspecifiedContexts-test-buffer-A",
                     "Previous context (Buffer) was not restored after context was propagated for contextual action.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
             Thread.currentThread().setPriority(originalPriority);
         }
     }
-    
+
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for all dependent stages of the completed future that is created
-     * by the ManagedExecutor's completedFuture implementation. Thread context is captured
-     * at each point where a dependent stage is added, rather than solely upon creation of the
-     * initial stage or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * all dependent stages of the completed future that is created by the ManagedExecutor's completedFuture
+     * implementation. Thread context is captured at each point where a dependent stage is added, rather than solely
+     * upon creation of the initial stage or construction of the builder.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
-    public void completedFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
+    public void completedFutureDependentStagesRunWithContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
@@ -236,7 +242,7 @@ public class ManagedExecutorTest extends Arquillian {
 
                 return a * b;
             });
-            
+
             Buffer.set(new StringBuffer("completedFuture-test-buffer-C"));
 
             CompletableFuture<Long> stage3 = stage2.thenApply(i -> {
@@ -254,7 +260,7 @@ public class ManagedExecutorTest extends Arquillian {
 
                 Assert.assertEquals(Label.get(), "",
                         "Context type that is configured to be cleared was not cleared.");
-                
+
                 return i - 300;
             });
 
@@ -272,16 +278,17 @@ public class ManagedExecutorTest extends Arquillian {
             Assert.assertTrue(stage2.isDone(), "Second stage did not transition to done upon completion.");
             Assert.assertTrue(stage3.isDone(), "Third stage did not transition to done upon completion.");
 
-            Assert.assertFalse(stage2.isCompletedExceptionally(), "Second stage should not report exceptional completion.");
-            Assert.assertFalse(stage3.isCompletedExceptionally(), "Third stage should not report exceptional completion.");
+            Assert.assertFalse(stage2.isCompletedExceptionally(),
+                    "Second stage should not report exceptional completion.");
+            Assert.assertFalse(stage3.isCompletedExceptionally(),
+                    "Third stage should not report exceptional completion.");
 
             // Is context properly restored on current thread?
             Assert.assertEquals(Buffer.get().toString(), "completedFuture-test-buffer-E",
                     "Previous context was not restored after context was cleared for managed executor tasks.");
             Assert.assertEquals(Label.get(), "completedFuture-test-label",
                     "Previous context was not restored after context was propagated for managed executor tasks.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -290,13 +297,13 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for all dependent stages of the completed future that is created
-     * by the ManagedExecutor's completedStage implementation. Thread context is captured
-     * at each point where a dependent stage is added, rather than solely upon creation of the
-     * initial stage or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * all dependent stages of the completed future that is created by the ManagedExecutor's completedStage
+     * implementation. Thread context is captured at each point where a dependent stage is added, rather than solely
+     * upon creation of the initial stage or construction of the builder.
      *
-     * @throws InterruptedException indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
      */
     @Test
     public void completedStageDependentStagesRunWithContext() throws InterruptedException {
@@ -368,25 +375,28 @@ public class ManagedExecutorTest extends Arquillian {
                     "Previous context was not restored after context was cleared for managed executor tasks.");
             Assert.assertEquals(Label.get(), "completedStage-test-label-D",
                     "Previous context was not restored after context was propagated for managed executor tasks.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
             Label.set(null);
         }
     }
-    
+
     /**
-     * Verify the MicroProfile Context Propagation implementation of propagate(), and cleared()
-     * for ManagedExecutor.Builder.
+     * Verify the MicroProfile Context Propagation implementation of propagate(), and cleared() for
+     * ManagedExecutor.Builder.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
-    public void contextControlsForManagedExecutorBuilder() throws InterruptedException, ExecutionException, TimeoutException {
+    public void contextControlsForManagedExecutorBuilder()
+            throws InterruptedException, ExecutionException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .cleared(Label.CONTEXT_NAME)
@@ -396,27 +406,27 @@ public class ManagedExecutorTest extends Arquillian {
 
         try {
             ManagedExecutor.builder()
-            .propagated(Buffer.CONTEXT_NAME)
-            .cleared(Label.CONTEXT_NAME, Buffer.CONTEXT_NAME)
-            .maxAsync(-1)
-            .maxQueued(-1)
-            .build();
-            Assert.fail("ManagedExecutor.Builder.build() should throw an IllegalStateException for set overlap between propagated and cleared");
-        }
-        catch (IllegalStateException ISE) {
+                    .propagated(Buffer.CONTEXT_NAME)
+                    .cleared(Label.CONTEXT_NAME, Buffer.CONTEXT_NAME)
+                    .maxAsync(-1)
+                    .maxQueued(-1)
+                    .build();
+            Assert.fail(
+                    "ManagedExecutor.Builder.build() should throw an IllegalStateException for set overlap between propagated and cleared");
+        } catch (IllegalStateException ISE) {
             // test passes
         }
 
         try {
             ManagedExecutor.builder()
-            .propagated(Buffer.CONTEXT_NAME, "BOGUS_CONTEXT")
-            .cleared(Label.CONTEXT_NAME)
-            .maxAsync(-1)
-            .maxQueued(-1)
-            .build();
-            Assert.fail("ManagedExecutor.Builder.build() should throw an IllegalStateException for a nonexistent thread context type");
-        }
-        catch (IllegalStateException ISE) {
+                    .propagated(Buffer.CONTEXT_NAME, "BOGUS_CONTEXT")
+                    .cleared(Label.CONTEXT_NAME)
+                    .maxAsync(-1)
+                    .maxQueued(-1)
+                    .build();
+            Assert.fail(
+                    "ManagedExecutor.Builder.build() should throw an IllegalStateException for a nonexistent thread context type");
+        } catch (IllegalStateException ISE) {
             // test passes
         }
 
@@ -447,8 +457,7 @@ public class ManagedExecutorTest extends Arquillian {
 
             Assert.assertEquals(Label.get(), "contextControls-test-label-A",
                     "Context type was not left unchanged by contextual action.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -457,16 +466,20 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * When an already-contextualized Callable is specified as the action/task,
-     * the action/task runs with its already-captured context rather than
-     * capturing and applying context per the configuration of the managed executor.
+     * When an already-contextualized Callable is specified as the action/task, the action/task runs with its
+     * already-captured context rather than capturing and applying context per the configuration of the managed
+     * executor.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
-    public void contextOfContextualCallableOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
+    public void contextOfContextualCallableOverridesContextOfManagedExecutor()
+            throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext bufferContext = ThreadContext.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .unchanged()
@@ -534,8 +547,7 @@ public class ManagedExecutorTest extends Arquillian {
                     TimeUnit.NANOSECONDS);
             Assert.assertEquals(result, "contextualCallableOverride-buffer-1",
                     "Previously captured context type not found on thread.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -544,13 +556,16 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * When an already-contextualized Consumer or BiFunction is specified as the action/task,
-     * the action/task runs with its already-captured context rather than
-     * capturing and applying context per the configuration of the managed executor.
+     * When an already-contextualized Consumer or BiFunction is specified as the action/task, the action/task runs with
+     * its already-captured context rather than capturing and applying context per the configuration of the managed
+     * executor.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void contextOfContextualConsumerAndBiFunctionOverrideContextOfManagedExecutor()
@@ -569,24 +584,26 @@ public class ManagedExecutorTest extends Arquillian {
             Buffer.set(new StringBuffer("contextualBiFunctionOverride-buffer-1"));
             Label.set("contextualBiFunctionOverride-label-1");
 
-            BiFunction<Integer, Throwable, Integer> precontextualizedFunction1 = labelContext.contextualFunction((result, failure) -> {
-                Assert.assertEquals(Label.get(), "contextualBiFunctionOverride-label-1",
-                        "Previously captured context type not found on thread.");
-                Assert.assertEquals(Buffer.get().toString(), "",
-                        "Context type not cleared from thread.");
-                return failure == null ? result : 100;
-            });
+            BiFunction<Integer, Throwable, Integer> precontextualizedFunction1 =
+                    labelContext.contextualFunction((result, failure) -> {
+                        Assert.assertEquals(Label.get(), "contextualBiFunctionOverride-label-1",
+                                "Previously captured context type not found on thread.");
+                        Assert.assertEquals(Buffer.get().toString(), "",
+                                "Context type not cleared from thread.");
+                        return failure == null ? result : 100;
+                    });
 
             Buffer.set(new StringBuffer("contextualBiFunctionOverride-buffer-2"));
             Label.set("contextualBiFunctionOverride-label-2");
 
-            BiFunction<Integer, Integer, Integer> precontextualizedFunction2 = labelContext.contextualFunction((i, j) -> {
-                Assert.assertEquals(Label.get(), "contextualBiFunctionOverride-label-2",
-                        "Previously captured context type not found on thread.");
-                Assert.assertEquals(Buffer.get().toString(), "",
-                        "Context type not cleared from thread.");
-                return i - j;
-            });
+            BiFunction<Integer, Integer, Integer> precontextualizedFunction2 =
+                    labelContext.contextualFunction((i, j) -> {
+                        Assert.assertEquals(Label.get(), "contextualBiFunctionOverride-label-2",
+                                "Previously captured context type not found on thread.");
+                        Assert.assertEquals(Buffer.get().toString(), "",
+                                "Context type not cleared from thread.");
+                        return i - j;
+                    });
 
             Buffer.set(new StringBuffer("contextualConsumerOverride-buffer-3"));
             Label.set("contextualConsumerOverride-label-3");
@@ -619,17 +636,18 @@ public class ManagedExecutorTest extends Arquillian {
             Buffer.set(new StringBuffer("contextualConsumerAndBiFunctionOverride-buffer-5"));
             Label.set("contextualConsumerAndBiFunctionOverride-label-5");
 
-            CompletableFuture<Integer> stage0 = executor.failedFuture(new ArrayIndexOutOfBoundsException("Expected error."));
+            CompletableFuture<Integer> stage0 =
+                    executor.failedFuture(new ArrayIndexOutOfBoundsException("Expected error."));
             CompletableFuture<Integer> stage1 = stage0.handleAsync(precontextualizedFunction1);
-            CompletableFuture<Integer> stage2 = executor.completedFuture(200).thenCombineAsync(stage1, precontextualizedFunction2);
+            CompletableFuture<Integer> stage2 =
+                    executor.completedFuture(200).thenCombineAsync(stage1, precontextualizedFunction2);
             CompletableFuture<Void> stage3 = stage2.thenAccept(precontextualizedConsumer3);
             CompletableFuture<Void> stage4 = stage2.acceptEitherAsync(stage1, precontextualizedConsumer4);
             CompletableFuture<String> stage5 = stage4.thenCombine(stage3, normalFunction5);
 
             Assert.assertEquals(stage5.join(), "done",
                     "Unexpected result for completion stage.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -638,16 +656,20 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * When an already-contextualized Function is specified as the action/task,
-     * the action/task runs with its already-captured context rather than
-     * capturing and applying context per the configuration of the managed executor.
+     * When an already-contextualized Function is specified as the action/task, the action/task runs with its
+     * already-captured context rather than capturing and applying context per the configuration of the managed
+     * executor.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
-    public void contextOfContextualFunctionOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
+    public void contextOfContextualFunctionOverridesContextOfManagedExecutor()
+            throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
                 .unchanged()
@@ -706,13 +728,14 @@ public class ManagedExecutorTest extends Arquillian {
             Buffer.set(new StringBuffer("contextualFunctionOverride-buffer-4"));
             Label.set("contextualFunctionOverride-label-4");
 
-            Function<Integer, CompletableFuture<Integer>> precontextualizedFunction4 = labelContext.contextualFunction(i -> {
-                Assert.assertEquals(Label.get(), "contextualFunctionOverride-label-4",
-                        "Previously captured context type not found on thread.");
-                Assert.assertEquals(Buffer.get().toString(), "",
-                        "Context type not cleared from thread.");
-                return stage1;
-            });
+            Function<Integer, CompletableFuture<Integer>> precontextualizedFunction4 =
+                    labelContext.contextualFunction(i -> {
+                        Assert.assertEquals(Label.get(), "contextualFunctionOverride-label-4",
+                                "Previously captured context type not found on thread.");
+                        Assert.assertEquals(Buffer.get().toString(), "",
+                                "Context type not cleared from thread.");
+                        return stage1;
+                    });
 
             Buffer.set(new StringBuffer("contextualFunctionOverride-buffer-3"));
             Label.set("contextualFunctionOverride-label-3");
@@ -720,7 +743,8 @@ public class ManagedExecutorTest extends Arquillian {
             CompletableFuture<Integer> stage2 = stage0.thenComposeAsync(precontextualizedFunction4);
             CompletableFuture<Integer> stage3 = stage2.applyToEither(stage1, precontextualizedFunction2);
             CompletableFuture<Integer> stage4 = stage3.thenApply(normalFunction);
-            CompletableFuture<Integer> stage5 = stage4.thenApply(i -> i / (i - 321)) // intentional ArithmeticException for division by 0
+            CompletableFuture<Integer> stage5 = stage4.thenApply(i -> i / (i - 321)) // intentional ArithmeticException
+                                                                                     // for division by 0
                     .exceptionally(precontextualizedErrorHandler);
 
             stage0.complete(0);
@@ -730,8 +754,7 @@ public class ManagedExecutorTest extends Arquillian {
 
             Assert.assertEquals(stage5.join(), Integer.valueOf(-1),
                     "Unexpected result for completion stage.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -740,16 +763,20 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * When an already-contextualized Runnable is specified as the action/task,
-     * the action/task runs with its already-captured context rather than
-     * capturing and applying context per the configuration of the managed executor.
+     * When an already-contextualized Runnable is specified as the action/task, the action/task runs with its
+     * already-captured context rather than capturing and applying context per the configuration of the managed
+     * executor.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
-    public void contextOfContextualRunnableOverridesContextOfManagedExecutor() throws ExecutionException, InterruptedException, TimeoutException {
+    public void contextOfContextualRunnableOverridesContextOfManagedExecutor()
+            throws ExecutionException, InterruptedException, TimeoutException {
         ThreadContext labelContext = ThreadContext.builder()
                 .propagated(Label.CONTEXT_NAME)
                 .unchanged()
@@ -812,8 +839,7 @@ public class ManagedExecutorTest extends Arquillian {
             executor.execute(precontextualizedTask3);
             Assert.assertEquals(results.poll(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "contextualRunnableOverride-label-3",
                     "Previously captured context type not found on thread.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -822,13 +848,16 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * When an already-contextualized Supplier or BiFunction is specified as the action/task,
-     * the action/task runs with its already-captured context rather than
-     * capturing and applying context per the configuration of the managed executor.
+     * When an already-contextualized Supplier or BiFunction is specified as the action/task, the action/task runs with
+     * its already-captured context rather than capturing and applying context per the configuration of the managed
+     * executor.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void contextOfContextualSuppplierAndBiConsumerOverrideContextOfManagedExecutor()
@@ -879,12 +908,13 @@ public class ManagedExecutorTest extends Arquillian {
             Buffer.set(new StringBuffer("contextualBiConsumerOverride-buffer-4"));
             Label.set("contextualBiConsumerOverride-label-4");
 
-            BiConsumer<Void, Throwable> precontextualizedConsumer4 = bufferContext.contextualConsumer((unused, failure) -> {
-                Assert.assertEquals(Buffer.get().toString(), "contextualBiConsumerOverride-buffer-4",
-                        "Previously captured context type not found on thread.");
-                Assert.assertEquals(Label.get(), "",
-                        "Context type not cleared from thread.");
-            });
+            BiConsumer<Void, Throwable> precontextualizedConsumer4 =
+                    bufferContext.contextualConsumer((unused, failure) -> {
+                        Assert.assertEquals(Buffer.get().toString(), "contextualBiConsumerOverride-buffer-4",
+                                "Previously captured context type not found on thread.");
+                        Assert.assertEquals(Label.get(), "",
+                                "Context type not cleared from thread.");
+                    });
 
             Buffer.set(new StringBuffer("contextualSupplierAndBiConsumerOverride-buffer-5"));
             Label.set("contextualSupplierAndBiConsumerOverride-label-5");
@@ -901,8 +931,7 @@ public class ManagedExecutorTest extends Arquillian {
             });
 
             stage5.join();
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -911,13 +940,16 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is cleared per the configuration of the ManagedExecutor builder
-     * for all tasks that are executed via the execute method. This test supplies the ManagedExecutor
-     * to a Java SE CompletableFuture, which invokes the execute method to run tasks asynchronously.
+     * Verify that thread context is cleared per the configuration of the ManagedExecutor builder for all tasks that are
+     * executed via the execute method. This test supplies the ManagedExecutor to a Java SE CompletableFuture, which
+     * invokes the execute method to run tasks asynchronously.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void executedTaskRunsWithClearedContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -950,8 +982,7 @@ public class ManagedExecutorTest extends Arquillian {
                     "Context unexpectedly changed on thread.");
             Assert.assertEquals(Label.get(), "executed-task-test-label-A",
                     "Context unexpectedly changed on thread.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -960,12 +991,15 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is propagated per the configuration of the ManagedExecutor builder
-     * for all tasks that are executed via the execute method.
+     * Verify that thread context is propagated per the configuration of the ManagedExecutor builder for all tasks that
+     * are executed via the execute method.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void executedTaskRunsWithContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -990,8 +1024,7 @@ public class ManagedExecutorTest extends Arquillian {
                     Label.set("executed-task-test-label-D");
 
                     result.complete("successful");
-                }
-                catch (Throwable x) {
+                } catch (Throwable x) {
                     result.completeExceptionally(x);
                 }
             });
@@ -1003,8 +1036,7 @@ public class ManagedExecutorTest extends Arquillian {
                     "Context unexpectedly changed on thread.");
             Assert.assertEquals(Label.get(), "executed-task-test-label-C",
                     "Context unexpectedly changed on thread.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -1013,18 +1045,21 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for all dependent stages of the completed future that is created
-     * by the ManagedExecutor's failedFuture implementation. Thread context is captured
-     * at each point where a dependent stage is added, rather than solely upon creation of the
-     * initial stage or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * all dependent stages of the completed future that is created by the ManagedExecutor's failedFuture
+     * implementation. Thread context is captured at each point where a dependent stage is added, rather than solely
+     * upon creation of the initial stage or construction of the builder.
      * 
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
-    public void failedFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
+    public void failedFutureDependentStagesRunWithContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
@@ -1035,7 +1070,8 @@ public class ManagedExecutorTest extends Arquillian {
             Buffer.set(new StringBuffer("failedFuture-test-buffer-1"));
             Label.set("failedFuture-test-label");
 
-            CompletableFuture<Character> stage1 = executor.failedFuture(new CharConversionException("A fake exception created by the test"));
+            CompletableFuture<Character> stage1 =
+                    executor.failedFuture(new CharConversionException("A fake exception created by the test"));
 
             Assert.assertTrue(stage1.isDone(),
                     "Future created by failedFuture is not complete.");
@@ -1046,8 +1082,7 @@ public class ManagedExecutorTest extends Arquillian {
             try {
                 Character result = stage1.getNow('1');
                 Assert.fail("Failed future must raise exception. Instead, getNow returned: " + result);
-            }
-            catch (CompletionException x) {
+            } catch (CompletionException x) {
                 if (x.getCause() == null || !(x.getCause() instanceof CharConversionException)
                         || !"A fake exception created by the test".equals(x.getCause().getMessage())) {
                     throw x;
@@ -1088,7 +1123,7 @@ public class ManagedExecutorTest extends Arquillian {
                 Assert.assertEquals(Label.get(), "",
                         "Context type that is configured to be cleared was not cleared.");
             });
-            
+
             Buffer.set(new StringBuffer("failedFuture-test-buffer-D"));
 
             Assert.assertFalse(stage3.isDone(),
@@ -1109,16 +1144,17 @@ public class ManagedExecutorTest extends Arquillian {
             Assert.assertTrue(stage2a.isDone(), "Second stage did not transition to done upon completion.");
             Assert.assertTrue(stage3.isDone(), "Third stage did not transition to done upon completion.");
 
-            Assert.assertFalse(stage2a.isCompletedExceptionally(), "Second stage should not report exceptional completion.");
-            Assert.assertFalse(stage3.isCompletedExceptionally(), "Third stage should not report exceptional completion.");
+            Assert.assertFalse(stage2a.isCompletedExceptionally(),
+                    "Second stage should not report exceptional completion.");
+            Assert.assertFalse(stage3.isCompletedExceptionally(),
+                    "Third stage should not report exceptional completion.");
 
             // Is context properly restored on current thread?
             Assert.assertEquals(Buffer.get().toString(), "failedFuture-test-buffer-D",
                     "Previous context was not restored after context was cleared for managed executor tasks.");
             Assert.assertEquals(Label.get(), "failedFuture-test-label",
                     "Previous context was not restored after context was propagated for managed executor tasks.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -1127,18 +1163,21 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for all dependent stages of the completed future that is created
-     * by the ManagedExecutor's failedStage implementation. Thread context is captured
-     * at each point where a dependent stage is added, rather than solely upon creation of the
-     * initial stage or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * all dependent stages of the completed future that is created by the ManagedExecutor's failedStage implementation.
+     * Thread context is captured at each point where a dependent stage is added, rather than solely upon creation of
+     * the initial stage or construction of the builder.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
-    public void failedStageDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
+    public void failedStageDependentStagesRunWithContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Label.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
@@ -1149,7 +1188,8 @@ public class ManagedExecutorTest extends Arquillian {
             Buffer.set(new StringBuffer("failedStage-test-buffer"));
             Label.set("failedStage-test-label-A");
 
-            CompletionStage<Integer> stage1 = executor.failedStage(new LinkageError("Error intentionally raised by test case"));
+            CompletionStage<Integer> stage1 =
+                    executor.failedStage(new LinkageError("Error intentionally raised by test case"));
 
             Label.set("failedStage-test-label-B");
 
@@ -1177,8 +1217,7 @@ public class ManagedExecutorTest extends Arquillian {
             try {
                 Integer result = future1.join();
                 Assert.fail("The join operation did not raise the error from the failed stage. Instead: " + result);
-            }
-            catch (CompletionException x) {
+            } catch (CompletionException x) {
                 if (x.getCause() == null || !(x.getCause() instanceof LinkageError)
                         || !"Error intentionally raised by test case".equals(x.getCause().getMessage())) {
                     throw x;
@@ -1189,8 +1228,7 @@ public class ManagedExecutorTest extends Arquillian {
             try {
                 Integer result = future2.get();
                 Assert.fail("The get operation did not raise the error from the failed stage. Instead: " + result);
-            }
-            catch (ExecutionException x) {
+            } catch (ExecutionException x) {
                 if (x.getCause() == null || !(x.getCause() instanceof LinkageError)
                         || !"Error intentionally raised by test case".equals(x.getCause().getMessage())) {
                     throw x;
@@ -1201,8 +1239,7 @@ public class ManagedExecutorTest extends Arquillian {
                     "Previous context was not restored after context was cleared for managed executor tasks.");
             Assert.assertEquals(Label.get(), "failedStage-test-label-C",
                     "Previous context was not restored after context was propagated for managed executor tasks.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -1211,12 +1248,15 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that the ManagedExecutor implementation starts 2 async tasks/actions, and no more,
-     * when maxAsync is configured to 2.
+     * Verify that the ManagedExecutor implementation starts 2 async tasks/actions, and no more, when maxAsync is
+     * configured to 2.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void maxAsync2() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1230,7 +1270,8 @@ public class ManagedExecutorTest extends Arquillian {
         try {
             // Use up both maxAsync slots on blocking operations and wait for them to start
             Future<Integer> future1 = executor.submit(() -> barrier.awaitAdvance(barrier.arriveAndAwaitAdvance()));
-            CompletableFuture<Integer> future2 = executor.supplyAsync(() -> barrier.awaitAdvance(barrier.arriveAndAwaitAdvance()));
+            CompletableFuture<Integer> future2 =
+                    executor.supplyAsync(() -> barrier.awaitAdvance(barrier.arriveAndAwaitAdvance()));
             barrier.awaitAdvanceInterruptibly(0, MAX_WAIT_NS, TimeUnit.NANOSECONDS);
 
             // This data structure holds the results of tasks which shouldn't be able to run yet
@@ -1263,21 +1304,22 @@ public class ManagedExecutorTest extends Arquillian {
             Assert.assertEquals(future4.join(), Boolean.TRUE, "Unexpected result of fourth task.");
             Assert.assertEquals(future5.get(), Boolean.TRUE, "Unexpected result of fifth task.");
             Assert.assertEquals(future6.get(), Boolean.TRUE, "Unexpected result of sixth task.");
-        }
-        finally {
+        } finally {
             barrier.forceTermination();
             executor.shutdownNow();
         }
     }
 
     /**
-     * Attempt to specify invalid values (less than -1 and 0) for maxAsync.
-     * Require this to be rejected upon the maxQueued operation per JavaDoc
-     * rather than from the build method.
+     * Attempt to specify invalid values (less than -1 and 0) for maxAsync. Require this to be rejected upon the
+     * maxQueued operation per JavaDoc rather than from the build method.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void maxAsyncInvalidValues() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1288,24 +1330,21 @@ public class ManagedExecutorTest extends Arquillian {
         try {
             builder.maxAsync(-10);
             Assert.fail("ManagedExecutor builder permitted value of -10 for maxAsync.");
-        }
-        catch (IllegalArgumentException x) {
+        } catch (IllegalArgumentException x) {
             // test passes
         }
 
         try {
             builder.maxAsync(-2);
             Assert.fail("ManagedExecutor builder permitted value of -2 for maxAsync.");
-        }
-        catch (IllegalArgumentException x) {
+        } catch (IllegalArgumentException x) {
             // test passes
         }
 
         try {
             builder.maxQueued(0);
             Assert.fail("ManagedExecutor builder permitted value of 0 for maxAsync.");
-        }
-        catch (IllegalArgumentException x) {
+        } catch (IllegalArgumentException x) {
             // test passes
         }
 
@@ -1316,8 +1355,7 @@ public class ManagedExecutorTest extends Arquillian {
             Future<String> future = executor.submit(() -> "it worked!");
             Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "it worked!",
                     "Task had missing or unexpected result.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
         }
     }
@@ -1325,9 +1363,12 @@ public class ManagedExecutorTest extends Arquillian {
     /**
      * Verify that 3 tasks/actions, and no more, can be queued when maxQueued is configured to 3.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void maxQueued3() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1357,8 +1398,7 @@ public class ManagedExecutorTest extends Arquillian {
             try {
                 Future<Integer> future4 = executor.submit(() -> 104);
                 Assert.fail("Exceeded maxQueued of 3. Future for 4th queued task/action is " + future4);
-            }
-            catch (RejectedExecutionException x) {
+            } catch (RejectedExecutionException x) {
                 // test passes
             }
 
@@ -1366,8 +1406,7 @@ public class ManagedExecutorTest extends Arquillian {
             try {
                 CompletableFuture<Integer> future5 = executor.supplyAsync(() -> 105);
                 Assert.fail("Exceeded maxQueued of 3. Future for 5th queued task/action is " + future5);
-            }
-            catch (RejectedExecutionException x) {
+            } catch (RejectedExecutionException x) {
                 // test passes
             }
 
@@ -1392,21 +1431,22 @@ public class ManagedExecutorTest extends Arquillian {
 
             Assert.assertEquals(future7.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Integer.valueOf(107),
                     "Unexpected result of seventh task.");
-        }
-        finally {
+        } finally {
             barrier.forceTermination();
             executor.shutdownNow();
         }
     }
 
     /**
-     * Attempt to specify invalid values (less than -1 and 0) for maxQueued.
-     * Require this to be rejected upon the maxQueued operation per JavaDoc
-     * rather than from the build method.
+     * Attempt to specify invalid values (less than -1 and 0) for maxQueued. Require this to be rejected upon the
+     * maxQueued operation per JavaDoc rather than from the build method.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void maxQueuedInvalidValues() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1417,16 +1457,14 @@ public class ManagedExecutorTest extends Arquillian {
         try {
             builder.maxQueued(-2);
             Assert.fail("ManagedExecutor builder permitted value of -2 for maxQueued.");
-        }
-        catch (IllegalArgumentException x) {
+        } catch (IllegalArgumentException x) {
             // test passes
         }
 
         try {
             builder.maxQueued(0);
             Assert.fail("ManagedExecutor builder permitted value of 0 for maxQueued.");
-        }
-        catch (IllegalArgumentException x) {
+        } catch (IllegalArgumentException x) {
             // test passes
         }
 
@@ -1437,21 +1475,21 @@ public class ManagedExecutorTest extends Arquillian {
             Future<String> future = executor.submit(() -> "successful!");
             Assert.assertEquals(future.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "successful!",
                     "Task had missing or unexpected result.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
         }
     }
 
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for all dependent stages of the incomplete future that is created
-     * by the ManagedExecutor's newIncompleteFuture implementation. Thread context is captured
-     * at each point where a dependent stage is added, rather than solely upon creation of the
-     * initial stage or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * all dependent stages of the incomplete future that is created by the ManagedExecutor's newIncompleteFuture
+     * implementation. Thread context is captured at each point where a dependent stage is added, rather than solely
+     * upon creation of the initial stage or construction of the builder.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
      */
     @Test
     public void newIncompleteFutureDependentStagesRunWithContext() throws ExecutionException, InterruptedException {
@@ -1479,7 +1517,7 @@ public class ManagedExecutorTest extends Arquillian {
 
                 Assert.assertEquals(Label.get(), "newIncompleteFuture-test-label-A",
                         "Context type was not correctly propagated to contextual action.");
-                
+
                 return i * 2;
             });
 
@@ -1494,7 +1532,7 @@ public class ManagedExecutorTest extends Arquillian {
 
                 Assert.assertEquals(Label.get(), "newIncompleteFuture-test-label-B",
                         "Context type was not correctly propagated to contextual action.");
-                
+
                 return i + 10;
             });
 
@@ -1525,17 +1563,19 @@ public class ManagedExecutorTest extends Arquillian {
             Assert.assertEquals(stage3.join(), Integer.valueOf(30),
                     "Result of third stage was lost or altered.");
 
-            Assert.assertFalse(stage1.isCompletedExceptionally(), "First stage should not report exceptional completion.");
-            Assert.assertFalse(stage2.isCompletedExceptionally(), "Second stage should not report exceptional completion.");
-            Assert.assertFalse(stage3.isCompletedExceptionally(), "Third stage should not report exceptional completion.");
+            Assert.assertFalse(stage1.isCompletedExceptionally(),
+                    "First stage should not report exceptional completion.");
+            Assert.assertFalse(stage2.isCompletedExceptionally(),
+                    "Second stage should not report exceptional completion.");
+            Assert.assertFalse(stage3.isCompletedExceptionally(),
+                    "Third stage should not report exceptional completion.");
 
             // Is context properly restored on current thread?
             Assert.assertEquals(Buffer.get().toString(), "newIncompleteFuture-test-buffer",
                     "Previous context was not restored after context was cleared for managed executor tasks.");
             Assert.assertEquals(Label.get(), "newIncompleteFuture-test-label-C",
                     "Previous context was not restored after context was propagated for managed executor tasks.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -1546,9 +1586,12 @@ public class ManagedExecutorTest extends Arquillian {
     /**
      * Verify that Application context makes the application's thread context class loader available to the task.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void propagateApplicationContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1564,7 +1607,8 @@ public class ManagedExecutorTest extends Arquillian {
         try {
             // Set the class loader of the single thread upon which unmanagedSingleThreadExecutor runs tasks
             ClassLoader newClassLoader = unmanagedSingleThreadExecutor.submit(() -> {
-                ClassLoader loader = new ClassLoader() {};
+                ClassLoader loader = new ClassLoader() {
+                };
                 Thread.currentThread().setContextClassLoader(loader);
                 return loader;
             }).get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
@@ -1577,8 +1621,7 @@ public class ManagedExecutorTest extends Arquillian {
                     return new SimpleEntry<ClassLoader, Class<?>>(
                             loader,
                             loader.loadClass("org.eclipse.microprofile.context.tck.contexts.label.Label"));
-                }
-                catch (ClassNotFoundException x) {
+                } catch (ClassNotFoundException x) {
                     throw new CompletionException(x);
                 }
             }, unmanagedSingleThreadExecutor);
@@ -1595,25 +1638,24 @@ public class ManagedExecutorTest extends Arquillian {
             }).get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
 
             Assert.assertEquals(loaderForSingleThreadExecutor, newClassLoader);
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             unmanagedSingleThreadExecutor.shutdownNow();
         }
     }
 
     /**
-     * Verify that when JTA transactions are supported and configuration of propagated=TRANSACTION
-     * is permitted, it is at least possible to propagate the absence of a transaction,
-     * and if context is allowed to be captured while a transaction is active, then the task or action
-     * runs with a transaction on the thread. It would be nice to test participation in the same
-     * transaction, but that isn't possible without the TCK having a dependency on a particular
-     * type of transactional resource.
+     * Verify that when JTA transactions are supported and configuration of propagated=TRANSACTION is permitted, it is
+     * at least possible to propagate the absence of a transaction, and if context is allowed to be captured while a
+     * transaction is active, then the task or action runs with a transaction on the thread. It would be nice to test
+     * participation in the same transaction, but that isn't possible without the TCK having a dependency on a
+     * particular type of transactional resource.
      *
-     * The test tries to get hold of {@code UserTransaction} via JNDI and via CDI.
-     * Should neither work, it still doesn't throw exception but instead returns.
+     * The test tries to get hold of {@code UserTransaction} via JNDI and via CDI. Should neither work, it still doesn't
+     * throw exception but instead returns.
      *
-     * @throws Exception indicates test failure
+     * @throws Exception
+     *             indicates test failure
      */
     @Test
     public void propagateTransactionContextJTA() throws Exception {
@@ -1623,9 +1665,9 @@ public class ManagedExecutorTest extends Arquillian {
                     .propagated(ThreadContext.TRANSACTION)
                     .cleared(ThreadContext.ALL_REMAINING)
                     .build();
-        }
-        catch (IllegalStateException x) {
-            System.out.println("Skipping test propagateTransactionContextJTA. Transaction context propagation is not supported.");
+        } catch (IllegalStateException x) {
+            System.out.println(
+                    "Skipping test propagateTransactionContextJTA. Transaction context propagation is not supported.");
             return;
         }
 
@@ -1633,8 +1675,7 @@ public class ManagedExecutorTest extends Arquillian {
         UserTransaction txFromJNDI = null;
         try {
             txFromJNDI = InitialContext.doLookup("java:comp/UserTransaction");
-        }
-        catch (NamingException x) {
+        } catch (NamingException x) {
             // JTA UserTransaction not available in JNDI
         }
 
@@ -1649,8 +1690,7 @@ public class ManagedExecutorTest extends Arquillian {
             } else {
                 System.out.println("CDI implementation is present, but UserTransaction cannot be retrieved.");
             }
-        }
-        catch (IllegalStateException x) {
+        } catch (IllegalStateException x) {
             System.out.println("CDI implementation not present, cannot retrieve UserTransaction from CDI." + x);
         }
 
@@ -1672,8 +1712,7 @@ public class ManagedExecutorTest extends Arquillian {
                 tx.commit();
 
                 return "SUCCESS1";
-            }
-            catch (Exception x) {
+            } catch (Exception x) {
                 throw new CompletionException(x);
             }
         });
@@ -1698,14 +1737,13 @@ public class ManagedExecutorTest extends Arquillian {
                                 "Transaction context not propagated.");
 
                         return "SUCCESS2";
-                    }
-                    catch (Exception x) {
+                    } catch (Exception x) {
                         throw new CompletionException(x);
                     }
                 });
-            }
-            catch (IllegalStateException x) {
-                System.out.println("Skipping portion of test propagateTransactionContextJTA. Propagation of active transaction is not supported.");
+            } catch (IllegalStateException x) {
+                System.out.println(
+                        "Skipping portion of test propagateTransactionContextJTA. Propagation of active transaction is not supported.");
                 txPropagationRejected = true;
                 return;
             }
@@ -1713,41 +1751,41 @@ public class ManagedExecutorTest extends Arquillian {
             String result;
             try {
                 result = stage2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
-            }
-            catch (ExecutionException x) {
+            } catch (ExecutionException x) {
                 if (x.getCause() instanceof IllegalStateException) {
                     System.out.println("Skipping portion of test propagateTransactionContextJTA. " +
-                                       "Propagation of active transaction to multiple threads in parallel is not supported.");
+                            "Propagation of active transaction to multiple threads in parallel is not supported.");
                     txPropagationRejected = true;
                     return;
-                }
-                else {
+                } else {
                     throw x;
                 }
             }
             Assert.assertEquals(result, "SUCCESS2");
-        }
-        finally {
+        } finally {
             if (txPropagationRejected) {
                 tx.rollback();
-            }
-            else {
+            } else {
                 tx.commit();
             }
         }
     }
 
     /**
-     * Verify that the ManagedExecutor shutdownNow method prevents additional tasks from being submitted
-     * and cancels tasks that are currently in progress or queued.
-     * Also verify that once the tasks and actions terminate, the ManagedExecutor transitions to terminated state.
+     * Verify that the ManagedExecutor shutdownNow method prevents additional tasks from being submitted and cancels
+     * tasks that are currently in progress or queued. Also verify that once the tasks and actions terminate, the
+     * ManagedExecutor transitions to terminated state.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
-    public void shutdownNowPreventsAdditionalSubmitsAndCancelsTasks() throws ExecutionException, InterruptedException, TimeoutException {
+    public void shutdownNowPreventsAdditionalSubmitsAndCancelsTasks()
+            throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .maxAsync(1)
                 .maxQueued(4)
@@ -1779,8 +1817,7 @@ public class ManagedExecutorTest extends Arquillian {
 
                 // Await termination from a different executor,
                 future5 = unmanagedThreads.submit(() -> executor.awaitTermination(MAX_WAIT_NS, TimeUnit.NANOSECONDS));
-            }
-            finally {
+            } finally {
                 tasksThatDidNotStart = executor.shutdownNow();
             }
 
@@ -1788,8 +1825,9 @@ public class ManagedExecutorTest extends Arquillian {
                     "Null list returned by ManagedExecutor.shutdownNow.");
 
             Assert.assertEquals(tasksThatDidNotStart.size(), 3,
-                    "List of tasks that did not start should correspond to the tasks/actions that are queued. Observed: " +
-                    tasksThatDidNotStart);
+                    "List of tasks that did not start should correspond to the tasks/actions that are queued. Observed: "
+                            +
+                            tasksThatDidNotStart);
 
             Assert.assertTrue(executor.isShutdown(),
                     "ManagedExecutor reported that it has not been shut down after we shut it down.");
@@ -1798,16 +1836,14 @@ public class ManagedExecutorTest extends Arquillian {
             try {
                 Future<Integer> future6 = executor.submit(() -> 60);
                 Assert.fail("Should not be possible to submit new task after shutdownNow. Future: " + future6);
-            }
-            catch (RejectedExecutionException x) {
+            } catch (RejectedExecutionException x) {
                 // test passes
             }
 
             try {
                 Future<Integer> future7 = executor.supplyAsync(() -> 70);
                 Assert.fail("Should not be possible to create new async action after shutdownNow. Future: " + future7);
-            }
-            catch (RejectedExecutionException x) {
+            } catch (RejectedExecutionException x) {
                 // test passes
             }
 
@@ -1823,14 +1859,12 @@ public class ManagedExecutorTest extends Arquillian {
                 Assert.assertTrue(future1.isDone());
                 Integer result1 = future1.get(1, TimeUnit.SECONDS);
                 Assert.fail("Running task should not complete successfully after shutdownNow. Result: " + result1);
-            }
-            catch (ExecutionException x) {
+            } catch (ExecutionException x) {
                 if (!(x.getCause() instanceof InterruptedException)) {
                     throw x;
                 }
                 // test passes
-            }
-            catch (CancellationException x) {
+            } catch (CancellationException x) {
                 // test passes, impl may chose to mark such task as cancelled
             }
 
@@ -1840,39 +1874,36 @@ public class ManagedExecutorTest extends Arquillian {
                 try {
                     Object result2 = future2.join();
                     Assert.fail("Queued action should not run after shutdownNow. Result: " + result2);
-                }
-                catch (CancellationException x) {
+                } catch (CancellationException x) {
                     // test passes
                 }
-            }
-            else {
-                Assert.assertTrue(!future2.isCancelled(), "Running task should not complete after shutdownNow() invocation.");
+            } else {
+                Assert.assertTrue(!future2.isCancelled(),
+                        "Running task should not complete after shutdownNow() invocation.");
             }
 
             if (future3.isDone()) {
                 try {
                     String result3 = future3.getNow("333");
                     Assert.fail("Queued action should not run after shutdownNow. Result: " + result3);
-                }
-                catch (CancellationException x) {
+                } catch (CancellationException x) {
                     // test passes
                 }
-            }
-            else {
-                Assert.assertTrue(!future3.isCancelled(), "Running task should not complete after shutdownNow() invocation.");
+            } else {
+                Assert.assertTrue(!future3.isCancelled(),
+                        "Running task should not complete after shutdownNow() invocation.");
             }
 
             if (future4.isDone()) {
                 try {
                     String result4 = future4.get(1, TimeUnit.SECONDS);
                     Assert.fail("Queued task should not run after shutdownNow. Result: " + result4);
-                }
-                catch (CancellationException x) {
+                } catch (CancellationException x) {
                     // test passes
                 }
-            }
-            else {
-                Assert.assertTrue(!future4.isCancelled(), "Running task should not complete after shutdownNow() invocation.");
+            } else {
+                Assert.assertTrue(!future4.isCancelled(),
+                        "Running task should not complete after shutdownNow() invocation.");
             }
 
             Assert.assertEquals(task2ResultRef.get(), -1,
@@ -1880,9 +1911,8 @@ public class ManagedExecutorTest extends Arquillian {
 
             Assert.assertEquals(future5.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Boolean.TRUE,
                     "Notification of termination was not received in a reasonable amount of time by the " +
-                    "awaitTermination request that was issued before shutdownNow");
-        }
-        finally {
+                            "awaitTermination request that was issued before shutdownNow");
+        } finally {
             barrier.forceTermination();
 
             if (future5 != null) {
@@ -1892,13 +1922,16 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that the ManagedExecutor shutdown method prevents additional tasks from being submitted
-     * but does not interfere with tasks and actions that are running or queued.
-     * Also verify that once the tasks and actions finish, the ManagedExecutor transitions to terminated state.
+     * Verify that the ManagedExecutor shutdown method prevents additional tasks from being submitted but does not
+     * interfere with tasks and actions that are running or queued. Also verify that once the tasks and actions finish,
+     * the ManagedExecutor transitions to terminated state.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void shutdownPreventsAdditionalSubmits() throws ExecutionException, InterruptedException, TimeoutException {
@@ -1930,8 +1963,7 @@ public class ManagedExecutorTest extends Arquillian {
 
                 // Await termination from a different executor,
                 future4 = unmanagedThreads.submit(() -> executor.awaitTermination(MAX_WAIT_NS, TimeUnit.NANOSECONDS));
-            }
-            finally {
+            } finally {
                 executor.shutdown();
             }
 
@@ -1942,16 +1974,14 @@ public class ManagedExecutorTest extends Arquillian {
             try {
                 Future<Integer> future6 = executor.submit(() -> 60);
                 Assert.fail("Should not be possible to submit new task after shutdown. Future: " + future6);
-            }
-            catch (RejectedExecutionException x) {
+            } catch (RejectedExecutionException x) {
                 // test passes
             }
 
             try {
                 Future<Integer> future7 = executor.supplyAsync(() -> 70);
                 Assert.fail("Should not be possible to create new async action after shutdown. Future: " + future7);
-            }
-            catch (RejectedExecutionException x) {
+            } catch (RejectedExecutionException x) {
                 // test passes
             }
 
@@ -1987,16 +2017,15 @@ public class ManagedExecutorTest extends Arquillian {
 
             Assert.assertEquals(future4.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Boolean.TRUE,
                     "Notification of termination was not received in a reasonable amount of time by the " +
-                    "awaitTermination request that was issued prior to shutdown");
+                            "awaitTermination request that was issued prior to shutdown");
 
             Assert.assertEquals(future5.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), Boolean.TRUE,
                     "Notification of termination was not received in a reasonable amount of time by the " +
-                    "awaitTermination request that was issued after shutdown");
+                            "awaitTermination request that was issued after shutdown");
 
             Assert.assertTrue(executor.isTerminated(),
                     "ManagedExecutor did not report being terminated after running/queued tasks completed.");
-        }
-        finally {
+        } finally {
             barrier.forceTermination();
 
             if (future4 != null) {
@@ -2010,19 +2039,22 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that the ManagedExecutor.Builder can be used to create multiple ManagedExecutors with 
-     * different configured contexts.
+     * Verify that the ManagedExecutor.Builder can be used to create multiple ManagedExecutors with different configured
+     * contexts.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void reuseManagedExecutorBuilder() throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor.Builder builder = ManagedExecutor.builder()
                 .propagated()
                 .cleared(Buffer.CONTEXT_NAME);
-        
+
         ManagedExecutor clearingExecutor = builder.build();
 
         ManagedExecutor propagatingExecutor = builder.propagated(Buffer.CONTEXT_NAME)
@@ -2055,24 +2087,24 @@ public class ManagedExecutorTest extends Arquillian {
 
             Assert.assertEquals(Buffer.get().toString(), "reuseBuilder-test-buffer-A",
                     "Previous context (Buffer) was not restored after context was propagated for contextual action.");
-        }
-        finally {
+        } finally {
             clearingExecutor.shutdownNow();
             propagatingExecutor.shutdownNow();
             // Restore original value
             Buffer.set(null);
         }
     }
-    
+
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for all dependent stages as well as the initial stage created
-     * by the ManagedExecutor's runAsync implementation. Thread context is captured
-     * at each point where a dependent stage is added, rather than solely upon creation of the
-     * initial stage or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * all dependent stages as well as the initial stage created by the ManagedExecutor's runAsync implementation.
+     * Thread context is captured at each point where a dependent stage is added, rather than solely upon creation of
+     * the initial stage or construction of the builder.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
      */
     @Test
     public void runAsyncStageAndDependentStagesRunWithContext() throws ExecutionException, InterruptedException {
@@ -2185,9 +2217,9 @@ public class ManagedExecutorTest extends Arquillian {
 
             try {
                 Object result = stage4.join();
-                Assert.fail("The join method must not return value " + result + " for stage with exceptional completion.");
-            }
-            catch (CompletionException x) {
+                Assert.fail(
+                        "The join method must not return value " + result + " for stage with exceptional completion.");
+            } catch (CompletionException x) {
                 if (x.getCause() == null || !(x.getCause() instanceof NegativeArraySizeException)
                         || !"Fake exception raised by test".equals(x.getCause().getMessage())) {
                     throw x;
@@ -2197,14 +2229,18 @@ public class ManagedExecutorTest extends Arquillian {
             Assert.assertEquals(stage5.join(), Character.valueOf('E'),
                     "Return value of 'handle' method was lost or altered.");
 
-            Assert.assertFalse(stage1.isCompletedExceptionally(), "First stage should not report exceptional completion.");
-            Assert.assertFalse(stage2.isCompletedExceptionally(), "Second stage should not report exceptional completion.");
-            Assert.assertFalse(stage3.isCompletedExceptionally(), "Third stage should not report exceptional completion.");
+            Assert.assertFalse(stage1.isCompletedExceptionally(),
+                    "First stage should not report exceptional completion.");
+            Assert.assertFalse(stage2.isCompletedExceptionally(),
+                    "Second stage should not report exceptional completion.");
+            Assert.assertFalse(stage3.isCompletedExceptionally(),
+                    "Third stage should not report exceptional completion.");
             Assert.assertTrue(stage4.isCompletedExceptionally(), "Fourth stage did not report exceptional completion.");
-            Assert.assertFalse(stage5.isCompletedExceptionally(), "Fifth stage should not report exceptional completion.");
-            Assert.assertFalse(stage6.isCompletedExceptionally(), "Sixth stage should not report exceptional completion.");
-        }
-        finally {
+            Assert.assertFalse(stage5.isCompletedExceptionally(),
+                    "Fifth stage should not report exceptional completion.");
+            Assert.assertFalse(stage6.isCompletedExceptionally(),
+                    "Sixth stage should not report exceptional completion.");
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -2213,13 +2249,15 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for all tasks that are submitted via the submit(Callable),
-     * submit(Runnable) and submit(Runnable, result) methods.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * all tasks that are submitted via the submit(Callable), submit(Runnable) and submit(Runnable, result) methods.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void submittedTasksRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
@@ -2267,8 +2305,7 @@ public class ManagedExecutorTest extends Arquillian {
             try {
                 Object result = futureA.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
                 Assert.fail("Result of " + result + " returned for Runnable that throws an Error.");
-            }
-            catch (ExecutionException x) {
+            } catch (ExecutionException x) {
                 if (x.getCause() == null
                         || (!(x.getCause() instanceof Error))
                         || (!"Fake error intentionally raised by test Runnable.".equals(x.getCause().getMessage()))) {
@@ -2299,8 +2336,7 @@ public class ManagedExecutorTest extends Arquillian {
 
             Assert.assertFalse(futureC.isCancelled(),
                     "Future for Callable should not be canceled because the test case did not cancel it.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -2309,18 +2345,21 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for all dependent stages as well as the initial stage created
-     * by the ManagedExecutor's supplyAsync implementation. Thread context is captured
-     * at each point where a dependent stage is added, rather than solely upon creation of the
-     * initial stage or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * all dependent stages as well as the initial stage created by the ManagedExecutor's supplyAsync implementation.
+     * Thread context is captured at each point where a dependent stage is added, rather than solely upon creation of
+     * the initial stage or construction of the builder.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
-    public void supplyAsyncStageAndDependentStagesRunWithContext() throws ExecutionException, InterruptedException, TimeoutException {
+    public void supplyAsyncStageAndDependentStagesRunWithContext()
+            throws ExecutionException, InterruptedException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .propagated(Buffer.CONTEXT_NAME)
                 .cleared(ThreadContext.ALL_REMAINING)
@@ -2416,8 +2455,7 @@ public class ManagedExecutorTest extends Arquillian {
                     "Previous context was not restored after context was propagated for managed executor tasks.");
             Assert.assertEquals(Label.get(), "supplyAsync-test-label",
                     "Previous context was not restored after context was cleared for managed executor tasks.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -2426,14 +2464,16 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for all tasks that are submitted via the ManagedExecutor's
-     * timed invokeAll operation. Thread context is captured at the point where invokeAll is
-     * invoked, rather than upon creation of the executor or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * all tasks that are submitted via the ManagedExecutor's timed invokeAll operation. Thread context is captured at
+     * the point where invokeAll is invoked, rather than upon creation of the executor or construction of the builder.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void timedInvokeAllRunsTasksWithContext()
@@ -2490,8 +2530,7 @@ public class ManagedExecutorTest extends Arquillian {
                     "Previous context was not restored after context was propagated for managed executor tasks.");
             Assert.assertEquals(Buffer.get().toString(), "timed-invokeAll-test-buffer-A",
                     "Previous context was not restored after context was cleared for managed executor tasks.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -2500,14 +2539,17 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for one or more tasks that are submitted via the ManagedExecutor's
-     * timed invokeAny operation. Thread context is captured at the point where invokeAny is
-     * invoked, rather than upon creation of the executor or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * one or more tasks that are submitted via the ManagedExecutor's timed invokeAny operation. Thread context is
+     * captured at the point where invokeAny is invoked, rather than upon creation of the executor or construction of
+     * the builder.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void timedInvokeAnyRunsTaskWithContext()
@@ -2554,8 +2596,7 @@ public class ManagedExecutorTest extends Arquillian {
                     "Previous context was not restored after context was propagated for managed executor tasks.");
             Assert.assertEquals(Buffer.get().toString(), "timed-invokeAny-test-buffer-A",
                     "Previous context was not restored after context was cleared for managed executor tasks.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -2564,14 +2605,16 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for all tasks that are submitted via the ManagedExecutor's
-     * untimed invokeAll operation. Thread context is captured at the point where invokeAll is
-     * invoked, rather than upon creation of the executor or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * all tasks that are submitted via the ManagedExecutor's untimed invokeAll operation. Thread context is captured at
+     * the point where invokeAll is invoked, rather than upon creation of the executor or construction of the builder.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void untimedInvokeAllRunsTasksWithContext()
@@ -2697,8 +2740,7 @@ public class ManagedExecutorTest extends Arquillian {
                     "Previous context was not restored after context was propagated for managed executor tasks.");
             Assert.assertEquals(Buffer.get().toString(), "untimed-invokeAll-test-buffer-A",
                     "Previous context was not restored after context was cleared for managed executor tasks.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
@@ -2707,14 +2749,17 @@ public class ManagedExecutorTest extends Arquillian {
     }
 
     /**
-     * Verify that thread context is captured and propagated per the configuration of the
-     * ManagedExecutor builder for one or more tasks that are submitted via the ManagedExecutor's
-     * untimed invokeAny operation. Thread context is captured at the point where invokeAny is
-     * invoked, rather than upon creation of the executor or construction of the builder.
+     * Verify that thread context is captured and propagated per the configuration of the ManagedExecutor builder for
+     * one or more tasks that are submitted via the ManagedExecutor's untimed invokeAny operation. Thread context is
+     * captured at the point where invokeAny is invoked, rather than upon creation of the executor or construction of
+     * the builder.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void untimedInvokeAnyRunsTasksWithContext()
@@ -2773,21 +2818,23 @@ public class ManagedExecutorTest extends Arquillian {
                     "Previous context was not restored after context was propagated for managed executor tasks.");
             Assert.assertEquals(Buffer.get().toString(), "untimed-invokeAny-test-buffer-A",
                     "Previous context was not restored after context was cleared for managed executor tasks.");
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Buffer.set(null);
             Label.set(null);
         }
     }
-    
+
     /**
      * Verify that we can copy a CompletableFuture and get context propagation in the copy's dependent stages.
      * 
-     * @throws InterruptedException indicates test failure
-     * @throws ExecutionException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void copyCompletableFuture() throws InterruptedException, ExecutionException, TimeoutException {
@@ -2808,18 +2855,17 @@ public class ManagedExecutorTest extends Arquillian {
 
                 return res;
             });
-            
+
             CompletableFuture<String> contextCF = executor.copy(noContextCFStage1).thenApplyAsync(res -> {
                 Assert.assertEquals(Label.get(), "copy-test-label-A",
                         "Context type should be propagated to contextual action.");
-                
+
                 return res;
             });
-            
+
             noContextCF.complete("OK");
             contextCF.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Label.set(null);
@@ -2829,9 +2875,12 @@ public class ManagedExecutorTest extends Arquillian {
     /**
      * Verify that we can copy a CompletionStage and get context propagation in the copy's dependent stages.
      * 
-     * @throws InterruptedException indicates test failure
-     * @throws ExecutionException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void copyCompletionStage() throws InterruptedException, ExecutionException, TimeoutException {
@@ -2852,18 +2901,17 @@ public class ManagedExecutorTest extends Arquillian {
 
                 return res;
             });
-            
+
             CompletionStage<String> contextCF = executor.copy(noContextCFStage1).thenApplyAsync(res -> {
                 Assert.assertEquals(Label.get(), "copy-test-label-A",
                         "Context type should be propagated to contextual action.");
-                
+
                 return res;
             });
-            
+
             noContextCF.complete("OK");
             contextCF.toCompletableFuture().get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Label.set(null);
@@ -2873,12 +2921,16 @@ public class ManagedExecutorTest extends Arquillian {
     /**
      * Verify that we can obtain a ThreadContext with the same settings as the ManagedExecutor
      * 
-     * @throws InterruptedException indicates test failure
-     * @throws ExecutionException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
-    public void threadContextHasSamePropagationSettings() throws InterruptedException, ExecutionException, TimeoutException {
+    public void threadContextHasSamePropagationSettings()
+            throws InterruptedException, ExecutionException, TimeoutException {
         ManagedExecutor executor = ManagedExecutor.builder()
                 .maxAsync(1)
                 .propagated(Label.CONTEXT_NAME)
@@ -2893,12 +2945,11 @@ public class ManagedExecutorTest extends Arquillian {
             executor.getThreadContext().contextualRunnable(() -> {
                 Assert.assertEquals(Label.get(), "thread-context-test-label-A",
                         "getThreadContext call is lacking propagation of Label context.");
-                
+
                 Assert.assertEquals(Buffer.get().toString(), "",
                         "getThreadContext call is lacking clearance of Buffer context.");
             }).run();
-        }
-        finally {
+        } finally {
             executor.shutdownNow();
             // Restore original values
             Label.set(null);
@@ -2909,9 +2960,12 @@ public class ManagedExecutorTest extends Arquillian {
     /**
      * Verify that the presence of a default executor service implies async actions run on it.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void withDefaultExecutorServiceIsUsedDirectlyAndViaGetThreadContext()
@@ -2928,14 +2982,13 @@ public class ManagedExecutorTest extends Arquillian {
         try {
             // Set non-default values
             Label.set("default-executor-service-managed-executor-test-label-A");
-            
-            
+
             // try it directly
             CompletableFuture<String> contextCF = executor.newIncompleteFuture();
             CompletableFuture<String> contextCFStage1 = contextCF.thenApplyAsync(res -> {
                 Assert.assertEquals(Label.get(), "default-executor-service-managed-executor-test-label-A",
                         "Context type should be propagated to contextual CompletableFuture.");
-                
+
                 Assert.assertTrue(Thread.currentThread() instanceof TckThread,
                         "Current thread should have been created by default executor service");
 
@@ -2948,18 +3001,19 @@ public class ManagedExecutorTest extends Arquillian {
             CompletableFuture<String> contextCFStage3 = contextCFStage2.thenApplyAsync(res -> {
                 Assert.assertEquals(Label.get(), "default-executor-service-managed-executor-test-label-A",
                         "Context type should be propagated to contextual CompletableFuture.");
-                
+
                 Assert.assertTrue(Thread.currentThread() instanceof TckThread,
                         "Current thread should have been created by default executor service");
 
                 return res;
             });
-            
-            CompletionStage<String> contextCSStage1 = executor.getThreadContext().withContextCapture((CompletionStage<String>)noContextCF);
+
+            CompletionStage<String> contextCSStage1 =
+                    executor.getThreadContext().withContextCapture((CompletionStage<String>) noContextCF);
             CompletionStage<String> contextCSStage2 = contextCSStage1.thenApplyAsync(res -> {
                 Assert.assertEquals(Label.get(), "default-executor-service-managed-executor-test-label-A",
                         "Context type should be propagated to contextual CompletionStage.");
-                
+
                 Assert.assertTrue(Thread.currentThread() instanceof TckThread,
                         "Current thread should have been created by default executor service");
 
@@ -2971,8 +3025,7 @@ public class ManagedExecutorTest extends Arquillian {
             contextCFStage1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
             contextCFStage3.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
             contextCSStage2.toCompletableFuture().get(MAX_WAIT_NS, TimeUnit.NANOSECONDS);
-        }
-        finally {
+        } finally {
             // Restore original values
             Label.set(null);
             executorService.shutdownNow();

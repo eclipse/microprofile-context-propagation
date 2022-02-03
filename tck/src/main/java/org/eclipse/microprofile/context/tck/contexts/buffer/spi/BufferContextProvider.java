@@ -20,14 +20,13 @@ package org.eclipse.microprofile.context.tck.contexts.buffer.spi;
 
 import java.util.Map;
 
-import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.eclipse.microprofile.context.spi.ThreadContextSnapshot;
+import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 
 /**
- * This is a fake context type that is created by the test suite.
- * It associates a StringBuffer with the current thread, accessible via
- * the static get/set operations of the BufferContext class.
+ * This is a fake context type that is created by the test suite. It associates a StringBuffer with the current thread,
+ * accessible via the static get/set operations of the BufferContext class.
  */
 public class BufferContextProvider implements ThreadContextProvider {
     /**

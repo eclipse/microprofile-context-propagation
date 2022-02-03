@@ -26,10 +26,10 @@ import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.context.ThreadContext;
 
 /**
- * {@link ContextManager} instances can be used to create {@link #newManagedExecutorBuilder()}
- * or {@link #newThreadContextBuilder()}. Each {@link ContextManager} instance has its own set
- * of {@link ThreadContextProvider} as defined during building with {@link ContextManager.Builder#build()}
- * or {@link ContextManagerProvider#getContextManager()}.
+ * {@link ContextManager} instances can be used to create {@link #newManagedExecutorBuilder()} or
+ * {@link #newThreadContextBuilder()}. Each {@link ContextManager} instance has its own set of
+ * {@link ThreadContextProvider} as defined during building with {@link ContextManager.Builder#build()} or
+ * {@link ContextManagerProvider#getContextManager()}.
  *
  * @see ContextManagerProvider#getContextManager()
  * @see ContextManager.Builder
@@ -53,17 +53,20 @@ public interface ContextManager {
      * Use this class to configure instances of {@link ContextManager}.
      */
     public interface Builder {
-        
+
         /**
          * Use the specified {@link ThreadContextProvider} instances.
-         * @param providers the {@link ThreadContextProvider} instances to use.
+         * 
+         * @param providers
+         *            the {@link ThreadContextProvider} instances to use.
          * @return this builder
          */
         public Builder withThreadContextProviders(ThreadContextProvider... providers);
 
         /**
          * Load all discoverable {@link ContextManagerExtension} instances via the {@link java.util.ServiceLoader}
-         * mechanism on the current thread-context {@link ClassLoader} (unless overridden by {@link #forClassLoader(ClassLoader)}).
+         * mechanism on the current thread-context {@link ClassLoader} (unless overridden by
+         * {@link #forClassLoader(ClassLoader)}).
          * 
          * @return this builder
          */
@@ -71,43 +74,51 @@ public interface ContextManager {
 
         /**
          * Use the specified {@link ContextManagerExtension} instances.
-         * @param extensions the {@link ContextManagerExtension} instances to use.
+         * 
+         * @param extensions
+         *            the {@link ContextManagerExtension} instances to use.
          * @return this builder
          */
         public Builder withContextManagerExtensions(ContextManagerExtension... extensions);
 
         /**
          * Load all discoverable {@link ThreadContextProvider} instances via the {@link java.util.ServiceLoader}
-         * mechanism on the current thread-context {@link ClassLoader} (unless overridden by {@link #forClassLoader(ClassLoader)}).
+         * mechanism on the current thread-context {@link ClassLoader} (unless overridden by
+         * {@link #forClassLoader(ClassLoader)}).
          * 
          * @return this builder
          */
         public Builder addDiscoveredThreadContextProviders();
 
         /**
-         * Use the given {@link ClassLoader} for {@link #addDiscoveredThreadContextProviders()} instead
-         * of the current thread-context {@link ClassLoader}.
+         * Use the given {@link ClassLoader} for {@link #addDiscoveredThreadContextProviders()} instead of the current
+         * thread-context {@link ClassLoader}.
          * 
-         * @param classLoader the {@link ClassLoader} to use for {@link #addDiscoveredThreadContextProviders()}
+         * @param classLoader
+         *            the {@link ClassLoader} to use for {@link #addDiscoveredThreadContextProviders()}
          * @return this builder
          */
         public Builder forClassLoader(ClassLoader classLoader);
 
         /**
-         * Use the given {@link ExecutorService} to execute async tasks for contextualised
-         * {@link CompletableFuture} and {@link CompletionStage} when no executor is specified.
+         * Use the given {@link ExecutorService} to execute async tasks for contextualised {@link CompletableFuture} and
+         * {@link CompletionStage} when no executor is specified.
          * 
-         * @param executorService the {@link ExecutorService} to use for async tasks when
-         * no executor is specified.
+         * @param executorService
+         *            the {@link ExecutorService} to use for async tasks when no executor is specified.
          * @return this builder
          */
         public Builder withDefaultExecutorService(ExecutorService executorService);
 
         /**
-         * <p>Creates a new {@link ContextManager} with the specified configuration.</p>
+         * <p>
+         * Creates a new {@link ContextManager} with the specified configuration.
+         * </p>
          * 
-         * <p>Creating a {@link ContextManager} will load and invoke all related
-         * {@link ContextManagerExtension} as described in its documentation.</p>
+         * <p>
+         * Creating a {@link ContextManager} will load and invoke all related {@link ContextManagerExtension} as
+         * described in its documentation.
+         * </p>
          * 
          * @return a new {@link ContextManager} with the specified configuration.
          */

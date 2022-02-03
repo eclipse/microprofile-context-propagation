@@ -26,14 +26,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import jakarta.enterprise.context.ContextNotActiveException;
-import jakarta.enterprise.context.ConversationScoped;
-import jakarta.enterprise.context.RequestScoped;
-import jakarta.enterprise.context.SessionScoped;
-import jakarta.enterprise.inject.Instance;
-import jakarta.enterprise.inject.spi.BeanManager;
-import jakarta.inject.Inject;
-
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.eclipse.microprofile.context.ThreadContext;
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -42,9 +34,17 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.ITestResult;
-import org.testng.annotations.Test;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import jakarta.enterprise.context.ContextNotActiveException;
+import jakarta.enterprise.context.ConversationScoped;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.context.SessionScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.spi.BeanManager;
+import jakarta.inject.Inject;
 
 public class CDIContextTest extends Arquillian {
 
@@ -58,7 +58,8 @@ public class CDIContextTest extends Arquillian {
 
     @AfterMethod
     public void afterMethod(Method m, ITestResult result) {
-        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName() + (result.isSuccess() ? " SUCCESS" : " FAILED"));
+        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName()
+                + (result.isSuccess() ? " SUCCESS" : " FAILED"));
         Throwable failure = result.getThrowable();
         if (failure != null) {
             failure.printStackTrace(System.out);
@@ -81,14 +82,15 @@ public class CDIContextTest extends Arquillian {
         System.out.println(war.toString(true));
         return war;
     }
-    
+
     /**
-     * Set some state on Request scoped bean and verify
-     * the state is propagated to the thread where the other task runs.
+     * Set some state on Request scoped bean and verify the state is propagated to the thread where the other task runs.
      *
-     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be
+     * done.
      *
-     * @throws Exception indicates test failure
+     * @throws Exception
+     *             indicates test failure
      */
     @Test
     public void testCDIMECtxPropagatesRequestScopedBean() throws Exception {
@@ -108,18 +110,18 @@ public class CDIContextTest extends Arquillian {
         try {
             checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-REQUEST", propagateCDI,
                     selectedInstance.get());
-        } 
-        finally {
+        } finally {
             propagateCDI.shutdown();
         }
     }
     /**
-     * Set some state on Session scoped bean and verify
-     * the state is propagated to the thread where the other task runs.
+     * Set some state on Session scoped bean and verify the state is propagated to the thread where the other task runs.
      *
-     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be
+     * done.
      *
-     * @throws Exception indicates test failure
+     * @throws Exception
+     *             indicates test failure
      */
     @Test
     public void testCDIMECtxPropagatesSessionScopedBean() throws Exception {
@@ -139,18 +141,19 @@ public class CDIContextTest extends Arquillian {
         try {
             checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-SESSION", propagateCDI,
                     selectedInstance.get());
-        }
-        finally {
+        } finally {
             propagateCDI.shutdown();
         }
     }
     /**
-     * Set some state on Conversation scoped beans and verify
-     * the state is propagated to the thread where the other task runs.
+     * Set some state on Conversation scoped beans and verify the state is propagated to the thread where the other task
+     * runs.
      *
-     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be
+     * done.
      *
-     * @throws Exception indicates test failure
+     * @throws Exception
+     *             indicates test failure
      */
     @Test
     public void testCDIMECtxPropagatesConversationScopedBean() throws Exception {
@@ -170,19 +173,19 @@ public class CDIContextTest extends Arquillian {
         try {
             checkCDIPropagation(true, "testCDI_ME_Ctx_Propagate-CONVERSATION", propagateCDI,
                     selectedInstance.get());
-        }
-        finally {
+        } finally {
             propagateCDI.shutdown();
         }
     }
 
     /**
-     * Set some state on Request scoped bean and verify
-     * the state is cleared on the thread where the other task runs.
+     * Set some state on Request scoped bean and verify the state is cleared on the thread where the other task runs.
      *
-     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be
+     * done.
      *
-     * @throws Exception indicates test failure
+     * @throws Exception
+     *             indicates test failure
      */
     @Test
     public void testCDIMECtxClearsRequestScopedBean() throws Exception {
@@ -203,19 +206,19 @@ public class CDIContextTest extends Arquillian {
         try {
             checkCDIPropagation(false, "testCDI_ME_Ctx_Clear-REQUEST", propagatedNone,
                     selectedInstance.get());
-        } 
-        finally {
+        } finally {
             propagatedNone.shutdown();
         }
     }
 
     /**
-     * Set some state on Session scoped bean and verify
-     * the state is cleared on the thread where the other task runs.
+     * Set some state on Session scoped bean and verify the state is cleared on the thread where the other task runs.
      *
-     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be
+     * done.
      *
-     * @throws Exception indicates test failure
+     * @throws Exception
+     *             indicates test failure
      */
     @Test
     public void testCDIMECtxClearsSessionScopedBeans() throws Exception {
@@ -237,19 +240,20 @@ public class CDIContextTest extends Arquillian {
         try {
             checkCDIPropagation(false, "testCDI_ME_Ctx_Clear-SESSION", propagatedNone,
                     selectedInstance.get());
-        }
-        finally {
+        } finally {
             propagatedNone.shutdown();
         }
     }
 
     /**
-     * Set some state on Conversation scoped bean and verify
-     * the state is cleared on the thread where the other task runs.
+     * Set some state on Conversation scoped bean and verify the state is cleared on the thread where the other task
+     * runs.
      *
-     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be done.
+     * If the CDI context in question is not active, the test is deemed successful as there is no propagation to be
+     * done.
      *
-     * @throws Exception indicates test failure
+     * @throws Exception
+     *             indicates test failure
      */
     @Test
     public void testCDIMECtxClearsConversationScopedBeans() throws Exception {
@@ -270,34 +274,36 @@ public class CDIContextTest extends Arquillian {
         try {
             checkCDIPropagation(false, "testCDI_ME_Ctx_Clear-CONVERSATION", propagatedNone,
                     selectedInstance.get());
-        }
-        finally {
+        } finally {
             propagatedNone.shutdown();
         }
     }
 
-    private void checkCDIPropagation(boolean expectPropagate, String stateToPropagate, ManagedExecutor me, AbstractBean bean) throws Exception {
+    private void checkCDIPropagation(boolean expectPropagate, String stateToPropagate, ManagedExecutor me,
+            AbstractBean bean) throws Exception {
         bean.setState(stateToPropagate);
         CompletableFuture<String> cf = me.supplyAsync(() -> {
             String state = bean.getState();
             return state;
         });
-        assertEquals(cf.get(TIMEOUT_MIN, TimeUnit.MINUTES), expectPropagate ? stateToPropagate : AbstractBean.UNINITIALIZED);
+        assertEquals(cf.get(TIMEOUT_MIN, TimeUnit.MINUTES),
+                expectPropagate ? stateToPropagate : AbstractBean.UNINITIALIZED);
     }
 
     /**
-     * Set some state on a request scoped bean, then verify a contextualized callable
-     * has the state propagated to it when ran on the same thread.
+     * Set some state on a request scoped bean, then verify a contextualized callable has the state propagated to it
+     * when ran on the same thread.
      *
-     * @throws Exception indicates test failure
+     * @throws Exception
+     *             indicates test failure
      */
     @Test
     public void testCDITCCtxPropagate() throws Exception {
         ThreadContext defaultTC = ThreadContext.builder()
-                                               .propagated(ThreadContext.CDI)
-                                               .cleared(ThreadContext.ALL_REMAINING)
-                                               .unchanged()
-                                               .build();
+                .propagated(ThreadContext.CDI)
+                .cleared(ThreadContext.ALL_REMAINING)
+                .unchanged()
+                .build();
 
         Instance<RequestScopedBean> selectedInstance = instance.select(RequestScopedBean.class);
         assertTrue(selectedInstance.isResolvable());
@@ -311,18 +317,19 @@ public class CDIContextTest extends Arquillian {
     }
 
     /**
-     * Set some state on a request scoped bean, then verify a contextualized callable
-     * has the state cleared from it when ran on the same thread.
+     * Set some state on a request scoped bean, then verify a contextualized callable has the state cleared from it when
+     * ran on the same thread.
      *
-     * @throws Exception indicates test failure
+     * @throws Exception
+     *             indicates test failure
      */
     @Test
     public void testCDITCCtxClear() throws Exception {
         ThreadContext clearAllCtx = ThreadContext.builder()
-                        .propagated() // propagate nothing
-                        .cleared(ThreadContext.ALL_REMAINING)
-                        .unchanged()
-                        .build();
+                .propagated() // propagate nothing
+                .cleared(ThreadContext.ALL_REMAINING)
+                .unchanged()
+                .build();
 
         Instance<RequestScopedBean> selectedInstance = instance.select(RequestScopedBean.class);
         assertTrue(selectedInstance.isResolvable());

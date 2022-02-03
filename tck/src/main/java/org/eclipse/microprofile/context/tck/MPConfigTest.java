@@ -25,21 +25,18 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import jakarta.inject.Inject;
-import jakarta.inject.Named;
-
+import org.eclipse.microprofile.context.ManagedExecutor;
+import org.eclipse.microprofile.context.ThreadContext;
+import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.eclipse.microprofile.context.tck.MPConfigBean.Max5Queue;
 import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.context.tck.contexts.buffer.spi.BufferContextProvider;
 import org.eclipse.microprofile.context.tck.contexts.label.Label;
 import org.eclipse.microprofile.context.tck.contexts.label.spi.LabelContextProvider;
 import org.eclipse.microprofile.context.tck.contexts.priority.spi.ThreadPriorityContextProvider;
-import org.eclipse.microprofile.context.ManagedExecutor;
-import org.eclipse.microprofile.context.ThreadContext;
-import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.testng.Arquillian;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -49,31 +46,37 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.Assert;
 import org.testng.ITestResult;
-import org.testng.annotations.Test;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
 public class MPConfigTest extends Arquillian {
     /**
-     * Maximum tolerated wait for an asynchronous operation to complete.
-     * This is important to ensure that tests don't hang waiting for asynchronous operations to complete.
-     * Normally these sort of operations will complete in tiny fractions of a second, but we are specifying
-     * an extremely generous value here to allow for the widest possible variety of test execution environments.
+     * Maximum tolerated wait for an asynchronous operation to complete. This is important to ensure that tests don't
+     * hang waiting for asynchronous operations to complete. Normally these sort of operations will complete in tiny
+     * fractions of a second, but we are specifying an extremely generous value here to allow for the widest possible
+     * variety of test execution environments.
      */
     private static final long MAX_WAIT_NS = TimeUnit.MINUTES.toNanos(2);
 
     @Inject
     protected MPConfigBean bean;
 
-    @Inject @Max5Queue
+    @Inject
+    @Max5Queue
     protected ManagedExecutor producedExecutor;
 
-    @Inject @Named("producedThreadContext")
+    @Inject
+    @Named("producedThreadContext")
     protected ThreadContext producedThreadContext;
 
     @AfterMethod
     public void afterMethod(Method m, ITestResult result) {
-        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName() + (result.isSuccess() ? " SUCCESS" : " FAILED"));
+        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName()
+                + (result.isSuccess() ? " SUCCESS" : " FAILED"));
         Throwable failure = result.getThrowable();
         if (failure != null) {
             failure.printStackTrace(System.out);
@@ -101,13 +104,13 @@ public class MPConfigTest extends Arquillian {
                 .addClass(ProducerBean.class)
                 .addAsManifestResource(EmptyAsset.INSTANCE, "beans.xml")
                 .addAsWebInfResource(new StringAsset(
-                                "mp.context.ManagedExecutor.maxAsync=1\n" +
-                                        "mp.context.ManagedExecutor.maxQueued=4\n" +
-                                        "mp.context.ManagedExecutor.propagated=Label,ThreadPriority\n" +
-                                        "mp.context.ManagedExecutor.cleared=Remaining\n" +
-                                        "mp.context.ThreadContext.cleared=Buffer\n" +
-                                        "mp.context.ThreadContext.propagated=None\n" +
-                                        "mp.context.ThreadContext.unchanged=Remaining"),
+                        "mp.context.ManagedExecutor.maxAsync=1\n" +
+                                "mp.context.ManagedExecutor.maxQueued=4\n" +
+                                "mp.context.ManagedExecutor.propagated=Label,ThreadPriority\n" +
+                                "mp.context.ManagedExecutor.cleared=Remaining\n" +
+                                "mp.context.ThreadContext.cleared=Buffer\n" +
+                                "mp.context.ThreadContext.propagated=None\n" +
+                                "mp.context.ThreadContext.unchanged=Remaining"),
                         "classes/META-INF/microprofile-config.properties")
                 .addAsLibraries(fakeContextProviders);
     }
@@ -122,12 +125,15 @@ public class MPConfigTest extends Arquillian {
     }
 
     /**
-     * Verify that the cleared and propagated attributes of a ManagedExecutor are defaulted
-     * according to the defaults specified by the application in MicroProfile Config.
+     * Verify that the cleared and propagated attributes of a ManagedExecutor are defaulted according to the defaults
+     * specified by the application in MicroProfile Config.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test
     public void defaultContextPropagationForManagedExecutorViaMPConfig()
@@ -146,26 +152,24 @@ public class MPConfigTest extends Arquillian {
 
             // Run on separate thread to test propagated
             CompletableFuture<Void> stage1 = executor.completedFuture(newPriority)
-                                                     .thenAcceptAsync(expectedPriority -> {
-                Assert.assertEquals(Label.get(), "defaultContextPropagationForManagedExecutorViaMPConfig-test-label",
-                        "Context type (Label) that MicroProfile config defaults to be propagated was not correctly propagated.");
-                Assert.assertEquals(Integer.valueOf(Thread.currentThread().getPriority()), expectedPriority,
-                        "Context type (ThreadPriority) that MicroProfile config defaults to be propagated was not correctly propagated.");
-            });
+                    .thenAcceptAsync(expectedPriority -> {
+                        Assert.assertEquals(Label.get(),
+                                "defaultContextPropagationForManagedExecutorViaMPConfig-test-label",
+                                "Context type (Label) that MicroProfile config defaults to be propagated was not correctly propagated.");
+                        Assert.assertEquals(Integer.valueOf(Thread.currentThread().getPriority()), expectedPriority,
+                                "Context type (ThreadPriority) that MicroProfile config defaults to be propagated was not correctly propagated.");
+                    });
 
             Assert.assertNull(stage1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
                     "Non-null value returned by stage that runs async Consumer.");
 
             // Run on current thread to test cleared
-            CompletableFuture<Void> stage2 = stage1.thenRun(() ->
-                Assert.assertEquals(Buffer.get().toString(), "",
-                        "Context type (Buffer) that MicroProfile config overrides to be cleared was not cleared.")
-            );
+            CompletableFuture<Void> stage2 = stage1.thenRun(() -> Assert.assertEquals(Buffer.get().toString(), "",
+                    "Context type (Buffer) that MicroProfile config overrides to be cleared was not cleared."));
 
             Assert.assertNull(stage2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
                     "Non-null value returned by stage that runs Runnable.");
-        }
-        finally {
+        } finally {
             // Restore original values
             Buffer.set(null);
             Label.set(null);
@@ -174,8 +178,8 @@ public class MPConfigTest extends Arquillian {
     }
 
     /**
-     * Verify that the cleared and propagated attributes of a ThreadContext are defaulted
-     * according to the defaults specified by the application in MicroProfile Config.
+     * Verify that the cleared and propagated attributes of a ThreadContext are defaulted according to the defaults
+     * specified by the application in MicroProfile Config.
      */
     @Test
     public void defaultContextPropagationForThreadContextViaMPConfig() {
@@ -209,8 +213,7 @@ public class MPConfigTest extends Arquillian {
 
             Assert.assertEquals(Label.get(), "defaultContextPropagationForThreadContextViaMPConfig-test-label-A",
                     "Context type that MicroProfile Config defaults to remain unchanged was changed when task completed.");
-        }
-        finally {
+        } finally {
             // Restore original values
             Buffer.set(null);
             Label.set(null);
@@ -219,12 +222,15 @@ public class MPConfigTest extends Arquillian {
     }
 
     /**
-     * Verify that the maxAsync and maxQueued attributes of a ManagedExecutor are defaulted
-     * according to the defaults specified by the application in MicroProfile Config.
+     * Verify that the maxAsync and maxQueued attributes of a ManagedExecutor are defaulted according to the defaults
+     * specified by the application in MicroProfile Config.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test(dependsOnMethods = "beanInjected")
     public void defaultMaxAsyncAndMaxQueuedForManagedExecutorViaMPConfig()
@@ -253,18 +259,18 @@ public class MPConfigTest extends Arquillian {
             try {
                 CompletableFuture<String> cf5 = executor.supplyAsync(() -> "V");
                 // CompletableFuture interface does not provide detail on precisely how to report rejection,
-                // so tolerate both possibilities: exception raised or stage returned with exceptional completion.   
+                // so tolerate both possibilities: exception raised or stage returned with exceptional completion.
                 Assert.assertTrue(cf5.isDone() && cf5.isCompletedExceptionally(),
                         "Exceeded maxQueued of 4. Future for 5th queued task/action is " + cf5);
-            }
-            catch (RejectedExecutionException x) {
+            } catch (RejectedExecutionException x) {
                 // test passes
             }
 
             // unblock and allow tasks to finish
             barrier.arrive();
 
-            Assert.assertEquals(cf1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "defaultMaxAsyncAndMaxQueuedForManagedExecutorViaMPConfig-test-buffer",
+            Assert.assertEquals(cf1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
+                    "defaultMaxAsyncAndMaxQueuedForManagedExecutorViaMPConfig-test-buffer",
                     "First task: Context not propagated as configured on the builder.");
 
             Assert.assertEquals(cf2.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "",
@@ -275,8 +281,7 @@ public class MPConfigTest extends Arquillian {
 
             Assert.assertEquals(cf4.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "IV",
                     "Unexpected result of fourth task.");
-        }
-        finally {
+        } finally {
             barrier.forceTermination();
 
             // Restore original values
@@ -286,12 +291,15 @@ public class MPConfigTest extends Arquillian {
     }
 
     /**
-     * Verify that MicroProfile config defaults the cleared attribute when only the
-     * propagated and maxQueued attributes are specified by the application.
+     * Verify that MicroProfile config defaults the cleared attribute when only the propagated and maxQueued attributes
+     * are specified by the application.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test(dependsOnMethods = "beanInjected")
     public void explicitlySpecifiedPropagatedTakesPrecedenceOverDefaults()
@@ -323,8 +331,7 @@ public class MPConfigTest extends Arquillian {
 
             Assert.assertNull(stage1.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS),
                     "Non-null value returned by stage that runs Runnable.");
-        }
-        finally {
+        } finally {
             // Restore original values
             Buffer.set(null);
             Label.set(null);
@@ -333,8 +340,8 @@ public class MPConfigTest extends Arquillian {
     }
 
     /**
-     * Verify that MicroProfile config does not default any attributes when all attributes
-     * are explicitly specified by the application.
+     * Verify that MicroProfile config does not default any attributes when all attributes are explicitly specified by
+     * the application.
      */
     @Test(dependsOnMethods = "beanInjected")
     public void explicitlySpecifyAllAttributesOfThreadContext() {
@@ -362,22 +369,24 @@ public class MPConfigTest extends Arquillian {
                 Assert.assertEquals(Thread.currentThread().getPriority(), Thread.NORM_PRIORITY,
                         "Context type (ThreadPriority) that is explicitly configured to be cleared was not cleared.");
             });
-        }
-        finally {
+        } finally {
             // Restore original values
             Buffer.set(null);
             Label.set(null);
             Thread.currentThread().setPriority(originalPriority);
         }
     }
-    
+
     /**
-     * Verify that MicroProfile config defaults the maxAsync attribute and honors the explicitly specified
-     * maxQueued attribute, when only the propagated and maxQueued attributes are specified by the application.
+     * Verify that MicroProfile config defaults the maxAsync attribute and honors the explicitly specified maxQueued
+     * attribute, when only the propagated and maxQueued attributes are specified by the application.
      *
-     * @throws ExecutionException indicates test failure
-     * @throws InterruptedException indicates test failure
-     * @throws TimeoutException indicates test failure
+     * @throws ExecutionException
+     *             indicates test failure
+     * @throws InterruptedException
+     *             indicates test failure
+     * @throws TimeoutException
+     *             indicates test failure
      */
     @Test(dependsOnMethods = "beanInjected")
     public void explicitlySpecifyMaxQueued5()
@@ -403,8 +412,7 @@ public class MPConfigTest extends Arquillian {
             try {
                 Future<String> future6 = producedExecutor.submit(() -> "Q_6");
                 Assert.fail("Exceeded maxQueued of 5. Future for 6th queued task/action is " + future6);
-            }
-            catch (RejectedExecutionException x) {
+            } catch (RejectedExecutionException x) {
                 // test passes
             }
 
@@ -425,9 +433,8 @@ public class MPConfigTest extends Arquillian {
 
             Assert.assertEquals(future5.get(MAX_WAIT_NS, TimeUnit.NANOSECONDS), "Q_5",
                     "Unexpected result of fifth task.");
-        }
-        finally {
+        } finally {
             barrier.forceTermination();
-        } 
+        }
     }
 }
