@@ -34,9 +34,8 @@ public class ThreadPrioritySnapshot implements ThreadContextSnapshot {
     }
 
     /**
-     * Apply the saved thread priority to the current thread, but
-     * first storing a copying of the thread priority that was previously on the thread
-     * so that the previous thread priority can later be restored via the returned
+     * Apply the saved thread priority to the current thread, but first storing a copying of the thread priority that
+     * was previously on the thread so that the previous thread priority can later be restored via the returned
      * ThreadContextController.
      */
     @Override
@@ -48,8 +47,7 @@ public class ThreadPrioritySnapshot implements ThreadContextSnapshot {
         ThreadContextController contextRestorer = () -> {
             if (restored.compareAndSet(false, true)) {
                 thread.setPriority(priorityToRestore);
-            }
-            else {
+            } else {
                 throw new IllegalStateException();
             }
         };

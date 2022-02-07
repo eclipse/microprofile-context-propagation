@@ -19,8 +19,8 @@
 package org.eclipse.microprofile.context.tck.contexts.buffer;
 
 /**
- * This is a fake context type that is created by the test suite.
- * It associates a StringBuffer with the current thread, accessible via the get/set methods of this class.
+ * This is a fake context type that is created by the test suite. It associates a StringBuffer with the current thread,
+ * accessible via the get/set methods of this class.
  */
 public class Buffer {
     public static final String CONTEXT_NAME = "Buffer";

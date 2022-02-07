@@ -21,4 +21,5 @@ package org.eclipse.microprofile.context.tck.cdi;
 import jakarta.enterprise.context.RequestScoped;
 
 @RequestScoped
-public class RequestScopedBean extends AbstractBean {}
+public class RequestScopedBean extends AbstractBean {
+}

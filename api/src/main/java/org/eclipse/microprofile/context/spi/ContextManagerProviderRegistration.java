@@ -19,8 +19,9 @@
 package org.eclipse.microprofile.context.spi;
 
 /**
- * <p>This class gives the container that registered a
- * <code>ContextManagerProvider</code> exclusive control over unregistering it.
+ * <p>
+ * This class gives the container that registered a <code>ContextManagerProvider</code> exclusive control over
+ * unregistering it.
  * </p>
  */
 public class ContextManagerProviderRegistration {
@@ -31,8 +32,8 @@ public class ContextManagerProviderRegistration {
     }
 
     /**
-     * Unregister the <code>ContextManagerProvider</code> that is represented by
-     * this <code>ContextManagerProviderRegistration</code> instance.
+     * Unregister the <code>ContextManagerProvider</code> that is represented by this
+     * <code>ContextManagerProviderRegistration</code> instance.
      */
     public void unregister() {
         ContextManagerProvider.INSTANCE.compareAndSet(provider, null);

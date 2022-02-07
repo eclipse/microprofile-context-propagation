@@ -25,16 +25,15 @@ import java.lang.annotation.Target;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import org.eclipse.microprofile.context.ManagedExecutor;
+import org.eclipse.microprofile.context.ThreadContext;
+import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
+import org.eclipse.microprofile.context.tck.contexts.label.Label;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.inject.Named;
 import jakarta.inject.Qualifier;
-
-import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
-import org.eclipse.microprofile.context.tck.contexts.label.Label;
-
-import org.eclipse.microprofile.context.ManagedExecutor;
-import org.eclipse.microprofile.context.ThreadContext;
 
 @ApplicationScoped
 public class MPConfigBean {
@@ -44,8 +43,9 @@ public class MPConfigBean {
 
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    @Target({ ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER })
-    public @interface Max5Queue {}
+    @Target({ElementType.FIELD, ElementType.METHOD, ElementType.PARAMETER})
+    public @interface Max5Queue {
+    }
 
     @Inject
     protected void setCompletedFuture(@Max5Queue ManagedExecutor executor) {
@@ -61,8 +61,7 @@ public class MPConfigBean {
         Buffer.set(new StringBuffer("setContextSnapshot-test-buffer"));
         try {
             contextSnapshot = contextPropagator.currentContextExecutor();
-        }
-        finally {
+        } finally {
             Buffer.set(null);
             Label.set(null);
             Thread.currentThread().setPriority(originalPriority);

@@ -20,8 +20,8 @@ package org.eclipse.microprofile.context.tck.contexts.buffer.spi;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 import org.eclipse.microprofile.context.spi.ThreadContextController;
+import org.eclipse.microprofile.context.tck.contexts.buffer.Buffer;
 
 /**
  * Restores a buffer context that was saved upon creation.
@@ -37,8 +37,7 @@ public class BufferContextRestorer implements ThreadContextController {
     public void endContext() {
         if (restored.compareAndSet(false, true)) {
             Buffer.set(bufferToRestore);
-        }
-        else {
+        } else {
             throw new IllegalStateException();
         }
     }
@@ -48,6 +47,6 @@ public class BufferContextRestorer implements ThreadContextController {
     public String toString() {
         return "BufferContextRestorer@" + Integer.toHexString(System.identityHashCode(this)) +
                 " for StringBuffer@" + Integer.toHexString(System.identityHashCode(bufferToRestore)) +
-               ": " + bufferToRestore.toString();
+                ": " + bufferToRestore.toString();
     }
 }

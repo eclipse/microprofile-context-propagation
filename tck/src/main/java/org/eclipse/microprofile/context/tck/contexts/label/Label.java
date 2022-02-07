@@ -19,8 +19,8 @@
 package org.eclipse.microprofile.context.tck.contexts.label;
 
 /**
- * This is a fake context type that is created by the test suite,
- * which associates an immutable label (a String) with a thread. 
+ * This is a fake context type that is created by the test suite, which associates an immutable label (a String) with a
+ * thread.
  */
 public class Label {
     public static final String CONTEXT_NAME = "Label";
@@ -32,6 +32,7 @@ public class Label {
 
     /**
      * Get the current 'label' context.
+     * 
      * @return current label.
      */
     public static String get() {
@@ -40,7 +41,9 @@ public class Label {
 
     /**
      * Set the current 'label' context.
-     * @param label new label.
+     * 
+     * @param label
+     *            new label.
      */
     public static void set(String label) {
         context.set(label == null ? "" : label);

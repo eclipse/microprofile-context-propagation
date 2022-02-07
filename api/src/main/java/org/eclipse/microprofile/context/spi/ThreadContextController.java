@@ -19,27 +19,33 @@
 package org.eclipse.microprofile.context.spi;
 
 /**
- * <p>Represents context that is applied to a particular thread, along with any
- * state that is associated with it or that is necessary for restoring the
- * previous context afterward.</p>
+ * <p>
+ * Represents context that is applied to a particular thread, along with any state that is associated with it or that is
+ * necessary for restoring the previous context afterward.
+ * </p>
  *
- * <p>When the context is no longer needed on the thread, the
- * <code>ManagedExecutor</code> or <code>ThreadContext</code> must invoke the
- * <code>endContext</code> method.</p>
+ * <p>
+ * When the context is no longer needed on the thread, the <code>ManagedExecutor</code> or <code>ThreadContext</code>
+ * must invoke the <code>endContext</code> method.
+ * </p>
  */
 @FunctionalInterface
 public interface ThreadContextController {
     /**
-     * <p>Invoked by the <code>ManagedExecutor</code> or
-     * <code>ThreadContext</code> to remove the thread context managed by
-     * this <code>ThreadContextController</code> instance and restore the previous
-     * context that was on the thread before the <code>ThreadContextController</code>
-     * applied the context to the thread. The <code>ManagedExecutor</code> or
-     * <code>ThreadContext</code> must invoke the <code>endContext</code> method exactly
-     * once for each <code>ThreadContextController</code> instance that it creates.</p>
+     * <p>
+     * Invoked by the <code>ManagedExecutor</code> or <code>ThreadContext</code> to remove the thread context managed by
+     * this <code>ThreadContextController</code> instance and restore the previous context that was on the thread before
+     * the <code>ThreadContextController</code> applied the context to the thread. The <code>ManagedExecutor</code> or
+     * <code>ThreadContext</code> must invoke the <code>endContext</code> method exactly once for each
+     * <code>ThreadContextController</code> instance that it creates.
+     * </p>
      *
-     * <p>Typically, patterns such as the following will be observed:</p>
-     * <pre><code>
+     * <p>
+     * Typically, patterns such as the following will be observed:
+     * </p>
+     * 
+     * <pre>
+     * <code>
      * controllerA1 = contextSnapshotA.begin();
      * controllerB1 = contextSnapshotB.begin();
      * controllerC1 = contextSnapshotC.begin();
@@ -47,10 +53,15 @@ public interface ThreadContextController {
      * controllerC1.endContext();
      * controllerB1.endContext();
      * controllerA1.endContext();
-     * </code></pre>
+     * </code>
+     * </pre>
      *
-     * <p>However, more advanced sequences such as the following are also valid:</p>
-     * <pre><code>
+     * <p>
+     * However, more advanced sequences such as the following are also valid:
+     * </p>
+     * 
+     * <pre>
+     * <code>
      * controllerA1 = contextSnapshotA.begin();
      * controllerB1 = contextSnapshotB.begin();
      * ...
@@ -66,9 +77,11 @@ public interface ThreadContextController {
      * ...
      * controllerB1.endContext();
      * controllerA1.endContext();
-     * </code></pre>
+     * </code>
+     * </pre>
      *
-     * @throws IllegalStateException if invoked more than once on the same instance.
+     * @throws IllegalStateException
+     *             if invoked more than once on the same instance.
      */
     void endContext() throws IllegalStateException;
 }

@@ -21,14 +21,14 @@ package org.eclipse.microprofile.context.tck.contexts.label.spi;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.eclipse.microprofile.context.tck.contexts.label.Label;
 import org.eclipse.microprofile.context.spi.ThreadContextController;
 import org.eclipse.microprofile.context.spi.ThreadContextProvider;
 import org.eclipse.microprofile.context.spi.ThreadContextSnapshot;
+import org.eclipse.microprofile.context.tck.contexts.label.Label;
 
 /**
- * This is a fake all-in-one context provider that is created by the test suite.
- * This context type captures/clears/propagates/restores an immutable label (a String) that is associated with a thread. 
+ * This is a fake all-in-one context provider that is created by the test suite. This context type
+ * captures/clears/propagates/restores an immutable label (a String) that is associated with a thread.
  */
 public class LabelContextProvider implements ThreadContextProvider {
     /**
@@ -65,8 +65,7 @@ public class LabelContextProvider implements ThreadContextProvider {
             ThreadContextController contextRestorer = () -> {
                 if (restored.compareAndSet(false, true)) {
                     Label.set(labelToRestore);
-                }
-                else {
+                } else {
                     throw new IllegalStateException();
                 }
             };

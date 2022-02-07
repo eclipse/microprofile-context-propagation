@@ -18,9 +18,10 @@
  */
 package org.eclipse.microprofile.context.tck.cdi;
 
-import jakarta.transaction.TransactionScoped;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import jakarta.transaction.TransactionScoped;
 
 @TransactionScoped
 public class TransactionalBeanImpl implements TransactionalBean, Serializable {

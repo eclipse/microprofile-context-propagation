@@ -27,15 +27,16 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.testng.Assert;
 import org.testng.ITestResult;
-import org.testng.annotations.Test;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 public class TckTest extends Arquillian {
 
     @AfterMethod
     public void afterMethod(Method m, ITestResult result) {
-        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName() + (result.isSuccess() ? " SUCCESS" : " FAILED"));
+        System.out.println("<<< END " + m.getClass().getSimpleName() + '.' + m.getName()
+                + (result.isSuccess() ? " SUCCESS" : " FAILED"));
         Throwable failure = result.getThrowable();
         if (failure != null) {
             failure.printStackTrace(System.out);
