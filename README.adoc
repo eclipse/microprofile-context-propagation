@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2018,2019 Contributors to the Eclipse Foundation
+// Copyright (c) 2018,2024 Contributors to the Eclipse Foundation
 //
 // See the NOTICE file(s) distributed with this work for additional
 // information regarding copyright ownership.
@@ -25,7 +25,7 @@ image:https://badges.gitter.im/eclipse/microprofile-concurrency.svg[link="https:
 
 :toc:
 
-* Status: *new*
+* Status: *discontinued* (this specification is replaced by https://github.com/jakartaee/concurrency[Jakarta Concurrency])
 * Decision Notes:
 https://groups.google.com/forum/?utm_medium=email&utm_source=footer#!topic/microprofile/jKFu-IS_U90[Discussion
 thread topic with background and covering the design]
