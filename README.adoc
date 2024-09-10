@@ -25,7 +25,7 @@ image:https://badges.gitter.im/eclipse/microprofile-concurrency.svg[link="https:
 
 :toc:
 
-* Status: *discontinued* (this specification is replaced by Jakarta Concurrency)
+* Status: *discontinued* (this specification is replaced by https://github.com/jakartaee/concurrency[Jakarta Concurrency])
 * Decision Notes:
 https://groups.google.com/forum/?utm_medium=email&utm_source=footer#!topic/microprofile/jKFu-IS_U90[Discussion
 thread topic with background and covering the design]
